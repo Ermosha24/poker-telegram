@@ -38,7 +38,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 /* ===== SPLASH ===== */
 #splash-screen{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a4a2a 0%,#0a1f0a 100%);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s;}
-#splash-screen.hide{opacity:0;pointer-events:none;}
+#splash-screen.hide{opacity:0;pointer-events:none;z-index:-1;}
 .splash-logo{font-weight:900;font-size:72px;letter-spacing:-3px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6),0 0 60px rgba(245,184,0,.15);animation:float 2.5s ease-in-out infinite;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 .splash-sub{font-size:14px;color:rgba(255,255,255,.35);margin-top:12px;letter-spacing:4px;text-transform:uppercase;font-weight:500;}
@@ -220,11 +220,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* STATUS */
 .status-msg{font-size:13px;color:rgba(255,255,255,.65);text-align:center;min-height:20px;font-weight:600;margin-top:6px;text-shadow:0 1px 3px rgba(0,0,0,.5);}
 
-/* END SCREEN */
-.end-screen{text-align:center;}
-.end-winner{font-size:36px;font-weight:900;margin-bottom:10px;color:var(--accent-gold);text-shadow:0 4px 20px rgba(245,184,0,.3);}
-.end-amount{font-size:20px;color:rgba(255,255,255,.7);margin-bottom:28px;font-weight:500;}
-.end-hint{font-size:13px;color:rgba(255,255,255,.35);margin-top:20px;animation:pulse 1.5s infinite;}
+
 
 /* TOAST */
 .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-10px);background:rgba(20,20,40,.95);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);padding:12px 24px;border-radius:24px;font-size:13px;font-weight:700;display:none;z-index:200;opacity:0;transition:all .3s;white-space:nowrap;box-shadow:var(--shadow-lg);}
@@ -444,17 +440,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   </div>
 </div>
 
-<div id="end-screen" class="screen end-screen">
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-    <div class="end-winner" id="end-winner">🏆 Победитель</div>
-    <div class="end-amount"  id="end-amount">+0 фишек</div>
-    <div id="winners-list"   style="margin-bottom:20px;font-size:14px;color:rgba(255,255,255,.6);"></div>
-    <div id="hand-rankings"  style="margin-bottom:20px;font-size:13px;color:rgba(255,255,255,.5);"></div>
-    <div class="end-hint"    id="auto-lobby-hint">Возвращаемся в лобби через 8 сек...</div>
-    <button class="btn btn-green"     id="next-hand-btn" onclick="startNewHand()">▶ Новая раздача</button>
-    <button class="btn btn-secondary" onclick="backToLobby()" style="margin-top:12px;">← В лобби</button>
-  </div>
-</div>
+
 
 <div id="tournament-screen" class="screen">
   <div class="tourney-header">
@@ -641,8 +627,13 @@ function genCode(){
   let s='';for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)];return s;
 }
 function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(name+'-screen')?.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.remove('active');
+      });
+  const target = document.getElementById(name+'-screen');
+    if(target){
+    target.classList.add('active');
+      }
 }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -686,6 +677,7 @@ function createRoom(code){
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   roomRef = db.ref('poker-rooms/'+code);
   unsubscribe = roomRef.on('value',snap=>{
+    if(!roomCode) return; // Prevent re-rendering after leaving
     let state=snap.val();
     if(!state) return;
     state = normalizeState(state);
@@ -693,11 +685,8 @@ function createRoom(code){
     if(foundIdx<0) foundIdx = state.players.findIndex(p=>p.name===myName);
     if(foundIdx>=0) myIndex=foundIdx;
     if(state.phase==='waiting') renderWaiting(state);
-    else if(state.phase==='ended'){
-      if(state.isTournament) renderTournament(state);
-      else renderEnd(state);
-    }
-    else if(state.isTournament && state.phase !== 'ended'){
+    else if(state.phase==='ended') renderEnd(state);
+    else if(state.isTournament){
       renderGame(state);
       renderTournament(state);
     }
@@ -790,16 +779,18 @@ document.getElementById('tourney-btn').addEventListener('click',startTournament)
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
 function backToLobby(){
-  clearWinnerAnim();
+    clearWinnerAnim();
   stopTimer();
   if(botTimer) clearTimeout(botTimer);
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer=null; isEndShown=false;
   if(unsubscribe){unsubscribe();unsubscribe=null;}
-  if(roomCode && isHost) db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
+  if(roomCode && isHost){
+    db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
+  }
   roomCode=null; myIndex=-1; isHost=false;
-  showScreen('lobby');
-}
+    showScreen('lobby');
+  }
 function reindexPlayers(state, removedIdx){
   const n = state.players.length;
   if(state.dealer > removedIdx) state.dealer--;
@@ -820,21 +811,11 @@ function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  db.ref('poker-rooms/'+roomCode).transaction(currentState => {
-    if(!currentState) return;
-    let state = normalizeState(currentState);
-    const removedIdx = myIndex;
-    state.players = state.players.filter((_,i) => i !== removedIdx);
-    if(state.players.length === 0){
-      return null; // Remove room
-    }
-    reindexPlayers(state, removedIdx);
-    if(state.currentPlayer === removedIdx) processNextPlayer(state);
-    state.ts = Date.now();
-    return state;
-  }).then(() => {
-    backToLobby();
-  });
+  // Just clean up and go to lobby — don't bother with transaction
+  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  if(roomCode && isHost) db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
+  roomCode=null; myIndex=-1; isHost=false;
+  showScreen('lobby');
 }
 
 // ===== DEAL HAND =====
@@ -1565,7 +1546,15 @@ function processNextPlayer(state){
 
   if(active.length===1){
     collectBets(state);
-    endHand(state,[state.players.indexOf(active[0])]);
+    // Award all pots to the last active player
+    const winnerIdx = state.players.indexOf(active[0]);
+    const totalPot = state.pots.reduce((sum, pot) => sum + pot.amount, state.pot);
+    if(totalPot > 0){
+      state.players[winnerIdx].chips += totalPot;
+    }
+    state.pot = 0;
+    state.pots = [];
+    endHand(state, [winnerIdx]);
     return;
   }
 
@@ -1695,7 +1684,6 @@ function showdown(state){
 
   state.pot = 0;
   state.pots = [];
-
   state.handRankings = results.map(r => ({ name: r.name, rankName: r.rankName }));
   endHand(state, Array.from(allWinners));
 }
@@ -1768,47 +1756,30 @@ function renderEnd(state){
   if(state.winners && state.winners.length > 0) AudioManager.winChime();
   if(isEndShown) return;
   isEndShown=true;
-  showScreen('end');
-  const title=document.getElementById('end-winner');
-  const amt=document.getElementById('end-amount');
-  const list=document.getElementById('winners-list');
-  const rankings=document.getElementById('hand-rankings');
-  const hint=document.getElementById('auto-lobby-hint');
 
-  if(!state.winners||state.winners.length===0){
-    title.textContent='Игра окончена'; amt.textContent=''; list.innerHTML=''; rankings.innerHTML=''; return;
-  }
-  // Show total pot from all pots if still exists
-  const totalPot = state.pots.reduce((sum, pot) => sum + pot.amount, state.pot);
-  if(totalPot > 0){
-    amt.textContent = 'Банк: ' + totalPot;
-  }
-  if(state.winners.length===1){
-    title.textContent='🏆 '+state.winners[0].name;
-    amt.textContent='Забрал банк';
+  // Show winner toast instead of end screen
+  let msg = '';
+  if(!state.winners || state.winners.length===0){
+    msg = 'Игра окончена';
+  } else if(state.winners.length===1){
+    msg = '🏆 ' + state.winners[0].name + ' забрал банк!';
   } else {
-    title.textContent='💰 Делёж банка';
-    amt.textContent='';
+    msg = '💰 Делёж банка: ' + state.winners.map(w => w.name).join(', ');
   }
-  state.winners.forEach(w=>animateWinner(w.idx));
-  list.innerHTML=state.winners.map(w=>`<div style="color:var(--accent-gold);font-weight:700">${state.players[w.idx].name}: ${state.players[w.idx].chips} фишек</div>`).join('');
-  if(state.handRankings){
-    rankings.innerHTML='<div style="margin-bottom:8px;color:rgba(255,255,255,.4);font-size:12px;letter-spacing:1px;text-transform:uppercase;">Комбинации</div>'+
-      state.handRankings.map(r=>`<div style="margin:4px 0">${r.name} — <span style="color:var(--accent-gold)">${r.rankName}</span></div>`).join('');
-  }
+  showToast(msg);
 
-  const hasBot = state.players.some(p=>p.isBot);
+  // Animate winner
+  if(state.winners) state.winners.forEach(w => animateWinner(w.idx));
+
+  // Auto-continue after short delay
   if(state.isTournament){
-    hint.textContent = 'Следующая раздача через 3 сек...';
     if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
     autoLobbyTimer = setTimeout(() => { isEndShown = false; nextTournamentHand(); }, 3000);
-    return;
+  } else {
+    const delay = state.players.some(p => p.isBot) ? 3000 : 5000;
+    if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+    autoLobbyTimer = setTimeout(() => { isEndShown = false; startNewHand(); }, delay);
   }
-  hint.textContent = hasBot ? 'Возвращаемся в лобби через 8 сек...' : 'Возвращаемся в лобби через 5 сек...';
-  const delay = hasBot ? 8000 : 5000;
-
-  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  autoLobbyTimer=setTimeout(()=>{ isEndShown=false; backToLobby(); },delay);
 }
 
 // ===== NEW HAND =====
@@ -1822,8 +1793,10 @@ function startNewHand(){
     if(!currentState) return;
     let state = normalizeState(currentState);
     if(state.isTournament){ nextTournamentHand(); return; }
+    // Remove broke players
     state.players = state.players.filter(p => p.chips > 0);
     if(state.players.length < 2) return null;
+    // Reset for new hand (chips stay!)
     state.pots = [];
     state.pot = 0;
     state.dealer = (state.dealer + 1) % state.players.length;
