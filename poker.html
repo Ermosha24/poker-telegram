@@ -38,6 +38,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
 .btn-secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);}
 .btn-green{background:linear-gradient(135deg,#27A55A,#1e8c4a);color:#fff;}
 .btn-yellow{background:linear-gradient(135deg,#F5B800,#d4a017);color:#1a1a1a;}
+.btn-purple{background:linear-gradient(135deg,#7B68EE,#6a5acd);color:#fff;}
 .or-divider{font-size:12px;color:rgba(255,255,255,.25);margin:8px 0;text-align:center;}
 
 .waiting-title{font-size:24px;font-weight:800;margin-bottom:8px;}
@@ -101,6 +102,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
 .end-screen{text-align:center;}
 .end-winner{font-size:32px;font-weight:800;margin-bottom:8px;color:#F5B800;}
 .end-amount{font-size:18px;color:rgba(255,255,255,.7);margin-bottom:24px;}
+.end-hint{font-size:13px;color:rgba(255,255,255,.4);margin-top:16px;animation:pulse 1.5s infinite;}
 
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-10px);background:rgba(20,20,40,.95);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;display:none;z-index:200;opacity:0;transition:all .3s;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);}
 .toast.show{display:block;opacity:1;transform:translateX(-50%) translateY(0);}
@@ -112,6 +114,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
   .player-pos .p-avatar{font-size:22px;}
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -135,6 +138,12 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
       <input type="text" id="join-code" maxlength="4" placeholder="Код" />
       <button class="btn btn-secondary" id="join-btn" style="margin-top:0;width:auto;">Войти</button>
     </div>
+  </div>
+  <div class="or-divider">— или —</div>
+  <div class="lobby-card">
+    <h3>🤖 Играть с ботом</h3>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:10px;">Тренировка без ожидания</div>
+    <button class="btn btn-purple" id="bot-btn">Играть с ботом</button>
   </div>
 </div>
 
@@ -180,8 +189,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
     <div class="end-winner" id="end-winner">🏆 Победитель</div>
     <div class="end-amount" id="end-amount">+0 фишек</div>
     <div id="winners-list" style="margin-bottom:20px;font-size:14px;color:rgba(255,255,255,.6);"></div>
-    <button class="btn btn-green" id="next-hand-btn" onclick="startNewHand()">Новая раздача</button>
-    <button class="btn btn-secondary" onclick="backToLobby()" style="margin-top:10px;">В лобби</button>
+    <div class="end-hint" id="auto-lobby-hint">Возвращаемся в лобби...</div>
   </div>
 </div>
 
@@ -212,6 +220,9 @@ let unsubscribe = null;
 let myIndex = -1;
 let isHost = false;
 let timerInterval = null;
+let botTimer = null;
+let autoLobbyTimer = null;
+let isEndShown = false;
 const TURN_TIME = 30;
 
 const SUITS = {s:'♠',h:'♥',d:'♦',c:'♣'};
@@ -224,7 +235,7 @@ function buildDeck(){
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function cardVal(v){if(v==='A')return 14;if(v==='K')return 13;if(v==='Q')return 12;if(v==='J')return 11;return parseInt(v);}
 
-function genCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
+function genCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById(name+'-screen');
@@ -237,6 +248,7 @@ function createRoom(code){
   unsubscribe = roomRef.on('value', snap => {
     const state = snap.val();
     if(!state) return;
+    console.log('FB update:', state.phase, 'current:', state.currentPlayer, 'pot:', state.pot);
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else renderGame(state);
@@ -315,10 +327,16 @@ document.getElementById('join-btn').addEventListener('click', ()=>{
   });
 });
 
+document.getElementById('bot-btn').addEventListener('click', startBotGame);
+
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click', backToLobby));
 
 function backToLobby(){
   stopTimer();
+  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  autoLobbyTimer = null;
+  isEndShown = false;
+  if(botTimer) clearTimeout(botTimer);
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   if(roomCode && isHost) db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
   roomCode=null; myIndex=-1; isHost=false;
@@ -327,6 +345,8 @@ function backToLobby(){
 function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
+  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  if(botTimer) clearTimeout(botTimer);
   db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
     const state=snap.val();
     if(!state) return;
@@ -334,6 +354,59 @@ function leaveRoom(){
     if(state.players.length===0){ db.ref('poker-rooms/'+roomCode).remove(); }
     else { if(state.currentPlayer===myIndex) nextPlayer(state); state.ts=Date.now(); saveRoom(state); }
     backToLobby();
+  });
+}
+
+function startBotGame(){
+  console.log('startBotGame called');
+  const code = genCode();
+  roomCode = code;
+  isHost = true;
+  myIndex = 0;
+  document.getElementById('my-room-id').textContent = code;
+  document.getElementById('waiting-code').textContent = code;
+  const state = {
+    code, phase:'playing',
+    players:[
+      {id:myPlayerId,name:myName,chips:1000,hand:[],bet:0,folded:false,allIn:false},
+      {id:'bot_1',name:'🤖 Бот',chips:1000,hand:[],bet:0,folded:false,allIn:false,isBot:true}
+    ],
+    dealer:0, smallBlind:10, bigBlind:20,
+    pot:0, currentBet:0, communityCards:[], deck:[],
+    currentPlayer:-1, lastRaiser:-1, winners:null, ts:Date.now()
+  };
+  state.deck=shuffle(buildDeck());
+  state.players.forEach(p=>{
+    p.hand=[state.deck.pop(),state.deck.pop()];
+    p.folded=false; p.allIn=false; p.bet=0;
+    if(!p.chips) p.chips=1000;
+  });
+  const n=state.players.length;
+  const sbIdx=(state.dealer+1)%n;
+  const bbIdx=(state.dealer+2)%n;
+  const sb=state.players[sbIdx];
+  const bb=state.players[bbIdx];
+  const sbAmt=Math.min(state.smallBlind,sb.chips);
+  sb.chips-=sbAmt; sb.bet=sbAmt; if(sb.chips===0) sb.allIn=true;
+  const bbAmt=Math.min(state.bigBlind,bb.chips);
+  bb.chips-=bbAmt; bb.bet=bbAmt; if(bb.chips===0) bb.allIn=true;
+  state.currentBet=bb.bet;
+  state.pot=sb.bet+bb.bet;
+  let start=(bbIdx+1)%n;
+  while(state.players[start].folded||state.players[start].allIn) start=(start+1)%n;
+  state.currentPlayer=start;
+  state.lastRaiser=bbIdx;
+  state.turnStartedAt=Date.now();
+  state.phase='preflop';
+  state.ts=Date.now();
+  console.log('Bot game state:', JSON.stringify({phase:state.phase,currentPlayer:state.currentPlayer,pot:state.pot,players:state.players.map(p=>({name:p.name,bet:p.bet,chips:p.chips}))}));
+  saveRoom(state).then(()=>{
+    console.log('Bot game saved, showing game');
+    showScreen('game');
+    createRoom(code);
+  }).catch(err=>{
+    console.error('Save error:', err);
+    showToast('Error: '+err.message);
   });
 }
 
@@ -390,8 +463,14 @@ function renderGame(state){
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
   const myIdx = state.players.findIndex(p=>p.id===myPlayerId);
+  console.log('renderGame myIdx:', myIdx, 'currentPlayer:', state.currentPlayer, 'myPlayerId:', myPlayerId, 'players:', state.players.map(p=>p.id));
+  if(myIdx < 0){
+    console.error('Player not found in state!');
+    return;
+  }
   const n = state.players.length;
-  for(let i=0;i<<4;i++) document.getElementById('pos-'+i).style.display='none';
+  const showAllCards = state.phase === 'showdown' || state.phase === 'ended';
+  for(let i=0;i<4;i++) document.getElementById('pos-'+i).style.display='none';
   for(let i=0;i<n;i++){
     const rel=(i-myIdx+n)%n;
     const el=document.getElementById('pos-'+rel);
@@ -406,12 +485,15 @@ function renderGame(state){
     el.classList.toggle('dealer',state.dealer===i);
     const cardsEl=el.querySelector('.p-cards');
     cardsEl.innerHTML='';
-    if(i===myIdx){ p.hand.forEach(c=>cardsEl.appendChild(createCardEl(c))); }
-    else { if(!p.folded){ cardsEl.appendChild(createCardBack()); cardsEl.appendChild(createCardBack()); } }
+    if(i===myIdx || showAllCards){
+      if(!p.folded) p.hand.forEach(c=>cardsEl.appendChild(createCardEl(c)));
+    } else {
+      if(!p.folded){ cardsEl.appendChild(createCardBack()); cardsEl.appendChild(createCardBack()); }
+    }
   }
   const comm=document.getElementById('community-cards');
   comm.innerHTML='';
-  for(let i=0;i<<5;i++){
+  for(let i=0;i<5;i++){
     if(i < state.communityCards.length) comm.appendChild(createCardEl(state.communityCards[i]));
     else comm.appendChild(createCardPlaceholder());
   }
@@ -422,6 +504,7 @@ function renderGame(state){
   document.getElementById('status-msg').textContent=state.lastAction||'';
   const me=state.players[myIdx];
   const bar=document.getElementById('action-bar');
+  console.log('Actions check:', 'currentPlayer===myIdx:', state.currentPlayer===myIdx, 'folded:', me.folded, 'allIn:', me.allIn, 'phase:', state.phase);
   if(state.currentPlayer===myIdx && !me.folded && !me.allIn && state.phase!=='showdown' && state.phase!=='ended'){
     bar.style.display='flex';
     const callAmt=Math.max(0,state.currentBet-me.bet);
@@ -442,6 +525,13 @@ function renderGame(state){
   } else { bar.style.display='none'; }
   if(state.turnStartedAt && state.phase!=='ended' && state.phase!=='showdown'){ startTimer(state.turnStartedAt); }
   else { stopTimer(); }
+  // Bot trigger
+  const cp = state.players[state.currentPlayer];
+  if(cp && cp.isBot && state.phase!=='ended' && state.phase!=='showdown'){
+    console.log('Trigger bot move for', cp.name, 'in 500ms');
+    if(botTimer) clearTimeout(botTimer);
+    botTimer = setTimeout(()=> botMove(state), 500);
+  }
 }
 
 function createCardEl(card){
@@ -453,6 +543,106 @@ function createCardEl(card){
 }
 function createCardBack(){const d=document.createElement('div');d.className='card card-back';return d;}
 function createCardPlaceholder(){const d=document.createElement('div');d.className='card-placeholder';return d;}
+
+// ===== BOT AI =====
+function botMove(state){
+  console.log('botMove called, currentPlayer:', state.currentPlayer, 'phase:', state.phase);
+  if(!state || state.phase==='ended' || state.phase==='showdown'){console.log('Bot exit: wrong phase'); return;}
+  const botIdx = state.currentPlayer;
+  const bot = state.players[botIdx];
+  if(!bot || !bot.isBot || bot.folded || bot.allIn){console.log('Bot exit: not bot or folded'); return;}
+
+  const strength = evaluateHand(bot.hand, state.communityCards, state.phase);
+  const callAmt = Math.max(0, state.currentBet - bot.bet);
+  const isBluff = Math.random() < 0.15;
+  console.log('Bot thinking:', bot.name, 'strength:', strength, 'callAmt:', callAmt, 'bluff:', isBluff, 'hand:', bot.hand);
+
+  db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
+    const s = snap.val();
+    if(!s || s.currentPlayer !== botIdx || s.phase !== state.phase){console.log('Bot exit: state changed'); return;}
+    const b = s.players[botIdx];
+    const ca = Math.max(0, s.currentBet - b.bet);
+    console.log('Bot acting, ca:', ca, 'chips:', b.chips);
+
+    if(ca === 0){
+      if(strength > 60 || isBluff){
+        const raise = Math.min(s.bigBlind * 3, b.chips);
+        if(raise > 0 && b.chips > raise){
+          b.bet += raise; s.pot += raise; b.chips -= raise;
+          s.currentBet = b.bet;
+          s.lastRaiser = botIdx;
+          s.lastAction = b.name + ' ставит ' + raise;
+        } else {
+          s.lastAction = b.name + ' чек';
+        }
+      } else {
+        s.lastAction = b.name + ' чек';
+      }
+    } else {
+      if(strength > 70 || (strength > 40 && ca < s.pot * 0.3) || isBluff){
+        if((strength > 85 || isBluff) && b.chips > ca + s.bigBlind){
+          const extra = Math.min(s.bigBlind * 2, b.chips - ca);
+          const total = ca + extra;
+          b.chips -= total; b.bet += total; s.pot += total;
+          s.currentBet = b.bet;
+          s.lastRaiser = botIdx;
+          s.lastAction = b.name + ' райз ' + total;
+        } else {
+          const actual = Math.min(ca, b.chips);
+          b.chips -= actual; b.bet += actual; s.pot += actual;
+          if(b.chips === 0) b.allIn = true;
+          s.lastAction = b.name + ' колл ' + actual;
+        }
+      } else {
+        b.folded = true;
+        s.lastAction = b.name + ' сбросил';
+      }
+    }
+    console.log('Bot action:', s.lastAction, 'new currentBet:', s.currentBet, 'pot:', s.pot);
+    nextPlayer(s);
+    s.ts = Date.now();
+    saveRoom(s).then(()=>console.log('Bot saved')).catch(e=>console.error('Bot save error:', e));
+  }).catch(e=>console.error('Bot read error:', e));
+}
+
+function evaluateHand(hand, community, phase){
+  const all = [...hand, ...community];
+  if(all.length < 2) return 50;
+  const vals = all.map(c=>cardVal(c.v));
+  const suits = all.map(c=>c.c);
+  const cnt = {};
+  vals.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+  const maxCount = Math.max(...Object.values(cnt));
+  const suitCnt = {};
+  suits.forEach(s=>suitCnt[s]=(suitCnt[s]||0)+1);
+  const maxSuit = Math.max(...Object.values(suitCnt));
+  const uniq = [...new Set(vals)].sort((a,b)=>a-b);
+  let straightPotential = 0;
+  for(let i=0;i<=uniq.length-5;i++){
+    if(uniq[i+4]-uniq[i]===4) straightPotential = 1;
+  }
+  let score = 0;
+  if(maxCount >= 4) score = 95;
+  else if(maxCount === 3) score = 75;
+  else if(maxCount === 2 && Object.values(cnt).filter(x=>x===2).length >= 2) score = 65;
+  else if(maxCount === 2) score = 50;
+  else score = 30;
+  if(maxSuit >= 5) score += 20;
+  else if(maxSuit >= 4) score += 10;
+  else if(maxSuit >= 3 && phase === 'preflop') score += 5;
+  if(straightPotential) score += 15;
+  const highCards = vals.filter(v=>v>=13).length;
+  score += highCards * 3;
+  if(phase === 'preflop'){
+    const hVals = hand.map(c=>cardVal(c.v)).sort((a,b)=>b-a);
+    if(hVals[0] >= 14 && hVals[1] >= 13) score = 85;
+    else if(hVals[0] >= 14 && hVals[1] >= 10) score = 70;
+    else if(hVals[0] === hVals[1]) score = 65;
+    else if(hVals[0] >= 12 && hVals[1] >= 10) score = 55;
+    else score = Math.max(score, hVals[0] * 2);
+  }
+  return Math.min(100, score);
+}
 
 function playerFold(){
   if(!roomCode) return;
@@ -570,7 +760,7 @@ function collectBets(state){
 }
 function advancePhase(state){
   if(state.phase==='preflop'){
-    for(let i=0;i<<3;i++) if(state.deck.length) state.communityCards.push(state.deck.pop());
+    for(let i=0;i<3;i++) if(state.deck.length) state.communityCards.push(state.deck.pop());
     state.phase='flop'; initRound(state);
   } else if(state.phase==='flop'){
     if(state.deck.length) state.communityCards.push(state.deck.pop());
@@ -619,7 +809,7 @@ function showdown(state){
 
 function getBest5From7(cards7){
   let best=null;
-  for(let i=0;i<<7;i++) for(let j=i+1;j<<7;j++){
+  for(let i=0;i<7;i++) for(let j=i+1;j<7;j++){
     const five=cards7.filter((_,idx)=>idx!==i&&idx!==j);
     const s=score5(five);
     if(!best||compareScores(s,best)>0) best=s;
@@ -654,6 +844,9 @@ function compareScores(a,b){
 
 function renderEnd(state){
   stopTimer();
+  if(botTimer) clearTimeout(botTimer);
+  if(isEndShown) return;
+  isEndShown = true;
   showScreen('end');
   const list=document.getElementById('winners-list');
   const title=document.getElementById('end-winner');
@@ -667,11 +860,20 @@ function renderEnd(state){
     amt.textContent='';
   }
   list.innerHTML=state.winners.map(w=>`<div>${state.players[w.idx].name}</div>`).join('');
+  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  autoLobbyTimer = setTimeout(() => {
+    isEndShown = false;
+    backToLobby();
+  }, 3000);
 }
 
 function startNewHand(){
   if(!roomCode) return;
   stopTimer();
+  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  autoLobbyTimer = null;
+  isEndShown = false;
+  if(botTimer) clearTimeout(botTimer);
   db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
     const state=snap.val();
     if(!state) return;
