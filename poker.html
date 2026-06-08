@@ -99,6 +99,8 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
 
 .status-msg{font-size:13px;color:rgba(255,255,255,.7);text-align:center;min-height:18px;font-weight:600;margin-top:4px;}
 
+.debug-info{font-size:10px;color:rgba(255,255,255,.3);text-align:center;margin-top:4px;font-family:monospace;}
+
 .end-screen{text-align:center;}
 .end-winner{font-size:32px;font-weight:800;margin-bottom:8px;color:#F5B800;}
 .end-amount{font-size:18px;color:rgba(255,255,255,.7);margin-bottom:24px;}
@@ -171,6 +173,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
     <div class="pot-display" id="pot-display">POT: 0</div>
     <div class="community-cards" id="community-cards"></div>
     <div class="status-msg" id="status-msg"></div>
+    <div class="debug-info" id="debug-info"></div>
   </div>
   <div class="action-bar" id="action-bar" style="display:none;">
     <button class="action-btn btn-fold" id="btn-fold" onclick="playerFold()">Сбросить</button>
@@ -220,9 +223,9 @@ let unsubscribe = null;
 let myIndex = -1;
 let isHost = false;
 let timerInterval = null;
-let botTimer = null;
 let autoLobbyTimer = null;
 let isEndShown = false;
+let botProcessing = false;
 const TURN_TIME = 30;
 
 const SUITS = {s:'♠',h:'♥',d:'♦',c:'♣'};
@@ -248,14 +251,23 @@ function createRoom(code){
   unsubscribe = roomRef.on('value', snap => {
     const state = snap.val();
     if(!state) return;
-    console.log('FB update:', state.phase, 'current:', state.currentPlayer, 'pot:', state.pot);
+    console.log('FB:', state.phase, 'cur:', state.currentPlayer, 'pot:', state.pot, 'last:', state.lastAction);
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else renderGame(state);
+
+    // Trigger bot if it's bot's turn
+    if(state && state.currentPlayer >= 0 && state.players && state.players[state.currentPlayer] && state.players[state.currentPlayer].isBot && state.phase !== 'ended' && state.phase !== 'showdown' && !botProcessing){
+      console.log('Trigger bot', state.currentPlayer, 'in 300ms');
+      botProcessing = true;
+      setTimeout(()=>{
+        botProcessing = false;
+        botMove(state);
+      }, 300);
+    }
   });
 }
 function saveRoom(state){return db.ref('poker-rooms/'+state.code).set(state);}
-function patchRoom(code, patch){return db.ref('poker-rooms/'+code).update(patch);}
 
 function startTimer(startTime){
   stopTimer();
@@ -336,7 +348,7 @@ function backToLobby(){
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer = null;
   isEndShown = false;
-  if(botTimer) clearTimeout(botTimer);
+  botProcessing = false;
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   if(roomCode && isHost) db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
   roomCode=null; myIndex=-1; isHost=false;
@@ -346,7 +358,7 @@ function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  if(botTimer) clearTimeout(botTimer);
+  botProcessing = false;
   db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
     const state=snap.val();
     if(!state) return;
@@ -358,7 +370,7 @@ function leaveRoom(){
 }
 
 function startBotGame(){
-  console.log('startBotGame called');
+  console.log('startBotGame');
   const code = genCode();
   roomCode = code;
   isHost = true;
@@ -366,7 +378,7 @@ function startBotGame(){
   document.getElementById('my-room-id').textContent = code;
   document.getElementById('waiting-code').textContent = code;
   const state = {
-    code, phase:'playing',
+    code, phase:'preflop',
     players:[
       {id:myPlayerId,name:myName,chips:1000,hand:[],bet:0,folded:false,allIn:false},
       {id:'bot_1',name:'🤖 Бот',chips:1000,hand:[],bet:0,folded:false,allIn:false,isBot:true}
@@ -397,12 +409,10 @@ function startBotGame(){
   state.currentPlayer=start;
   state.lastRaiser=bbIdx;
   state.turnStartedAt=Date.now();
-  state.phase='preflop';
   state.ts=Date.now();
-  console.log('Bot game state:', JSON.stringify({phase:state.phase,currentPlayer:state.currentPlayer,pot:state.pot,players:state.players.map(p=>({name:p.name,bet:p.bet,chips:p.chips}))}));
+  console.log('Saving bot game:', JSON.stringify({phase:state.phase,currentPlayer:state.currentPlayer,pot:state.pot,players:state.players.map(p=>({name:p.name,bet:p.bet,chips:p.chips}))}));
   saveRoom(state).then(()=>{
-    console.log('Bot game saved, showing game');
-    showScreen('game');
+    console.log('Saved, creating room listener');
     createRoom(code);
   }).catch(err=>{
     console.error('Save error:', err);
@@ -463,17 +473,18 @@ function renderGame(state){
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
   const myIdx = state.players.findIndex(p=>p.id===myPlayerId);
-  console.log('renderGame myIdx:', myIdx, 'currentPlayer:', state.currentPlayer, 'myPlayerId:', myPlayerId, 'players:', state.players.map(p=>p.id));
-  if(myIdx < 0){
-    console.error('Player not found in state!');
-    return;
-  }
   const n = state.players.length;
   const showAllCards = state.phase === 'showdown' || state.phase === 'ended';
+
+  const me = myIdx >= 0 ? state.players[myIdx] : null;
+  const canAct = me && state.currentPlayer === myIdx && !me.folded && !me.allIn && state.phase !== 'showdown' && state.phase !== 'ended';
+  document.getElementById('debug-info').textContent = `Я:${myIdx} Ход:${state.currentPlayer} Фаза:${state.phase} Кнопки:${canAct?'ДА':'НЕТ'}`;
+
   for(let i=0;i<4;i++) document.getElementById('pos-'+i).style.display='none';
   for(let i=0;i<n;i++){
     const rel=(i-myIdx+n)%n;
     const el=document.getElementById('pos-'+rel);
+    if(!el) continue;
     el.style.display='flex';
     const p=state.players[i];
     el.querySelector('.p-name').textContent=p.name;
@@ -486,7 +497,7 @@ function renderGame(state){
     const cardsEl=el.querySelector('.p-cards');
     cardsEl.innerHTML='';
     if(i===myIdx || showAllCards){
-      if(!p.folded) p.hand.forEach(c=>cardsEl.appendChild(createCardEl(c)));
+      if(!p.folded && p.hand) p.hand.forEach(c=>cardsEl.appendChild(createCardEl(c)));
     } else {
       if(!p.folded){ cardsEl.appendChild(createCardBack()); cardsEl.appendChild(createCardBack()); }
     }
@@ -502,10 +513,9 @@ function renderGame(state){
   const phases={preflop:'Префлоп',flop:'Флоп',turn:'Тёрн',river:'Ривер',showdown:'Вскрытие'};
   document.getElementById('phase-info').textContent=phases[state.phase]||state.phase;
   document.getElementById('status-msg').textContent=state.lastAction||'';
-  const me=state.players[myIdx];
+
   const bar=document.getElementById('action-bar');
-  console.log('Actions check:', 'currentPlayer===myIdx:', state.currentPlayer===myIdx, 'folded:', me.folded, 'allIn:', me.allIn, 'phase:', state.phase);
-  if(state.currentPlayer===myIdx && !me.folded && !me.allIn && state.phase!=='showdown' && state.phase!=='ended'){
+  if(canAct){
     bar.style.display='flex';
     const callAmt=Math.max(0,state.currentBet-me.bet);
     document.getElementById('btn-fold').style.display='block';
@@ -523,15 +533,9 @@ function renderGame(state){
     document.getElementById('raise-amount').value=Math.min(minRaise,me.chips);
     document.getElementById('btn-allin').textContent='All-in ('+me.chips+')';
   } else { bar.style.display='none'; }
+
   if(state.turnStartedAt && state.phase!=='ended' && state.phase!=='showdown'){ startTimer(state.turnStartedAt); }
   else { stopTimer(); }
-  // Bot trigger
-  const cp = state.players[state.currentPlayer];
-  if(cp && cp.isBot && state.phase!=='ended' && state.phase!=='showdown'){
-    console.log('Trigger bot move for', cp.name, 'in 500ms');
-    if(botTimer) clearTimeout(botTimer);
-    botTimer = setTimeout(()=> botMove(state), 500);
-  }
 }
 
 function createCardEl(card){
@@ -546,102 +550,33 @@ function createCardPlaceholder(){const d=document.createElement('div');d.classNa
 
 // ===== BOT AI =====
 function botMove(state){
-  console.log('botMove called, currentPlayer:', state.currentPlayer, 'phase:', state.phase);
-  if(!state || state.phase==='ended' || state.phase==='showdown'){console.log('Bot exit: wrong phase'); return;}
+  console.log('botMove called, cur:', state.currentPlayer, 'phase:', state.phase);
+  if(!state || state.phase==='ended' || state.phase==='showdown'){console.log('bot exit: wrong phase'); return;}
   const botIdx = state.currentPlayer;
   const bot = state.players[botIdx];
-  if(!bot || !bot.isBot || bot.folded || bot.allIn){console.log('Bot exit: not bot or folded'); return;}
-
-  const strength = evaluateHand(bot.hand, state.communityCards, state.phase);
-  const callAmt = Math.max(0, state.currentBet - bot.bet);
-  const isBluff = Math.random() < 0.15;
-  console.log('Bot thinking:', bot.name, 'strength:', strength, 'callAmt:', callAmt, 'bluff:', isBluff, 'hand:', bot.hand);
+  if(!bot || !bot.isBot || bot.folded || bot.allIn){console.log('bot exit: not bot or folded'); return;}
 
   db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
     const s = snap.val();
-    if(!s || s.currentPlayer !== botIdx || s.phase !== state.phase){console.log('Bot exit: state changed'); return;}
+    console.log('bot read, cur:', s?s.currentPlayer:'null', 'phase:', s?s.phase:'null');
+    if(!s || s.currentPlayer !== botIdx){console.log('bot exit: wrong player'); return;}
     const b = s.players[botIdx];
     const ca = Math.max(0, s.currentBet - b.bet);
-    console.log('Bot acting, ca:', ca, 'chips:', b.chips);
+    console.log('bot acting, ca:', ca, 'chips:', b.chips, 'hand:', b.hand);
 
     if(ca === 0){
-      if(strength > 60 || isBluff){
-        const raise = Math.min(s.bigBlind * 3, b.chips);
-        if(raise > 0 && b.chips > raise){
-          b.bet += raise; s.pot += raise; b.chips -= raise;
-          s.currentBet = b.bet;
-          s.lastRaiser = botIdx;
-          s.lastAction = b.name + ' ставит ' + raise;
-        } else {
-          s.lastAction = b.name + ' чек';
-        }
-      } else {
-        s.lastAction = b.name + ' чек';
-      }
+      s.lastAction = b.name + ' чек';
     } else {
-      if(strength > 70 || (strength > 40 && ca < s.pot * 0.3) || isBluff){
-        if((strength > 85 || isBluff) && b.chips > ca + s.bigBlind){
-          const extra = Math.min(s.bigBlind * 2, b.chips - ca);
-          const total = ca + extra;
-          b.chips -= total; b.bet += total; s.pot += total;
-          s.currentBet = b.bet;
-          s.lastRaiser = botIdx;
-          s.lastAction = b.name + ' райз ' + total;
-        } else {
-          const actual = Math.min(ca, b.chips);
-          b.chips -= actual; b.bet += actual; s.pot += actual;
-          if(b.chips === 0) b.allIn = true;
-          s.lastAction = b.name + ' колл ' + actual;
-        }
-      } else {
-        b.folded = true;
-        s.lastAction = b.name + ' сбросил';
-      }
+      const actual = Math.min(ca, b.chips);
+      b.chips -= actual; b.bet += actual; s.pot += actual;
+      if(b.chips === 0) b.allIn = true;
+      s.lastAction = b.name + ' колл ' + actual;
     }
-    console.log('Bot action:', s.lastAction, 'new currentBet:', s.currentBet, 'pot:', s.pot);
+    console.log('bot action:', s.lastAction, 'new pot:', s.pot);
     nextPlayer(s);
     s.ts = Date.now();
-    saveRoom(s).then(()=>console.log('Bot saved')).catch(e=>console.error('Bot save error:', e));
-  }).catch(e=>console.error('Bot read error:', e));
-}
-
-function evaluateHand(hand, community, phase){
-  const all = [...hand, ...community];
-  if(all.length < 2) return 50;
-  const vals = all.map(c=>cardVal(c.v));
-  const suits = all.map(c=>c.c);
-  const cnt = {};
-  vals.forEach(v=>cnt[v]=(cnt[v]||0)+1);
-  const maxCount = Math.max(...Object.values(cnt));
-  const suitCnt = {};
-  suits.forEach(s=>suitCnt[s]=(suitCnt[s]||0)+1);
-  const maxSuit = Math.max(...Object.values(suitCnt));
-  const uniq = [...new Set(vals)].sort((a,b)=>a-b);
-  let straightPotential = 0;
-  for(let i=0;i<=uniq.length-5;i++){
-    if(uniq[i+4]-uniq[i]===4) straightPotential = 1;
-  }
-  let score = 0;
-  if(maxCount >= 4) score = 95;
-  else if(maxCount === 3) score = 75;
-  else if(maxCount === 2 && Object.values(cnt).filter(x=>x===2).length >= 2) score = 65;
-  else if(maxCount === 2) score = 50;
-  else score = 30;
-  if(maxSuit >= 5) score += 20;
-  else if(maxSuit >= 4) score += 10;
-  else if(maxSuit >= 3 && phase === 'preflop') score += 5;
-  if(straightPotential) score += 15;
-  const highCards = vals.filter(v=>v>=13).length;
-  score += highCards * 3;
-  if(phase === 'preflop'){
-    const hVals = hand.map(c=>cardVal(c.v)).sort((a,b)=>b-a);
-    if(hVals[0] >= 14 && hVals[1] >= 13) score = 85;
-    else if(hVals[0] >= 14 && hVals[1] >= 10) score = 70;
-    else if(hVals[0] === hVals[1]) score = 65;
-    else if(hVals[0] >= 12 && hVals[1] >= 10) score = 55;
-    else score = Math.max(score, hVals[0] * 2);
-  }
-  return Math.min(100, score);
+    saveRoom(s).then(()=>console.log('bot saved')).catch(e=>console.error('bot save err:', e));
+  }).catch(e=>console.error('bot read err:', e));
 }
 
 function playerFold(){
@@ -844,7 +779,6 @@ function compareScores(a,b){
 
 function renderEnd(state){
   stopTimer();
-  if(botTimer) clearTimeout(botTimer);
   if(isEndShown) return;
   isEndShown = true;
   showScreen('end');
@@ -873,7 +807,7 @@ function startNewHand(){
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer = null;
   isEndShown = false;
-  if(botTimer) clearTimeout(botTimer);
+  botProcessing = false;
   db.ref('poker-rooms/'+roomCode).once('value').then(snap=>{
     const state=snap.val();
     if(!state) return;
