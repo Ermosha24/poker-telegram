@@ -1815,16 +1815,13 @@ function renderEnd(state){
 function startNewHand(){
   clearWinnerAnim();
   if(!roomCode) return;
-  db.ref('poker-rooms/'+roomCode).once('value').then(snap => {
-    const s = snap.val();
-    if(s && s.isTournament){ nextTournamentHand(); return; }
-  });
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer=null; isEndShown=false;
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
     let state = normalizeState(currentState);
+    if(state.isTournament){ nextTournamentHand(); return; }
     state.players = state.players.filter(p => p.chips > 0);
     if(state.players.length < 2) return null;
     state.pots = [];
