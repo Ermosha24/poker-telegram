@@ -69,7 +69,6 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
 .player-pos.folded{opacity:.4;}
 .player-pos.folded .p-name{text-decoration:line-through;}
 .player-pos.active .p-name{color:#F5B800;text-shadow:0 0 8px rgba(245,184,0,.5);}
-/* D = dealer button */
 .player-pos.dealer::after{content:'D';position:absolute;top:-8px;right:0;background:#F5B800;color:#1a1a1a;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.3);}
 .pos-bottom{bottom:10px;left:50%;transform:translateX(-50%);}
 .pos-left{left:10px;top:50%;transform:translateY(-50%);}
@@ -114,6 +113,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
   .player-pos .p-avatar{font-size:22px;}
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -189,7 +189,7 @@ input::placeholder{color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;le
     <div class="end-amount"  id="end-amount">+0 фишек</div>
     <div id="winners-list"   style="margin-bottom:20px;font-size:14px;color:rgba(255,255,255,.6);"></div>
     <div id="hand-rankings"  style="margin-bottom:20px;font-size:13px;color:rgba(255,255,255,.5);"></div>
-    <div class="end-hint"    id="auto-lobby-hint">Возвращаемся в лобби через 5 сек...</div>
+    <div class="end-hint"    id="auto-lobby-hint">Возвращаемся в лобби через 8 сек...</div>
     <button class="btn btn-green"     id="next-hand-btn" onclick="startNewHand()">Новая раздача</button>
     <button class="btn btn-secondary" onclick="backToLobby()" style="margin-top:10px;">В лобби</button>
   </div>
@@ -282,30 +282,26 @@ function showToast(msg){
 function toArr(val){
   if(!val) return [];
   if(Array.isArray(val)) return val;
-  // Firebase object with numeric keys → convert to array
   return Object.keys(val).sort((a,b)=>+a-+b).map(k=>val[k]);
 }
 
 function normalizeState(state){
   if(!state) return state;
-  // Top-level arrays
   state.players     = toArr(state.players);
   state.communityCards = toArr(state.communityCards);
   state.deck        = toArr(state.deck);
   if(state.winners) state.winners = toArr(state.winners);
   if(state.handRankings) state.handRankings = toArr(state.handRankings);
-  // Per-player hand arrays
   state.players.forEach(p=>{
     p.hand = toArr(p.hand);
-    // Ensure numeric fields are numbers (Firebase can stringify them)
     p.chips  = +p.chips  || 0;
     p.bet    = +p.bet    || 0;
   });
-  // Ensure critical numeric state fields
   state.pot          = +state.pot          || 0;
   state.currentBet   = +state.currentBet   || 0;
   state.currentPlayer= +state.currentPlayer;
   state.lastRaiser   = state.lastRaiser !== undefined ? +state.lastRaiser : -1;
+  state.lastBet      = state.lastBet !== undefined ? +state.lastBet : 0; // FIX #1
   state.dealer       = +state.dealer       || 0;
   state.smallBlind   = +state.smallBlind   || SMALL_BLIND;
   state.bigBlind     = +state.bigBlind     || BIG_BLIND;
@@ -313,13 +309,13 @@ function normalizeState(state){
 }
 
 function createRoom(code){
+  if(roomRef && roomCode === code) return; // guard against double-create
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   roomRef = db.ref('poker-rooms/'+code);
   unsubscribe = roomRef.on('value',snap=>{
     let state=snap.val();
     if(!state) return;
     state = normalizeState(state);
-    // Keep myIndex in sync (re-joins, etc.)
     const foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
     if(foundIdx>=0) myIndex=foundIdx;
     if(state.phase==='waiting') renderWaiting(state);
@@ -382,7 +378,7 @@ document.getElementById('host-btn').addEventListener('click',()=>{
     players:[{id:myPlayerId,name:myName,chips:1000,hand:[],bet:0,folded:false,allIn:false}],
     dealer:0,smallBlind:SMALL_BLIND,bigBlind:BIG_BLIND,
     pot:0,currentBet:0,communityCards:[],deck:[],
-    currentPlayer:-1,lastRaiser:-1,winners:null,
+    currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
     turnStartedAt:Date.now(),ts:Date.now()
   };
   saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); });
@@ -438,7 +434,7 @@ function leaveRoom(){
 }
 
 // ============================================================
-//  DEAL HAND  (used by host start, new hand, bot game)
+//  DEAL HAND
 // ============================================================
 /**
  * Deal a fresh hand into `state`.
@@ -456,39 +452,36 @@ function dealHand(state){
   const n=state.players.length;
   state.deck=shuffle(buildDeck());
   state.communityCards=[];
-  state.pot=0; state.currentBet=0; state.winners=null; state.lastAction='';
+  state.pot=0; state.currentBet=0; state.winners=null; state.lastAction=''; state.lastBet=0;
   state.players.forEach(p=>{ p.hand=[state.deck.pop(),state.deck.pop()]; p.folded=false; p.allIn=false; p.bet=0; });
 
-  let sbIdx, bbIdx, firstToActPreflop;
+  let sbIdx, bbIdx, firstToActPreflop, lastRaiserPreflop;
 
   if(n===2){
-    // Heads-up: dealer = SB
     sbIdx = state.dealer;
     bbIdx = (state.dealer+1)%n;
     firstToActPreflop = sbIdx; // dealer/SB acts first pre-flop in heads-up
+    lastRaiserPreflop = sbIdx; // FIX #2: SB closes pre-flop action in heads-up
   } else {
     sbIdx = (state.dealer+1)%n;
     bbIdx = (state.dealer+2)%n;
     firstToActPreflop = (bbIdx+1)%n;
+    lastRaiserPreflop = bbIdx; // BB closes pre-flop action in multi-way
   }
 
-  // Post blinds
   postBlind(state, sbIdx, state.smallBlind);
   postBlind(state, bbIdx, state.bigBlind);
 
   state.currentBet = state.bigBlind;
   state.pot = state.players.reduce((s,p)=>s+p.bet,0);
 
-  // Find first live player starting from firstToActPreflop
   let start = firstToActPreflop;
   for(let i=0;i<n;i++){
     if(!state.players[start].folded && !state.players[start].allIn) break;
     start=(start+1)%n;
   }
   state.currentPlayer = start;
-  // Pre-flop: the last player allowed to raise (close action) is the BB — they can raise even if everyone calls.
-  // We track this as the "last aggressor". We set lastRaiser to bbIdx so the loop closes when action returns to BB after calls.
-  state.lastRaiser = bbIdx;
+  state.lastRaiser = lastRaiserPreflop; // FIX #2
   state.phase = 'preflop';
   state.turnStartedAt = Date.now();
 }
@@ -514,7 +507,7 @@ function startBotGame(){
     ],
     dealer:0, smallBlind:SMALL_BLIND, bigBlind:BIG_BLIND,
     pot:0, currentBet:0, communityCards:[], deck:[],
-    currentPlayer:-1, lastRaiser:-1, winners:null, turnStartedAt:Date.now(), ts:Date.now()
+    currentPlayer:-1, lastRaiser:-1, lastBet:0, winners:null, turnStartedAt:Date.now(), ts:Date.now()
   };
   dealHand(state);
   state.ts=Date.now();
@@ -643,7 +636,7 @@ function createCardBack(){ const d=document.createElement('div');d.className='ca
 function createCardPlaceholder(){ const d=document.createElement('div');d.className='card-placeholder';return d; }
 
 // ============================================================
-//  PLAYER ACTIONS  (each reads fresh state from DB)
+//  PLAYER ACTIONS
 // ============================================================
 function withFreshState(fn){
   if(!roomCode) return;
@@ -652,7 +645,7 @@ function withFreshState(fn){
     let state=snap.val();
     if(!state) return;
     state=normalizeState(state);
-    if(state.currentPlayer!==myIndex) return; // guard: stale tap
+    if(state.currentPlayer!==myIndex) return;
     fn(state);
     state.ts=Date.now();
     saveRoom(state);
@@ -689,22 +682,21 @@ function playerCall(){
   });
 }
 function playerRaise(){
-  // 'raise-amount' contains the EXTRA amount above the call
   const extra=parseInt(document.getElementById('raise-amount').value)||0;
   if(!roomCode||extra<=0) return;
   withFreshState(state=>{
     const p=state.players[myIndex];
     const callAmt=Math.max(0,state.currentBet-p.bet);
-    const total=callAmt+extra; // total chips coming out of stack
+    const total=callAmt+extra;
     if(total>p.chips){ showToast('Недостаточно фишек'); return; }
     // Minimum raise: the raise size must be at least the size of the previous raise/bet
-    const prevRaiseSize=state.currentBet - (state.lastBet||0);
+    const prevRaiseSize=state.currentBet - (state.lastBet || 0);
     const minRaiseSize=Math.max(state.bigBlind, prevRaiseSize);
     if(extra < minRaiseSize && p.chips > total){ showToast('Минимальный рейз: '+minRaiseSize); return; }
     p.chips-=total; p.bet+=total; state.pot+=total;
-    state.lastBet = state.currentBet;     // remember the bet level before this raise
-    state.currentBet=p.bet;               // new level everyone must match
-    state.lastRaiser=myIndex;             // re-open action — everyone acts again
+    state.lastBet = state.currentBet;
+    state.currentBet=p.bet;
+    state.lastRaiser=myIndex;
     if(p.chips===0) p.allIn=true;
     state.lastAction=p.name+' райз до '+p.bet;
     processNextPlayer(state);
@@ -719,7 +711,7 @@ function playerAllIn(){
     if(p.bet>state.currentBet){
       state.lastBet=state.currentBet;
       state.currentBet=p.bet;
-      state.lastRaiser=myIndex; // re-opens action
+      state.lastRaiser=myIndex;
     }
     state.lastAction=p.name+' ALL-IN '+p.bet;
     processNextPlayer(state);
@@ -727,7 +719,7 @@ function playerAllIn(){
 }
 
 // ============================================================
-//  BOT AI
+//  BOT AI (with preflop raises - FIX #3)
 // ============================================================
 function botMove(state){
   if(!state||!roomCode) return;
@@ -744,7 +736,7 @@ function botMove(state){
     const b=s.players[botIdx];
     if(b.folded||b.allIn) return;
     const ca=Math.max(0,s.currentBet-b.bet);
-    const hs=evaluateHandStrength(b.hand,s.communityCards);
+    const hs=evaluateHandStrength(b.hand,s.communityCards,s.phase);
     const rand=Math.random();
 
     if(ca===0){
@@ -759,7 +751,6 @@ function botMove(state){
         s.lastAction=b.name+' чек';
       }
     } else if(ca>=b.chips){
-      // Must go all-in to call
       if(hs>0.25||ca<=s.bigBlind*2){
         b.bet+=b.chips; s.pot+=b.chips; b.chips=0; b.allIn=true;
         if(b.bet>s.currentBet){s.lastBet=s.currentBet;s.currentBet=b.bet;s.lastRaiser=botIdx;}
@@ -770,7 +761,7 @@ function botMove(state){
     } else if(hs<0.2&&ca>s.bigBlind){
       b.folded=true; s.lastAction=b.name+' сбросил';
     } else if(hs>0.75&&rand>0.4){
-      // Raise
+      // Raise (works for preflop too!)
       const raiseExtra=Math.min(Math.max(s.bigBlind,Math.floor(s.pot*0.75)),b.chips-ca);
       if(raiseExtra>0&&ca+raiseExtra<=b.chips){
         const total=ca+raiseExtra;
@@ -797,7 +788,7 @@ function botMove(state){
   });
 }
 
-function evaluateHandStrength(hand,community){
+function evaluateHandStrength(hand,community,phase){
   if(!hand||hand.length<2) return 0.5;
   const h1=cardVal(hand[0].v),h2=cardVal(hand[1].v);
   const suited=hand[0].c===hand[1].c;
@@ -827,47 +818,26 @@ function evaluateHandStrength(hand,community){
 }
 
 // ============================================================
-//  CORE GAME LOGIC — THE HEART OF THE FIX
+//  CORE GAME LOGIC
 // ============================================================
-
-/**
- * processNextPlayer — called after every action.
- *
- * Round-of-betting ends when:
- *   1. Only one player remains (others folded) → endHand immediately.
- *   2. All remaining players are all-in except at most one → runout.
- *   3. Action has gone all the way around back to lastRaiser
- *      AND every non-folded, non-allIn player has matched currentBet.
- *
- * After the round ends we either advance to the next street or showdown.
- */
 function processNextPlayer(state){
   const n=state.players.length;
   const active=state.players.filter(p=>!p.folded);
 
-  // 1. Only one player left
   if(active.length===1){
     collectBets(state);
     endHand(state,[state.players.indexOf(active[0])]);
     return;
   }
 
-  // 2. Count players who can still act (not folded, not all-in)
   const canAct=active.filter(p=>!p.allIn);
   if(canAct.length===0){
-    // Everyone is all-in — deal remaining board and go to showdown
     collectBets(state);
     runoutBoard(state);
     showdown(state);
     return;
   }
 
-  // 3. Check if the current betting round is over.
-  //    The round ends when:
-  //      - Every non-folded, non-allIn player has matched currentBet
-  //      - AND we've gone around past the lastRaiser (or lastRaiser is the only one acting)
-  //
-  //    We calculate who acts next first.
   let next=(state.currentPlayer+1)%n;
   let loops=0;
   while(loops<n){
@@ -876,10 +846,7 @@ function processNextPlayer(state){
     next=(next+1)%n; loops++;
   }
 
-  // Check if the round is complete
   const allEven=active.every(p=>p.allIn||p.bet===state.currentBet);
-  // Round ends if allEven AND we've cycled back to lastRaiser
-  // (next would be lastRaiser or everyone already even with no one left to act before lastRaiser)
   const roundOver = allEven && (next===state.lastRaiser || canAct.length===1);
 
   if(roundOver){
@@ -888,23 +855,16 @@ function processNextPlayer(state){
     return;
   }
 
-  // Continue to next player
   state.currentPlayer=next;
   state.turnStartedAt=Date.now();
 }
 
-/**
- * collectBets — move all outstanding bets into the pot and reset bet tracking.
- */
 function collectBets(state){
   state.players.forEach(p=>{ state.pot+=p.bet; p.bet=0; });
   state.currentBet=0;
   state.lastBet=0;
 }
 
-/**
- * advanceStreet — move to the next community card phase.
- */
 function advanceStreet(state){
   if(state.phase==='preflop'){
     dealCommunity(state,3);
@@ -922,44 +882,31 @@ function advanceStreet(state){
   initBettingRound(state);
 }
 
-/**
- * dealCommunity — burn 1 card then deal `count` community cards.
- */
 function dealCommunity(state,count){
   if(state.deck.length>0) state.deck.pop(); // burn
   for(let i=0;i<count;i++) if(state.deck.length>0) state.communityCards.push(state.deck.pop());
 }
 
-/**
- * initBettingRound — reset bets and find first live player left of dealer.
- * lastRaiser is set to that same first player so the round ends when action
- * comes back to them without any raise.
- */
 function initBettingRound(state){
   const n=state.players.length;
   state.players.forEach(p=>p.bet=0);
   state.currentBet=0;
   state.lastBet=0;
 
-  // Post-flop: first to act is first live player left of dealer
   let start=(state.dealer+1)%n;
   for(let i=0;i<n;i++){
     if(!state.players[start].folded&&!state.players[start].allIn) break;
     start=(start+1)%n;
   }
   state.currentPlayer=start;
-  // lastRaiser = start means the round closes when action returns to start with no raise
   state.lastRaiser=start;
   state.turnStartedAt=Date.now();
 }
 
-/**
- * runoutBoard — fill out the rest of the community cards when everyone is all-in.
- */
 function runoutBoard(state){
-  if(state.communityCards.length===0){ dealCommunity(state,3); } // burn+flop
-  if(state.communityCards.length===3){ dealCommunity(state,1); } // burn+turn
-  if(state.communityCards.length===4){ dealCommunity(state,1); } // burn+river
+  if(state.communityCards.length===0){ dealCommunity(state,3); }
+  if(state.communityCards.length===3){ dealCommunity(state,1); }
+  if(state.communityCards.length===4){ dealCommunity(state,1); }
 }
 
 // ============================================================
@@ -978,13 +925,11 @@ function showdown(state){
   for(const r of results) if(compareScores(r.score,best.score)>0) best=r;
   const winners=results.filter(r=>compareScores(r.score,best.score)===0);
 
-  // Split pot (remainder chips go to first winner in position order for simplicity)
   const share=Math.floor(state.pot/winners.length);
   const remainder=state.pot-share*winners.length;
   winners.forEach((w,i)=>{ state.players[w.idx].chips+=share+(i===0?remainder:0); });
   state.pot=0;
 
-  // Store rank info for end screen
   state.handRankings=results.map(r=>({name:r.name,rankName:r.rankName}));
   endHand(state,winners.map(w=>w.idx));
 }
@@ -1019,7 +964,6 @@ function score5(cards){
   const uniq=[...new Set(vals)].sort((a,b)=>b-a);
   let isStraight=false, straightHigh=uniq[0];
   if(uniq.length===5&&uniq[0]-uniq[4]===4) isStraight=true;
-  // Wheel: A-2-3-4-5
   if(uniq.length===5&&uniq[0]===14&&uniq[1]===5&&uniq[2]===4&&uniq[3]===3&&uniq[4]===2){
     isStraight=true; straightHigh=5;
   }
@@ -1058,6 +1002,7 @@ function renderEnd(state){
   const amt=document.getElementById('end-amount');
   const list=document.getElementById('winners-list');
   const rankings=document.getElementById('hand-rankings');
+  const hint=document.getElementById('auto-lobby-hint');
 
   if(!state.winners||state.winners.length===0){
     title.textContent='Игра окончена'; amt.textContent=''; list.innerHTML=''; rankings.innerHTML=''; return;
@@ -1075,8 +1020,13 @@ function renderEnd(state){
       state.handRankings.map(r=>`<div>${r.name} — ${r.rankName}</div>`).join('');
   }
 
+  // FIX #6: longer auto-lobby for bot mode (8 sec), but allow manual new hand
+  const hasBot = state.players.some(p=>p.isBot);
+  hint.textContent = hasBot ? 'Возвращаемся в лобби через 8 сек...' : 'Возвращаемся в лобби через 5 сек...';
+  const delay = hasBot ? 8000 : 5000;
+
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  autoLobbyTimer=setTimeout(()=>{ isEndShown=false; backToLobby(); },5000);
+  autoLobbyTimer=setTimeout(()=>{ isEndShown=false; backToLobby(); },delay);
 }
 
 // ============================================================
@@ -1091,12 +1041,9 @@ function startNewHand(){
     let state=snap.val();
     if(!state) return;
     state=normalizeState(state);
-    // Remove broke players
     state.players=state.players.filter(p=>p.chips>0);
     if(state.players.length<2){ showToast('Недостаточно игроков'); backToLobby(); return; }
-    // Update myIndex after filtering
     myIndex=state.players.findIndex(p=>p.id===myPlayerId);
-    // Rotate dealer
     state.dealer=(state.dealer+1)%state.players.length;
     dealHand(state);
     state.ts=Date.now();
