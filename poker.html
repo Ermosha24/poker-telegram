@@ -674,9 +674,9 @@ function normalizeState(state){
 
 function createRoom(code){
   if(roomRef && roomCode === code) return;
-  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
   roomRef = db.ref('poker-rooms/'+code);
-  unsubscribe = roomRef.on('value',snap=>{
+  const listener = snap=>{
     if(!roomCode) return; // Prevent re-rendering after leaving
     let state=snap.val();
     if(!state) return;
@@ -691,7 +691,9 @@ function createRoom(code){
       renderTournament(state);
     }
     else renderGame(state);
-  });
+  };
+  roomRef.on('value', listener);
+  unsubscribe = listener;
 }
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
@@ -784,7 +786,7 @@ function backToLobby(){
   if(botTimer) clearTimeout(botTimer);
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer=null; isEndShown=false;
-  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
   if(roomCode && isHost){
     db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
   }
@@ -811,8 +813,7 @@ function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  // Just clean up and go to lobby — don't bother with transaction
-  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
   if(roomCode && isHost) db.ref('poker-rooms/'+roomCode).remove().catch(()=>{});
   roomCode=null; myIndex=-1; isHost=false;
   showScreen('lobby');
