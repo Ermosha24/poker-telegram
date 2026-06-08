@@ -102,18 +102,15 @@ input::placeholder{color:rgba(255,255,255,.2);font-family:'Inter',sans-serif;let
 @keyframes dealCard{from{opacity:0;transform:translateY(-20px) scale(.8);}to{opacity:1;transform:translateY(0) scale(1);}}
 
 /* STRENGTH METER */
-.strength-meter{display:flex;flex-direction:column;align-items:center;gap:4px;margin:8px 0;padding:6px 14px;background:rgba(0,0,0,.35);border-radius:12px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);animation:fadeIn .3s ease;}
+.strength-meter{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:4px;padding:3px 8px;background:rgba(0,0,0,.45);border-radius:8px;border:1px solid rgba(255,255,255,.1);animation:fadeIn .3s ease;min-width:90px;}
 @keyframes fadeIn{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
-.strength-bar-bg{width:160px;height:10px;background:rgba(0,0,0,.5);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,.1);position:relative;}
-.strength-bar-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);animation:shimmer 2s infinite;}
-@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
-.strength-bar-fill{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1);position:relative;}
-.strength-bar-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:20px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3));border-radius:0 5px 5px 0;}
-.strength-bar-fill.high{background:linear-gradient(90deg,#27A55A,#4ade80);box-shadow:0 0 12px rgba(39,165,90,.4);}
-.strength-bar-fill.medium{background:linear-gradient(90deg,#F5B800,#ff9500);box-shadow:0 0 12px rgba(245,184,0,.3);}
-.strength-bar-fill.low{background:linear-gradient(90deg,#E83B3B,#ff6b6b);box-shadow:0 0 12px rgba(232,59,59,.3);}
-.strength-text{font-size:14px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8);letter-spacing:1px;}
-.strength-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;font-weight:600;}
+.strength-bar-bg{width:80px;height:2px;background:rgba(0,0,0,.6);border-radius:1px;overflow:hidden;border:1px solid rgba(255,255,255,.08);position:relative;}
+.strength-bar-fill{height:100%;border-radius:1px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+.strength-bar-fill.high{background:linear-gradient(90deg,#27A55A,#4ade80);}
+.strength-bar-fill.medium{background:linear-gradient(90deg,#F5B800,#ff9500);}
+.strength-bar-fill.low{background:linear-gradient(90deg,#E83B3B,#ff6b6b);}
+.strength-text{font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+.strength-label{font-size:8px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;font-weight:600;display:flex;align-items:center;gap:3px;font-weight:600;}
 
 /* PLAYERS */
 .player-pos{position:absolute;display:flex;flex-direction:column;align-items:center;gap:5px;width:100px;transition:all .3s ease;}
@@ -184,6 +181,7 @@ input::placeholder{color:rgba(255,255,255,.2);font-family:'Inter',sans-serif;let
 }
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -240,14 +238,14 @@ input::placeholder{color:rgba(255,255,255,.2);font-family:'Inter',sans-serif;let
     <div class="player-pos pos-bottom" id="pos-0"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div><div class="p-cards"></div></div>
     <div class="pot-display" id="pot-display">POT: 0</div>
     <div class="community-cards" id="community-cards"></div>
-    <div class="strength-meter" id="strength-meter" style="display:none;">
-      <div class="strength-label">Шанс победы</div>
-      <div class="strength-bar-bg">
-        <div class="strength-bar-fill" id="strength-bar-fill" style="width:0%"></div>
-      </div>
-      <div class="strength-text" id="strength-text">0%</div>
-    </div>
     <div class="status-msg" id="status-msg"></div>
+  </div>
+  <div class="strength-meter" id="strength-meter" style="display:none;">
+    <div class="strength-label">⚡ Сила руки</div>
+    <div class="strength-bar-bg">
+      <div class="strength-bar-fill" id="strength-bar-fill" style="width:0%"></div>
+    </div>
+    <div class="strength-text" id="strength-text">0%</div>
   </div>
   <div class="action-bar" id="action-bar" style="display:none;">
     <button class="action-btn btn-fold"  id="btn-fold"  onclick="playerFold()">Сбросить</button>
@@ -293,7 +291,15 @@ const tg = window.Telegram?.WebApp;
 if(tg){ tg.ready(); tg.expand(); }
 
 const myName     = tg?.initDataUnsafe?.user?.first_name || 'Player';
-const myPlayerId = 'p_' + Math.random().toString(36).substr(2,9);
+const myPlayerId = (() => {
+  const key = 'poker_player_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = 'p_' + Math.random().toString(36).substr(2,9);
+    localStorage.setItem(key, id);
+  }
+  return id;
+})();
 
 let roomCode    = null;
 let roomRef     = null;
@@ -379,7 +385,8 @@ function createRoom(code){
     let state=snap.val();
     if(!state) return;
     state = normalizeState(state);
-    const foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
+    let foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
+    if(foundIdx<0) foundIdx = state.players.findIndex(p=>p.name===myName);
     if(foundIdx>=0) myIndex=foundIdx;
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
@@ -517,7 +524,8 @@ function dealHand(state){
   postBlind(state, bbIdx, state.bigBlind);
 
   state.currentBet = state.bigBlind;
-  state.pot = state.players.reduce((s,p)=>s+p.bet,0);
+  // FIX: банк не должен получать блайнды до collectBets()
+  state.pot = 0;
 
   let start = firstToActPreflop;
   for(let i=0;i<n;i++){
@@ -684,7 +692,9 @@ function renderGame(state){
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
 
-  const myIdx=state.players.findIndex(p=>p.id===myPlayerId);
+  let myIdx = myIndex >= 0 ? myIndex : state.players.findIndex(p=>p.id===myPlayerId);
+  if(myIdx<0) myIdx = state.players.findIndex(p=>p.name===myName);
+  if(myIdx<0) myIdx = 0;
   const n=state.players.length;
   const showAllCards=(state.phase==='showdown'||state.phase==='ended');
   const me=myIdx>=0?state.players[myIdx]:null;
@@ -809,7 +819,7 @@ function playerCall(){
     const amt=Math.max(0,state.currentBet-p.bet);
     if(amt<=0) return;
     const actual=Math.min(amt,p.chips);
-    p.chips-=actual; p.bet+=actual; state.pot+=actual;
+    p.chips-=actual; p.bet+=actual;
     if(p.chips===0) p.allIn=true;
     state.lastAction=p.name+' колл '+actual;
     processNextPlayer(state);
@@ -826,7 +836,7 @@ function playerRaise(){
     const prevRaiseSize=state.currentBet - (state.lastBet || 0);
     const minRaiseSize=Math.max(state.bigBlind, prevRaiseSize);
     if(extra < minRaiseSize && p.chips > total){ showToast('Минимальный рейз: '+minRaiseSize); return; }
-    p.chips-=total; p.bet+=total; state.pot+=total;
+    p.chips-=total; p.bet+=total;
     state.lastBet = state.currentBet;
     state.currentBet=p.bet;
     state.lastRaiser=myIndex;
@@ -840,7 +850,7 @@ function playerAllIn(){
     const p=state.players[myIndex];
     if(p.chips<=0) return;
     const total=p.chips;
-    p.bet+=total; state.pot+=total; p.chips=0; p.allIn=true;
+    p.bet+=total; p.chips=0; p.allIn=true;
     if(p.bet>state.currentBet){
       state.lastBet=state.currentBet;
       state.currentBet=p.bet;
