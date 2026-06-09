@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -41,7 +41,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 #splash-screen.hide{opacity:0;pointer-events:none;z-index:-1;transition:opacity .6s;}
 /* Fallback: auto-hide after 5s if JS fails */
 @keyframes splashFallback{0%,90%{opacity:1;}100%{opacity:0;pointer-events:none;z-index:-1;}}
-#splash-screen{animation:splashFallback 5s ease-out forwards;}
+#splash-screen.fallback{animation:splashFallback 5s ease-out forwards;}
 .splash-logo{font-weight:900;font-size:72px;letter-spacing:-3px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6),0 0 60px rgba(245,184,0,.15);animation:float 2.5s ease-in-out infinite;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 .splash-sub{font-size:14px;color:rgba(255,255,255,.35);margin-top:12px;letter-spacing:4px;text-transform:uppercase;font-weight:500;}
@@ -50,7 +50,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 @keyframes load{to{width:100%;}}
 
 /* ===== LOBBY — PREMIUM REDESIGN ===== */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* Combined import moved to end with display=swap */
 
 :root {
   --gold: #C8A84B;
@@ -1491,6 +1491,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .custom-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,184,0,.4);}
 @media(max-width:380px){.profile-stats{grid-template-columns:repeat(2,1fr);}.profile-achievements{grid-template-columns:repeat(3,1fr);}}
 
+/* FIX: Prevent double-tap zoom on mobile */
+.action-btn, .lobby-mode-card, .lobby-quick-btn, .lobby-join-btn, 
+.lobby-create-btn, .lobby-nav-item, .lobby-lang-btn, .lobby-settings-btn,
+.lobby-avatar, .exit-btn, .name-modal-btn, .daily-modal-btn,
+.custom-avatar-btn, .custom-color-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* FIX: Font display swap for fast rendering */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+
 /* RESPONSIVE */
 @media(max-width:380px){
   :root{--card-w:46px;--card-h:68px;}
@@ -1505,10 +1518,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
-<div id="splash-screen">
+<div id="splash-screen" class="fallback">
   <div class="splash-logo">POK<span style="color:var(--accent-gold)">E</span>R</div>
   <div class="splash-sub">Texas Hold'em</div>
   <div class="splash-bar"><div class="splash-bar-inner"></div></div>
@@ -1529,7 +1543,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       </div>
     </div>
     <div class="lobby-actions">
-      <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">🇷🇺</div>
+      <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">🇬🇧 EN</div>
       <div class="lobby-settings-btn" onclick="showToastSettings()">⚙️</div>
     </div>
   </div>
@@ -2349,23 +2363,34 @@ function normalizeState(state){
 
 function createRoom(code){
   if(roomRef && roomCode === code) return;
-  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+
+  // FIX: Guaranteed cleanup of old listeners
+  if(roomRef){
+    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+    roomRef.off();
+  }
+
   roomRef = db.ref('poker-rooms/'+code);
+  roomCode = code;  // FIX: Set BEFORE creating listener
+
   const listener = snap=>{
-    if(!roomCode) return; // Prevent re-rendering after leaving
+    if(!roomCode) return;  // FIX: Check we haven't left
     let state=snap.val();
     if(!state) return;
     state = normalizeState(state);
+
+    // FIX: Always recalculate myIndex from current player list
     let foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
     if(foundIdx<0) foundIdx = state.players.findIndex(p=>p.name===myName);
     if(foundIdx>=0) myIndex=foundIdx;
+
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else if(state.isTournament){
-      renderGame(state);
+      _renderGameImpl(state);  // FIX: Direct render for tournament (no debounce needed)
       renderTournament(state);
     }
-    else renderGame(state);
+    else debouncedRenderGame(state);  // FIX: Use debounce for game render
   };
   roomRef.on('value', listener);
   unsubscribe = listener;
@@ -2401,7 +2426,7 @@ function autoFold(){
     const p = state.players[myIndex];
     if(!p || p.folded || p.allIn) return;
     p.folded = true;
-    state.lastAction = p.name + ' не успел — сброс';
+    state.lastAction = p.name + ' ' + t('toastTimeout');
     processNextPlayer(state);
     state.ts = Date.now();
     return state;
@@ -2457,12 +2482,19 @@ document.getElementById('tourney-btn').addEventListener('click',startTournament)
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
 function backToLobby(){
-    clearWinnerAnim();
+  clearWinnerAnim();
   stopTimer();
   if(botTimer) clearTimeout(botTimer);
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer=null; isEndShown=false;
-  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+
+  // FIX: Guaranteed disconnect ALL listeners
+  if(roomRef){
+    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+    roomRef.off();  // All listeners
+    roomRef = null;
+  }
+
   if(roomCode && isHost){
     db.ref('poker-rooms/'+roomCode).transaction(cs => {
       if(!cs) return;
@@ -2475,29 +2507,47 @@ function backToLobby(){
   roomCode=null; myIndex=-1; isHost=false;
   updateLobbyLevel();
   updateLobbyChips();
-    showScreen('lobby');
-  }
+  showScreen('lobby');
+}
 function reindexPlayers(state, removedIdx){
   const n = state.players.length;
+
+  // Shift indices
   if(state.dealer > removedIdx) state.dealer--;
   if(state.dealer >= n) state.dealer = 0;
+
   if(state.currentPlayer > removedIdx) state.currentPlayer--;
   if(state.currentPlayer >= n) state.currentPlayer = 0;
+
   if(state.lastRaiser > removedIdx) state.lastRaiser--;
   if(state.lastRaiser >= n) state.lastRaiser = -1;
-  // Update pots eligible indices
+
+  // FIX: Update pots eligible indices
   state.pots.forEach(pot => {
     pot.eligible = pot.eligible
       .filter(idx => idx !== removedIdx)
       .map(idx => idx > removedIdx ? idx - 1 : idx);
   });
+
+  // FIX: Update myIndex globally based on player ID
+  const newMyIndex = state.players.findIndex(p => p.id === myPlayerId);
+  if(newMyIndex >= 0){
+    myIndex = newMyIndex;
+  }
 }
 
 function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  if(roomRef && unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+
+  // FIX: Full listener cleanup
+  if(roomRef){
+    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
+    roomRef.off();  // All listeners
+    roomRef = null;
+  }
+
   if(roomCode && isHost){
     db.ref('poker-rooms/'+roomCode).transaction(cs => {
       if(!cs) return;
@@ -2519,7 +2569,7 @@ function dealHand(state){
   const n=state.players.length;
   state.deck=shuffle(buildDeck());
   state.communityCards=[];
-  state.pot=0; state.currentBet=0; state.winners=null; state.lastAction=''; state.lastBet=0;
+  state.pot=0; state.pots=[]; state.currentBet=0; state.winners=null; state.lastAction=''; state.lastBet=0;
   state.players.forEach(p=>{ p.hand=[state.deck.pop(),state.deck.pop()]; p.folded=false; p.allIn=false; p.bet=0; });
 
   let sbIdx, bbIdx, firstToActPreflop, lastRaiserPreflop;
@@ -2539,8 +2589,7 @@ function dealHand(state){
   postBlind(state, bbIdx, state.bigBlind);
 
   state.currentBet = state.bigBlind;
-  // FIX: банк получает сумму блайндов сразу
-  state.pot = state.players.reduce((s, p) => s + p.bet, 0);
+  // FIX: pot is managed ONLY by collectBets, not here
 
   let start = firstToActPreflop;
   for(let i=0;i<n;i++){
@@ -2683,7 +2732,7 @@ function renderTournament(state){
       <div class="tourney-rank ${rankClass}">${i+1}</div>
       <div class="tourney-p-name">${p.name}</div>
       <div class="tourney-p-chips">${p.chips}</div>
-      <div class="tourney-p-status">${p.folded ? 'Фолд' : p.allIn ? 'ALL-IN' : 'Активен'}</div>
+      <div class="tourney-p-status">${p.folded ? (currentLang === 'ru' ? 'Фолд' : 'Fold') : p.allIn ? 'ALL-IN' : (currentLang === 'ru' ? 'Активен' : 'Active')}</div>
     `;
     board.appendChild(div);
   });
@@ -2696,7 +2745,7 @@ function renderTournament(state){
       <div class="tourney-rank">—</div>
       <div class="tourney-p-name">${id.includes('bot') ? '🤖 Бот' : myName}</div>
       <div class="tourney-p-chips">0</div>
-      <div class="tourney-p-status">ВЫБЫЛ</div>
+      <div class="tourney-p-status">${currentLang === 'ru' ? 'ВЫБЫЛ' : 'OUT'}</div>
     `;
     board.appendChild(div);
   });
@@ -2705,7 +2754,7 @@ function renderTournament(state){
   if(state.phase === 'ended' && state.players.length >= 2){
     const hint = document.getElementById('tourney-next-hint');
     hint.style.display = 'block';
-    hint.textContent = 'Следующая раздача через 3 сек...';
+    hint.textContent = (currentLang === 'ru' ? 'Следующая раздача через 3 сек...' : 'Next hand in 3 sec...');
     if(tourneyAutoTimer) clearTimeout(tourneyAutoTimer);
     tourneyAutoTimer = setTimeout(() => {
       hint.style.display = 'none';
@@ -2714,7 +2763,7 @@ function renderTournament(state){
   } else if(state.phase === 'ended'){
     const hint = document.getElementById('tourney-next-hint');
     hint.style.display = 'block';
-    hint.textContent = '🏆 Турнир окончен! Победитель: ' + (state.players[0]?.name || '???');
+    hint.textContent = (currentLang === 'ru' ? '🏆 Турнир окончен! Победитель: ' : '🏆 Tournament over! Winner: ') + (state.players[0]?.name || '???');
     hint.style.color = 'var(--accent-gold)';
     hint.style.fontWeight = '700';
     hint.style.animation = 'none';
@@ -2738,7 +2787,7 @@ function renderWaiting(state){
   state.players.forEach((p,i)=>{
     const div=document.createElement('div');
     div.className='player-item';
-    div.innerHTML=`<div class="player-dot"></div><span>${p.name}${i===0?' (Хост)':''}</span>`;
+    div.innerHTML=`<div class="player-dot"></div><span>${p.name}${i===0?' (Host)':''}</span>`;
     list.appendChild(div);
   });
   const btn=document.getElementById('start-btn');
@@ -2765,7 +2814,10 @@ function hostStartGame(){
 // ===== STRENGTH METER =====
 function cardKey(c){ return c.c + c.v; }
 
-const equityCache = {};
+// FIX: LRU cache with 200 entry limit
+const equityCache = new Map();
+const MAX_CACHE_SIZE = 200;
+
 function equityCacheKey(hand, community, numOpponents){
   return hand.map(c => c.c + c.v).sort().join('') + '|' + 
          community.map(c => c.c + c.v).sort().join('') + '|' + numOpponents;
@@ -2773,7 +2825,14 @@ function equityCacheKey(hand, community, numOpponents){
 function quickEquity(myHand, community, numOpponents){
   if(!myHand || myHand.length < 2) return 50;
   const key = equityCacheKey(myHand, community || [], numOpponents);
-  if(equityCache[key]) return equityCache[key];
+
+  // FIX: Check cache with LRU update
+  if(equityCache.has(key)){
+    const value = equityCache.get(key);
+    equityCache.delete(key);
+    equityCache.set(key, value);
+    return value;
+  }
 
   const all = [...myHand, ...(community || [])];
   const score = getBest5From7(all);
@@ -2791,7 +2850,14 @@ function quickEquity(myHand, community, numOpponents){
     else base = suited ? 45 : 38;
   }
   const result = Math.min(98, Math.max(2, base));
-  equityCache[key] = result;
+
+  // FIX: Add to cache with size control
+  if(equityCache.size >= MAX_CACHE_SIZE){
+    const firstKey = equityCache.keys().next().value;
+    equityCache.delete(firstKey);
+  }
+  equityCache.set(key, result);
+
   return result;
 }
 
@@ -2937,8 +3003,19 @@ function clearWinnerAnim(){
   document.querySelectorAll('.player-pos.winner-anim').forEach(el=>el.classList.remove('winner-anim'));
 }
 
+// FIX: Debounce for rendering
+let renderTimeout = null;
+let lastRenderState = null;
+
+function debouncedRenderGame(state){
+  if(renderTimeout) clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => {
+    _renderGameImpl(state);
+  }, 50);  // 50ms debounce
+}
+
 // ===== GAME RENDER =====
-function renderGame(state){
+function _renderGameImpl(state){
   console.log('renderGame called, state:', state);
   if(!state) { console.log('No state, returning'); return; }
   if(state.phase==='ended'){renderEnd(state);return;}
@@ -2990,11 +3067,14 @@ function renderGame(state){
         p.hand.forEach((c,ci)=>{ 
           if(c) {
             const card = createCardEl(c);
-            if(state.phase==='preflop' && !showAllCards) card.classList.add('animate-deal');
-            cardsEl.appendChild(card);
             if(state.phase==='preflop' && !showAllCards){
-              setTimeout(()=>card.classList.remove('animate-deal'), 600);
-            }
+          card.classList.add('animate-deal');
+          // FIX: Use animationend instead of setTimeout
+          card.addEventListener('animationend', () => {
+            card.classList.remove('animate-deal');
+          }, { once: true });
+        }
+        cardsEl.appendChild(card);
           }
         });
     } else {
@@ -3002,7 +3082,9 @@ function renderGame(state){
         const cb1 = createCardBack(); const cb2 = createCardBack();
         if(state.phase==='preflop'){
           cb1.classList.add('animate-deal'); cb2.classList.add('animate-deal');
-          setTimeout(()=>{cb1.classList.remove('animate-deal');cb2.classList.remove('animate-deal');}, 600);
+          // FIX: Use animationend
+          const removeAnim = () => { cb1.classList.remove('animate-deal'); cb2.classList.remove('animate-deal'); };
+          cb1.addEventListener('animationend', removeAnim, { once: true });
         }
         cardsEl.appendChild(cb1); cardsEl.appendChild(cb2);
       }
@@ -3158,29 +3240,28 @@ function playerAllIn(){
 
 // ===== BOT AI =====
 function botMove(state){
-  if(!state||!roomCode) return;
-  const botIdx=state.currentPlayer;
-  if(botIdx<0||botIdx>=state.players.length) return;
-  const bot=state.players[botIdx];
-  if(!bot||!bot.isBot||bot.folded||bot.allIn) return;
+  if(!roomCode) return;
 
+  // FIX: Do NOT use state from closure - read fresh state in transaction
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
     let s = normalizeState(currentState);
-    if(s.currentPlayer !== botIdx || s.phase === 'ended' || s.phase === 'showdown') return;
-    const b = s.players[botIdx];
-    if(!b || b.folded || b.allIn) return;
 
+    // FIX: Re-validate bot should still act
+    const botIdx = s.players.findIndex(p => p.isBot && !p.folded && !p.allIn);
+    if(botIdx < 0 || s.currentPlayer !== botIdx || s.phase === 'ended' || s.phase === 'showdown') {
+      return;  // Abort transaction
+    }
+
+    const b = s.players[botIdx];
     const ca = Math.max(0, s.currentBet - b.bet);
     const totalPot = s.pots.reduce((sum, pot) => sum + pot.amount, s.pot);
     const hs = evaluateHandStrength(b.hand, s.communityCards, s.phase);
     const pos = getBotPosition(s, botIdx);
     const potOdds = ca > 0 ? ca / (totalPot + ca + s.currentBet) : 0;
-    const spr = totalPot > 0 ? b.chips / totalPot : 999;
     const rand = Math.random();
 
-    // Adjusted thresholds based on position and pot odds
-    const isIP = pos === 'BB'; // In position (acts last)
+    const isIP = pos === 'BB';
     const raiseThreshold = isIP ? 0.65 : 0.75;
     const callThreshold = potOdds > 0.3 ? 0.25 : (potOdds > 0.15 ? 0.35 : 0.45);
     const bluffChance = pos === 'SB' && s.phase === 'preflop' ? 0.25 : 0.15;
@@ -3191,29 +3272,26 @@ function botMove(state){
         b.chips -= betSize; b.bet += betSize;
         s.lastBet = s.currentBet; s.currentBet = b.bet; s.lastRaiser = botIdx;
         if(b.chips === 0) b.allIn = true;
-        s.lastAction = b.name + ' ставка ' + betSize;
+        s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'ставка' : 'bet') + ' ' + betSize;
       } else if(hs > 0.4 && rand < bluffChance) {
         const betSize = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.5)), b.chips);
         b.chips -= betSize; b.bet += betSize;
         s.lastBet = s.currentBet; s.currentBet = b.bet; s.lastRaiser = botIdx;
         if(b.chips === 0) b.allIn = true;
-        s.lastAction = b.name + ' блеф ' + betSize;
+        s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'блеф' : 'bluff') + ' ' + betSize;
       } else {
-        s.lastAction = b.name + ' чек';
+        s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'чек' : 'check');
       }
     } else if(ca >= b.chips){
       if(hs > 0.2 || ca <= s.bigBlind * 2 || potOdds > 0.4){
         b.bet += b.chips; b.chips = 0; b.allIn = true;
         if(b.bet > s.currentBet){ s.lastBet = s.currentBet; s.currentBet = b.bet; s.lastRaiser = botIdx; }
-        AudioManager.allInTension();
         s.lastAction = b.name + ' ALL-IN ' + b.bet;
       } else {
-        AudioManager.foldSound();
-        b.folded = true; s.lastAction = b.name + ' сбросил';
+        b.folded = true; s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'сбросил' : 'folded');
       }
     } else if(hs < callThreshold && ca > s.bigBlind && !b.allIn){
-      AudioManager.foldSound();
-        b.folded = true; s.lastAction = b.name + ' сбросил';
+      b.folded = true; s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'сбросил' : 'folded');
     } else if(hs > 0.8 && rand > 0.35){
       const raiseExtra = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.8)), b.chips - ca);
       if(raiseExtra > 0 && ca + raiseExtra <= b.chips){
@@ -3221,18 +3299,18 @@ function botMove(state){
         b.chips -= total; b.bet += total;
         s.lastBet = s.currentBet; s.currentBet = b.bet; s.lastRaiser = botIdx;
         if(b.chips === 0) b.allIn = true;
-        s.lastAction = b.name + ' райз до ' + b.bet;
+        s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'райз до' : 'raise to') + ' ' + b.bet;
       } else {
         const actual = Math.min(ca, b.chips);
         b.chips -= actual; b.bet += actual;
         if(b.chips === 0) b.allIn = true;
-        s.lastAction = b.name + ' колл ' + actual;
+        s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'колл' : 'call') + ' ' + actual;
       }
     } else {
       const actual = Math.min(ca, b.chips);
       b.chips -= actual; b.bet += actual;
       if(b.chips === 0) b.allIn = true;
-      s.lastAction = b.name + ' колл ' + actual;
+      s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'колл' : 'call') + ' ' + actual;
     }
 
     processNextPlayer(s);
@@ -3288,20 +3366,19 @@ function processNextPlayer(state){
   const n=state.players.length;
   const active=state.players.filter(p=>!p.folded);
 
+  // FIX: If only 1 active player left, award pot and end hand immediately
   if(active.length===1){
     collectBets(state);
-    // Award all pots to the last active player
     const winnerIdx = state.players.indexOf(active[0]);
-    const totalPot = state.pots.reduce((sum, pot) => sum + pot.amount, state.pot);
-    if(totalPot > 0){
-      state.players[winnerIdx].chips += totalPot;
-    }
+    const totalPot = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
+    if(totalPot > 0) state.players[winnerIdx].chips += totalPot;
     state.pot = 0;
     state.pots = [];
     endHand(state, [winnerIdx]);
     return;
   }
 
+  // FIX: If all active players are all-in, runout and showdown
   const canAct=active.filter(p=>!p.allIn);
   if(canAct.length===0){
     collectBets(state);
@@ -3310,6 +3387,7 @@ function processNextPlayer(state){
     return;
   }
 
+  // Find next player who can act
   let next=(state.currentPlayer+1)%n;
   let loops=0;
   while(loops<n){
@@ -3318,8 +3396,21 @@ function processNextPlayer(state){
     next=(next+1)%n; loops++;
   }
 
+  // FIX: If no one can act (all allIn/folded), force showdown
+  if(loops >= n){
+    collectBets(state);
+    runoutBoard(state);
+    showdown(state);
+    return;
+  }
+
+  // Check if betting round is complete
   const allEven=active.every(p=>p.allIn||p.folded||p.bet===state.currentBet);
-  const roundOver = allEven && (next === state.lastRaiser || (state.currentBet === 0 && next === state.currentPlayer) || canAct.length === 1);
+  const roundOver = allEven && (
+    next === state.lastRaiser || 
+    (state.currentBet === 0 && state.lastRaiser === -1) ||
+    canAct.length === 1
+  );
 
   if(roundOver){
     collectBets(state);
@@ -3333,22 +3424,37 @@ function processNextPlayer(state){
 }
 
 function collectBets(state){
-  const allBettors = state.players.filter(p => p.bet > 0);
-  if (allBettors.length > 0) {
-    const sorted = [...allBettors].sort((a, b) => a.bet - b.bet);
-    let prevBet = 0;
-    for (const player of sorted) {
-      if (player.bet <= prevBet) continue;
-      const diff = player.bet - prevBet;
-      const eligible = state.players.map((p, idx) => ({p, idx})).filter(({p, idx}) => !p.folded && p.bet >= player.bet).map(({idx}) => idx);
-      if (eligible.length === 0) continue;
-      const contributors = allBettors.filter(p => p.bet >= player.bet);
-      const potAmount = diff * contributors.length;
-      state.pots.push({ amount: potAmount, eligible });
-      prevBet = player.bet;
-    }
+  // FIX: Classic side pot algorithm - sort bets, create pots for each unique level
+  const bets = state.players.map((p, idx) => ({ idx, bet: p.bet, folded: p.folded })).filter(x => x.bet > 0);
+  if (bets.length === 0) {
+    state.pot = 0;
+    state.pots = [];
+    state.players.forEach(p => p.bet = 0);
+    return;
   }
+
+  // Sort by bet size
+  const sorted = [...bets].sort((a, b) => a.bet - b.bet);
+  let prevBet = 0;
+  state.pots = [];
+
+  for (const threshold of sorted) {
+    if (threshold.bet <= prevBet) continue;
+    const diff = threshold.bet - prevBet;
+    // Who contributed at least threshold.bet and is not folded
+    const eligible = bets
+      .filter(b => !b.folded && b.bet >= threshold.bet)
+      .map(b => b.idx);
+    const contributors = bets.filter(b => b.bet >= threshold.bet);
+    const potAmount = diff * contributors.length;
+    state.pots.push({ amount: potAmount, eligible });
+    prevBet = threshold.bet;
+  }
+
+  // Sum all pots for display
   state.pot = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
+
+  // Reset individual bets
   state.players.forEach(p => p.bet = 0);
   state.currentBet = 0;
   state.lastBet = 0;
@@ -3382,13 +3488,15 @@ function initBettingRound(state){
   state.currentBet=0;
   state.lastBet=0;
 
+  // FIX: lastRaiser should be the first to act so round completes when we return to them
   let start=(state.dealer+1)%n;
   for(let i=0;i<n;i++){
     if(!state.players[start].folded&&!state.players[start].allIn) break;
     start=(start+1)%n;
   }
+
   state.currentPlayer=start;
-  state.lastRaiser=start;
+  state.lastRaiser=start;  // FIX: Round ends when we return to start
   state.turnStartedAt=Date.now();
   state.turnExpiresAt=Date.now() + TURN_TIME * 1000;
 }
@@ -3410,23 +3518,50 @@ function showdown(state){
 
   if(results.length===0){ endHand(state,[]); return; }
 
-  // Award each pot separately
+  // FIX: Award each pot separately, properly handle splits
   const allWinners = new Set();
+
   state.pots.forEach(pot => {
+    // Only non-folded players who contributed enough
     const eligible = pot.eligible
-      .map(idx => ({ idx, player: state.players[idx], score: results.find(r => r.idx === idx)?.score }))
-      .filter(ep => ep.score);
-    if (eligible.length === 0) return;
+      .map(idx => {
+        const r = results.find(res => res.idx === idx);
+        return r ? { idx, score: r.score } : null;
+      })
+      .filter(Boolean);
+
+    if(eligible.length === 0) return;
+
+    // Find best score
     let best = eligible[0];
-    for (const ep of eligible) if (compareScores(ep.score, best.score) > 0) best = ep;
-    const winners = eligible.filter(ep => compareScores(ep.score, best.score) === 0);
+    for(const e of eligible){
+      if(compareScores(e.score, best.score) > 0) best = e;
+    }
+
+    // All with same score
+    const winners = eligible.filter(e => compareScores(e.score, best.score) === 0);
     const share = Math.floor(pot.amount / winners.length);
     const remainder = pot.amount - share * winners.length;
+
     winners.forEach((w, i) => {
       state.players[w.idx].chips += share + (i === 0 ? remainder : 0);
+      allWinners.add(w.idx);
     });
-    winners.forEach(w => allWinners.add(w.idx !== undefined ? w.idx : w));
   });
+
+  // FIX: If no pots (rare case) but pot exists in state.pot
+  if(state.pots.length === 0 && state.pot > 0){
+    let best = results[0];
+    for(const r of results) if(compareScores(r.score, best.score) > 0) best = r;
+    const winners = results.filter(r => compareScores(r.score, best.score) === 0);
+    const share = Math.floor(state.pot / winners.length);
+    const remainder = state.pot - share * winners.length;
+    winners.forEach((w, i) => {
+      state.players[w.idx].chips += share + (i === 0 ? remainder : 0);
+      allWinners.add(w.idx);
+    });
+    state.pot = 0;
+  }
 
   state.pot = 0;
   state.pots = [];
@@ -3638,7 +3773,7 @@ function checkAchievements(){
 
 function renderProfile(){
   const stats=getProfileStats(), winrate=stats.hands>0?Math.round((stats.wins/stats.hands)*100):0;
-  const bestHandNames=['—','Старшая','Пара','Две пары','Тройка','Стрит','Флеш','Фулл-хаус','Каре','Стрит-флеш'];
+  const bestHandNames=['—',t('highCard'),t('pair'),t('twoPair'),t('threeKind'),t('straight'),t('flush'),t('fullHouse'),t('fourKind'),t('straightFlush')];
   const pa=document.getElementById('profile-avatar');
   pa.textContent=stats.avatar; pa.style.borderColor=stats.frameColor;
   document.getElementById('profile-name').textContent=myName;
@@ -3705,11 +3840,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   updateLobbyLevel();
   updateLobbyChips();
   const langBtn = document.getElementById('lang-btn');
-  if(langBtn) langBtn.textContent = currentLang === 'ru' ? 'RU' : 'EN';
+  if(langBtn) langBtn.textContent = currentLang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN';
   applyTranslations();
   setTimeout(()=>{
     const splash = document.getElementById('splash-screen');
     if(splash){
+      splash.classList.remove('fallback');  // FIX: Stop fallback animation
       splash.classList.add('hide');
       setTimeout(()=>splash.remove(),600);
     }
@@ -3744,7 +3880,7 @@ function saveName(){
 }
 function toggleLanguage(){
   setLanguage(currentLang === 'ru' ? 'en' : 'ru');
-  document.getElementById('lang-btn').textContent = currentLang === 'ru' ? 'RU' : 'EN';
+  document.getElementById('lang-btn').textContent = currentLang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN';
 }
 function updateLobbyChips(){
   const el = document.getElementById('lobby-chips');
