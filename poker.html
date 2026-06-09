@@ -31,7 +31,7 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:100vh;overflow-x:hidden;user-select:none;-webkit-font-smoothing:antialiased;}
+body{touch-action:manipulation;font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:100vh;overflow-x:hidden;user-select:none;-webkit-font-smoothing:antialiased;}
 
 .screen{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:max(16px,env(safe-area-inset-top)) 14px max(16px,env(safe-area-inset-bottom));opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s;}
 .screen.active{display:flex;opacity:1;transform:translateY(0);}
@@ -154,12 +154,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 /* BOTTOM NAV */
 .lobby-nav{position:relative;display:flex;justify-content:space-around;align-items:center;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:rgba(10,22,40,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);z-index:100;max-width:480px;width:100%;border-radius:20px 20px 0 0;}
-.lobby-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 16px;cursor:pointer;transition:all .2s;border-radius:12px;}
+.lobby-nav-item,.lobby-nav-item:link,.lobby-nav-item:visited{display:flex;text-decoration:none;flex-direction:column;align-items:center;gap:3px;padding:4px 16px;cursor:pointer;transition:all .2s;border-radius:12px;}
 .lobby-nav-item:hover{background:rgba(255,255,255,.05);}
 .lobby-nav-item.active{color:var(--accent-gold);}
 .lobby-nav-item.active .lobby-nav-icon{filter:drop-shadow(0 0 8px rgba(245,184,0,.4));}
 .lobby-nav-icon{font-size:22px;transition:all .2s;}
 .lobby-nav-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+
+.lobby-nav-item{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;position:relative;z-index:100;}
+
 
 /* RESPONSIVE LOBBY */
 @media(max-width:380px){
@@ -408,6 +411,50 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   .action-btn{padding:12px 14px;font-size:13px;min-width:75px;}
   .logo{font-size:42px;}
 }
+
+/* ===== SETTINGS ===== */
+#settings-screen{padding:20px 14px;justify-content:flex-start;align-items:center;overflow-y:auto;position:relative;}
+.settings-header{display:flex;align-items:center;justify-content:center;width:100%;max-width:480px;margin-bottom:24px;position:relative;}
+.settings-title{font-size:22px;font-weight:800;color:#fff;}
+.settings-section{width:100%;max-width:480px;margin-bottom:20px;}
+.settings-section-title{font-size:13px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:12px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:16px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;margin-bottom:10px;transition:all .2s;}
+.settings-row:hover{border-color:rgba(255,255,255,.2);}
+.settings-label{display:flex;align-items:center;gap:12px;}
+.settings-icon{font-size:22px;}
+.settings-text{font-size:14px;font-weight:600;color:#fff;}
+.settings-desc{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;}
+
+/* Toggle Switch */
+.toggle-switch{position:relative;width:48px;height:28px;background:rgba(255,255,255,.1);border-radius:14px;cursor:pointer;transition:background .3s;border:1px solid rgba(255,255,255,.1);}
+.toggle-switch.active{background:var(--accent-green);border-color:var(--accent-green);}
+.toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .3s;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+.toggle-switch.active::after{transform:translateX(20px);}
+
+/* Select dropdown style */
+.settings-select{padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer;outline:none;transition:all .2s;}
+.settings-select:hover{border-color:rgba(255,255,255,.3);}
+.settings-select option{background:#1a2e1a;color:#fff;}
+
+/* Info block */
+.settings-info{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;padding:20px;text-align:center;}
+.settings-info-title{font-size:16px;font-weight:700;color:var(--accent-gold);margin-bottom:8px;}
+.settings-info-text{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5;}
+.settings-version{font-size:12px;color:rgba(255,255,255,.3);margin-top:16px;}
+.settings-rules-btn{width:100%;margin-top:12px;padding:12px;border-radius:12px;border:1px solid var(--glass-border);background:var(--glass);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.settings-rules-btn:hover{border-color:var(--accent-gold);color:var(--accent-gold);}
+
+/* Rules modal */
+.rules-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:400;display:none;align-items:center;justify-content:center;animation:fadeIn .3s ease;}
+.rules-modal.show{display:flex;}
+.rules-content{background:linear-gradient(180deg,#1a2e1a,#0f1f0f);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:28px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto;position:relative;}
+.rules-title{font-size:18px;font-weight:800;color:var(--accent-gold);margin-bottom:16px;text-align:center;}
+.rules-text{font-size:13px;color:rgba(255,255,255,.7);line-height:1.6;}
+.rules-text h3{font-size:14px;color:#fff;margin:16px 0 8px;font-weight:700;}
+.rules-text ul{margin:8px 0;padding-left:20px;}
+.rules-text li{margin:4px 0;}
+.rules-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-border);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.rules-close:hover{background:rgba(255,255,255,.1);transform:rotate(90deg);}
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -437,7 +484,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     </div>
     <div class="lobby-actions">
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">🇷🇺</div>
-      <div class="lobby-settings-btn" onclick="showToastSettings()">⚙️</div>
+      <div class="lobby-settings-btn" id="header-settings-btn" onclick="showScreen('settings')">⚙️</div>
     </div>
   </div>
 
@@ -503,26 +550,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
   <!-- Bottom Nav -->
   <div class="lobby-nav">
-    <div class="lobby-nav-item active">
+    <a href="javascript:void(0)" class="lobby-nav-item active" onclick="showScreen('lobby')">
       <div class="lobby-nav-icon">🏠</div>
       <div class="lobby-nav-label" id="nav-play">Игра</div>
-    </div>
-    <div class="lobby-nav-item" onclick="showScreen('profile')">
+    </a>
+    <a href="javascript:void(0)" class="lobby-nav-item" onclick="showScreen('profile')">
       <div class="lobby-nav-icon">👤</div>
       <div class="lobby-nav-label" id="nav-profile">Профиль</div>
-    </div>
-    <div class="lobby-nav-item" onclick="showToastShop()">
+    </a>
+    <a href="javascript:void(0)" class="lobby-nav-item" onclick="showToastShop()">
       <div class="lobby-nav-icon">🛒</div>
       <div class="lobby-nav-label" id="nav-shop">Магазин</div>
-    </div>
-    <div class="lobby-nav-item" onclick="showToastSettings()">
+    </a>
+    <a href="javascript:void(0)" class="lobby-nav-item" onclick="showScreen('settings')">
       <div class="lobby-nav-icon">⚙️</div>
       <div class="lobby-nav-label" id="nav-settings">Настройки</div>
-    </div>
-  </div>
-</div>
-
-<div id="waiting-screen" class="screen">
+    </a>
+  </div><div id="waiting-screen" class="screen">
   <div class="waiting-title" id="waiting-title">⏳ Ожидание игроков</div>
   <div class="big-room-id" id="waiting-code">----</div>
   <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:8px;" id="waiting-hint">Отправьте код друзьям</div>
@@ -616,6 +660,136 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <div class="tourney-leaderboard" id="tourney-leaderboard"></div>
   <div class="tourney-next-hint" id="tourney-next-hint">Следующая раздача через 3 сек...</div>
   <button class="btn btn-secondary" onclick="endTournament()" style="margin-top:16px;">← Выйти из турнира</button>
+
+
+<div id="settings-screen" class="screen">
+  <div style="position:absolute;top:16px;right:16px;z-index:10;">
+    <button class="exit-btn" onclick="showScreen('lobby')" title="В лобби">✕</button>
+  </div>
+  <div class="settings-header">
+    <div class="settings-title" id="settings-title">Настройки</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title" id="settings-game">🎮 Игра</div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <div class="settings-icon">🔊</div>
+        <div>
+          <div class="settings-text" id="settings-sound">Звук</div>
+          <div class="settings-desc" id="settings-sound-desc">Звуковые эффекты</div>
+        </div>
+      </div>
+      <div class="toggle-switch active" id="toggle-sound" onclick="toggleSetting('sound')"></div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <div class="settings-icon">📳</div>
+        <div>
+          <div class="settings-text" id="settings-vibro">Вибрация</div>
+          <div class="settings-desc" id="settings-vibro-desc">Тактильная отдача</div>
+        </div>
+      </div>
+      <div class="toggle-switch active" id="toggle-vibro" onclick="toggleSetting('vibro')"></div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <div class="settings-icon">⏱️</div>
+        <div>
+          <div class="settings-text" id="settings-timer">Таймер хода</div>
+          <div class="settings-desc" id="settings-timer-desc">Время на принятие решения</div>
+        </div>
+      </div>
+      <select class="settings-select" id="timer-select" onchange="changeTimer(this.value)">
+        <option value="15">15 сек</option>
+        <option value="30" selected>30 сек</option>
+        <option value="45">45 сек</option>
+        <option value="60">60 сек</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title" id="settings-appearance">🎨 Внешний вид</div>
+
+    <div class="settings-row">
+      <div class="settings-label">
+        <div class="settings-icon">🎨</div>
+        <div>
+          <div class="settings-text" id="settings-theme">Тема</div>
+          <div class="settings-desc" id="settings-theme-desc">Цветовой акцент</div>
+        </div>
+      </div>
+      <select class="settings-select" id="theme-select" onchange="changeTheme(this.value)">
+        <option value="green" selected>Зелёный</option>
+        <option value="blue">Синий</option>
+        <option value="red">Красный</option>
+        <option value="purple">Фиолетовый</option>
+        <option value="gold">Золотой</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title" id="settings-about">ℹ️ О игре</div>
+    <div class="settings-info">
+      <div class="settings-info-title">♠️ Poker Hold'em</div>
+      <div class="settings-info-text" id="settings-about-text">Техасский Холдем для Telegram. Играйте с друзьями или тренируйтесь с ботом.</div>
+      <div class="settings-version">v1.2.0</div>
+      <button class="settings-rules-btn" id="rules-btn" onclick="showRules()">📖 Правила покера</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rules Modal -->
+<div class="rules-modal" id="rules-modal">
+  <div class="rules-content">
+    <button class="rules-close" onclick="closeRules()">✕</button>
+    <div class="rules-title">Правила Техасского Холдема</div>
+    <div class="rules-text">
+      <h3>Цель игры</h3>
+      Собрать лучшую комбинацию из 5 карт, используя 2 свои карты и 5 общих карт на столе, или заставить всех соперников сбросить карты.
+
+      <h3>Комбинации (от слабой к сильной)</h3>
+      <ul>
+        <li><b>Старшая карта</b> — нет комбинации</li>
+        <li><b>Пара</b> — 2 карты одного достоинства</li>
+        <li><b>Две пары</b> — две пары карт</li>
+        <li><b>Тройка</b> — 3 карты одного достоинства</li>
+        <li><b>Стрит</b> — 5 карт по порядку</li>
+        <li><b>Флеш</b> — 5 карт одной масти</li>
+        <li><b>Фулл-хаус</b> — тройка + пара</li>
+        <li><b>Каре</b> — 4 карты одного достоинства</li>
+        <li><b>Стрит-флеш</b> — стрит одной масти</li>
+        <li><b>Роял-флеш</b> — стрит-флеш от 10 до туза</li>
+      </ul>
+
+      <h3>Этапы игры</h3>
+      <ul>
+        <li><b>Префлоп</b> — раздаются 2 карты, первые ставки</li>
+        <li><b>Флоп</b> — открываются 3 общие карты</li>
+        <li><b>Тёрн</b> — 4-я общая карта</li>
+        <li><b>Ривер</b> — 5-я общая карта</li>
+        <li><b>Вскрытие</b> — определение победителя</li>
+      </ul>
+
+      <h3>Действия</h3>
+      <ul>
+        <li><b>Фолд</b> — сбросить карты</li>
+        <li><b>Чек</b> — пропустить ход (если нет ставки)</li>
+        <li><b>Колл</b> — уравнять ставку</li>
+        <li><b>Райз</b> — повысить ставку</li>
+        <li><b>All-in</b> — поставить все фишки</li>
+      </ul>
+
+      <h3>Блайнды</h3>
+      Маленький блайнд (SB) и большой блайнд (BB) — обязательные ставки перед раздачей. Ходят по часовой стрелке.
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- Name Edit Modal -->
@@ -711,6 +885,26 @@ const i18n = {
     fullHouse: "Фулл-хаус",
     fourKind: "Каре",
     straightFlush: 'Стрит-флеш'
+    settingsTitle: "Настройки",
+    settingsGame: "🎮 Игра",
+    settingsSound: "Звук",
+    settingsSoundDesc: "Звуковые эффекты",
+    settingsVibro: "Вибрация",
+    settingsVibroDesc: "Тактильная отдача",
+    settingsTimer: "Таймер хода",
+    settingsTimerDesc: "Время на принятие решения",
+    settingsAppearance: "🎨 Внешний вид",
+    settingsTheme: "Тема",
+    settingsThemeDesc: "Цветовой акцент",
+    settingsAbout: "ℹ️ О игре",
+    settingsAboutText: "Техасский Холдем для Telegram. Играйте с друзьями или тренируйтесь с ботом.",
+    settingsRules: "📖 Правила покера",
+    settingsBack: "В лобби",
+    themeGreen: "Зелёный",
+    themeBlue: "Синий",
+    themeRed: "Красный",
+    themePurple: "Фиолетовый",
+    themeGold: "Золотой",
   },
   en: {
     appTitle: "Poker",
@@ -790,6 +984,26 @@ const i18n = {
     fullHouse: "Full House",
     fourKind: "Four of a Kind",
     straightFlush: 'Straight Flush'
+    settingsTitle: "Settings",
+    settingsGame: "🎮 Game",
+    settingsSound: "Sound",
+    settingsSoundDesc: "Sound effects",
+    settingsVibro: "Vibration",
+    settingsVibroDesc: "Haptic feedback",
+    settingsTimer: "Turn timer",
+    settingsTimerDesc: "Time to make a decision",
+    settingsAppearance: "🎨 Appearance",
+    settingsTheme: "Theme",
+    settingsThemeDesc: "Color accent",
+    settingsAbout: "ℹ️ About",
+    settingsAboutText: "Texas Hold'em for Telegram. Play with friends or train with bot.",
+    settingsRules: "📖 Poker rules",
+    settingsBack: "Back to lobby",
+    themeGreen: "Green",
+    themeBlue: "Blue",
+    themeRed: "Red",
+    themePurple: "Purple",
+    themeGold: "Gold",
   }
 };
 
@@ -2548,6 +2762,249 @@ const _playerAllIn=playerAllIn; playerAllIn=function(){updateProfileStat('allIns
 const _playerFold=playerFold; playerFold=function(){updateProfileStat('folds',1); return _playerFold();};
 
 
+
+// ===== SETTINGS =====
+const SETTINGS_KEY = 'poker_settings';
+const DEFAULT_SETTINGS = {
+  sound: true,
+  vibro: true,
+  timer: 30,
+  theme: 'green'
+};
+
+function getSettings(){
+  const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+  return saved || {...DEFAULT_SETTINGS};
+}
+function saveSettings(s){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+function toggleSetting(key){
+  const settings = getSettings();
+  settings[key] = !settings[key];
+  saveSettings(settings);
+  const toggle = document.getElementById('toggle-' + key);
+  if(toggle) toggle.classList.toggle('active', settings[key]);
+  if(key === 'sound' && settings[key]) AudioManager.chipClick();
+  if(key === 'vibro' && settings[key] && tg) tg.HapticFeedback.impactOccurred('light');
+}
+
+function changeTimer(val){
+  const settings = getSettings();
+  settings.timer = parseInt(val);
+  saveSettings(settings);
+}
+
+function changeTheme(val){
+  const settings = getSettings();
+  settings.theme = val;
+  saveSettings(settings);
+  applyTheme(val);
+}
+
+function applyTheme(theme){
+  const root = document.documentElement;
+  const themes = {
+    green:  {felt:'#1a5c2e', feltDark:'#0f3d1a', feltLight:'#2a7c42', accentGold:'#F5B800'},
+    blue:   {felt:'#1a3a5c', feltDark:'#0f1f3d', feltLight:'#2a5c7c', accentGold:'#4da6ff'},
+    red:    {felt:'#5c1a1a', feltDark:'#3d0f0f', feltLight:'#7c2a2a', accentGold:'#ff6b6b'},
+    purple: {felt:'#3a1a5c', feltDark:'#1f0f3d', feltLight:'#5c2a7c', accentGold:'#b388ff'},
+    gold:   {felt:'#3a2a1a', feltDark:'#1f1a0f', feltLight:'#5c4a2a', accentGold:'#FFD700'}
+  };
+  const t = themes[theme] || themes.green;
+  root.style.setProperty('--felt', t.felt);
+  root.style.setProperty('--felt-dark', t.feltDark);
+  root.style.setProperty('--felt-light', t.feltLight);
+  root.style.setProperty('--accent-gold', t.accentGold);
+}
+
+function showRules(){
+  const modal = document.getElementById('rules-modal');
+  if(modal) modal.classList.add('show');
+}
+function closeRules(){
+  const modal = document.getElementById('rules-modal');
+  if(modal) modal.classList.remove('show');
+}
+
+function initSettings(){
+  const settings = getSettings();
+  const soundToggle = document.getElementById('toggle-sound');
+  const vibroToggle = document.getElementById('toggle-vibro');
+  const timerSelect = document.getElementById('timer-select');
+  const themeSelect = document.getElementById('theme-select');
+
+  if(soundToggle) soundToggle.classList.toggle('active', settings.sound);
+  if(vibroToggle) vibroToggle.classList.toggle('active', settings.vibro);
+  if(timerSelect) timerSelect.value = settings.timer;
+  if(themeSelect) themeSelect.value = settings.theme;
+
+  applyTheme(settings.theme);
+}
+
+// Hook into existing functions to respect settings
+const _AudioManager_init = AudioManager.init;
+AudioManager.init = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_init.call(this);
+};
+
+const _AudioManager_cardShuffle = AudioManager.cardShuffle;
+AudioManager.cardShuffle = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_cardShuffle.call(this);
+};
+
+const _AudioManager_chipClick = AudioManager.chipClick;
+AudioManager.chipClick = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_chipClick.call(this);
+};
+
+const _AudioManager_allInTension = AudioManager.allInTension;
+AudioManager.allInTension = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_allInTension.call(this);
+};
+
+const _AudioManager_winChime = AudioManager.winChime;
+AudioManager.winChime = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_winChime.call(this);
+};
+
+const _AudioManager_foldSound = AudioManager.foldSound;
+AudioManager.foldSound = function(){
+  const settings = getSettings();
+  if(!settings.sound) return;
+  return _AudioManager_foldSound.call(this);
+};
+
+// Vibration hooks
+function hapticLight(){
+  const settings = getSettings();
+  if(settings.vibro && tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+}
+function hapticMedium(){
+  const settings = getSettings();
+  if(settings.vibro && tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+}
+function hapticHeavy(){
+  const settings = getSettings();
+  if(settings.vibro && tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+}
+function hapticSuccess(){
+  const settings = getSettings();
+  if(settings.vibro && tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+function hapticError(){
+  const settings = getSettings();
+  if(settings.vibro && tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+}
+
+// Apply timer setting to TURN_TIME
+function getTurnTime(){
+  const settings = getSettings();
+  return settings.timer || 30;
+}
+
+// Override TURN_TIME usage in startTimer
+const _startTimer = startTimer;
+startTimer = function(turnExpiresAt){
+  stopTimer();
+  const bar = document.getElementById('timer-bar');
+  if(!bar) return;
+  const turnTime = getTurnTime();
+  const update = () => {
+    const remaining = Math.max(0, Math.floor((turnExpiresAt - Date.now()) / 1000));
+    bar.style.width = (remaining / turnTime) * 100 + '%';
+    remaining <= 10 ? bar.classList.add('urgent') : bar.classList.remove('urgent');
+    if(remaining <= 0){ stopTimer(); autoFold(); }
+  };
+  update();
+  timerInterval = setInterval(update, 1000);
+};
+
+// Override autoFold timer
+const _autoFold = autoFold;
+autoFold = function(){
+  if(!roomCode) return;
+  db.ref('poker-rooms/'+roomCode).transaction(currentState => {
+    if(!currentState) return;
+    let state = normalizeState(currentState);
+    if(state.currentPlayer !== myIndex) return;
+    const p = state.players[myIndex];
+    if(!p || p.folded || p.allIn) return;
+    p.folded = true;
+    state.lastAction = p.name + ' не успел — сброс';
+    processNextPlayer(state);
+    state.ts = Date.now();
+    return state;
+  });
+};
+
+// Update turn expires at based on setting
+const _dealHand = dealHand;
+dealHand = function(state){
+  _dealHand(state);
+  const turnTime = getTurnTime();
+  state.turnExpiresAt = Date.now() + turnTime * 1000;
+};
+
+const _initBettingRound = initBettingRound;
+initBettingRound = function(state){
+  _initBettingRound(state);
+  const turnTime = getTurnTime();
+  state.turnExpiresAt = Date.now() + turnTime * 1000;
+};
+
+// Add haptic to action buttons
+const _playerFold = playerFold;
+playerFold = function(){
+  hapticLight();
+  return _playerFold();
+};
+
+const _playerCheck = playerCheck;
+playerCheck = function(){
+  hapticLight();
+  return _playerCheck();
+};
+
+const _playerCall = playerCall;
+playerCall = function(){
+  hapticLight();
+  return _playerCall();
+};
+
+const _playerRaise = playerRaise;
+playerRaise = function(){
+  hapticMedium();
+  return _playerRaise();
+};
+
+const _playerAllIn = playerAllIn;
+playerAllIn = function(){
+  hapticHeavy();
+  return _playerAllIn();
+};
+
+// Hook win for haptic success
+const _endHand = endHand;
+endHand = function(state, winnerIdxs){
+  const me = state.players.find(p => p.id === myPlayerId);
+  if(me && winnerIdxs && winnerIdxs.some(i => state.players[i] && state.players[i].id === myPlayerId)){
+    hapticSuccess();
+  }
+  return _endHand(state, winnerIdxs);
+};
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
   console.log('DOMContentLoaded start');
@@ -2567,6 +3024,55 @@ document.addEventListener('DOMContentLoaded',()=>{
       setTimeout(()=>splash.remove(),600);
     }
   },1800);
+    initSettings();
+
+// Nav button event listeners (fix for mobile touch)
+function addNavListeners(){
+  const settingsBtn = document.getElementById('nav-settings-btn');
+  const profileBtn = document.getElementById('nav-profile-btn');
+  const headerSettingsBtn = document.getElementById('header-settings-btn');
+
+  if(settingsBtn){
+    settingsBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('settings');
+    });
+    settingsBtn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('settings');
+    });
+  }
+
+  if(profileBtn){
+    profileBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('profile');
+    });
+    profileBtn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('profile');
+    });
+  }
+
+  if(headerSettingsBtn){
+    headerSettingsBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('settings');
+    });
+    headerSettingsBtn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      showScreen('settings');
+    });
+  }
+}
+addNavListeners();
+
   console.log('DOMContentLoaded end');
 });
 
