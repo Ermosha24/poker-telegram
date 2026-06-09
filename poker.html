@@ -569,10 +569,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 
 <div id="profile-screen" class="screen">
+<div style="position:absolute;top:16px;right:16px;z-index:10;">
+  <button class="exit-btn" onclick="showScreen('lobby')" title="В лобби">✕</button>
+</div>
+
   <div class="profile-header">
     <div class="profile-avatar" id="profile-avatar">👤</div>
     <div class="profile-name" id="profile-name">Player</div>
     <div class="profile-level" id="profile-level">Ур. 1</div>
+
   </div>
   <div class="profile-section">
     <div class="profile-section-title">📊 Статистика</div>
