@@ -153,7 +153,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .lobby-create-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
 
 /* BOTTOM NAV */
-.lobby-nav{position:relative;display:flex;justify-content:space-around;align-items:center;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:rgba(10,22,40,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);z-index:100;max-width:480px;width:100%;margin-top:auto;border-radius:20px 20px 0 0;}
+.lobby-nav{position:relative;display:flex;justify-content:space-around;align-items:center;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:rgba(10,22,40,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);z-index:100;max-width:480px;width:100%;border-radius:20px 20px 0 0;}
 .lobby-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 16px;cursor:pointer;transition:all .2s;border-radius:12px;}
 .lobby-nav-item:hover{background:rgba(255,255,255,.05);}
 .lobby-nav-item.active{color:var(--accent-gold);}
@@ -187,14 +187,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 @keyframes urgent-pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
 
 /* TABLE */
-.table-felt{width:100%;max-width:480px;aspect-ratio:4/3;background:radial-gradient(ellipse at 50% 55%,var(--felt-light) 0%,var(--felt) 50%,var(--felt-dark) 100%);border-radius:50% / 45%;border:3px solid rgba(255,255,255,.12);box-shadow:inset 0 0 80px rgba(0,0,0,.6),0 12px 40px rgba(0,0,0,.5),0 0 0 8px rgba(0,0,0,.2);margin:auto;}
+.table-center{position:relative;width:100%;max-width:480px;margin:auto;}
+.table-felt{width:100%;max-width:480px;aspect-ratio:4/3;background:radial-gradient(ellipse at 50% 55%,var(--felt-light) 0%,var(--felt) 50%,var(--felt-dark) 100%);border-radius:50% / 45%;border:3px solid rgba(255,255,255,.12);box-shadow:inset 0 0 80px rgba(0,0,0,.6),0 12px 40px rgba(0,0,0,.5),0 0 0 8px rgba(0,0,0,.2);}
 
 /* POT */
-.pot-display{font-size:20px;font-weight:800;color:var(--accent-gold);text-shadow:0 2px 12px rgba(0,0,0,.6),0 0 20px rgba(245,184,0,.2);margin-bottom:10px;letter-spacing:1px;}
+.pot-display{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:20px;font-weight:800;color:var(--accent-gold);text-shadow:0 2px 12px rgba(0,0,0,.6),0 0 20px rgba(245,184,0,.2);letter-spacing:1px;z-index:5;}
 .pot-display::before{content:'💰 ';font-size:16px;}
 
 /* COMMUNITY CARDS */
-.community-cards{display:flex;gap:8px;margin-bottom:10px;}
+.community-cards{display:flex;gap:8px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;}
 .community-cards .card{width:46px;height:68px;font-size:16px;box-shadow:var(--shadow-md);animation:dealCard .4s ease-out;}
 .community-cards .card-placeholder{width:46px;height:68px;border-radius:10px;border:2px dashed rgba(255,255,255,.15);background:rgba(0,0,0,.15);}
 @keyframes dealCard{from{opacity:0;transform:translateY(-20px) scale(.8);}to{opacity:1;transform:translateY(0) scale(1);}}
@@ -224,26 +225,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .player-pos.folded .p-name{text-decoration:line-through;}
 .player-pos.dealer .p-avatar::after{content:'D';position:absolute;top:-4px;right:-4px;background:var(--accent-gold);color:#1a1a1a;font-size:9px;font-weight:900;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);z-index:5;}
 
-/* pos-bottom: игрок снизу — карты сверху, info снизу */
 .pos-bottom{bottom:120px;left:50%;transform:translateX(-50%);flex-direction:column-reverse;z-index:15;}
 .pos-bottom .p-info{flex-direction:column;align-items:center;}
-
-/* pos-top: бот/игрок сверху — info сверху, карты снизу */
-.pos-top{top:55px;left:50%;transform:translateX(-50%);flex-direction:column;z-index:15;}
+.pos-top{top:80px;left:50%;transform:translateX(-50%);flex-direction:column;z-index:15;}
 .pos-top .p-info{flex-direction:column;align-items:center;}
-
-/* pos-left: бот слева — info слева, карты справа */
 .pos-left{left:8px;top:50%;transform:translateY(-50%);flex-direction:row;z-index:15;}
 .pos-left .p-info{flex-direction:column;align-items:center;}
 .pos-left .p-cards{flex-direction:row;}
-
-/* pos-right: игрок справа — info справа, карты слева */
 .pos-right{right:8px;top:50%;transform:translateY(-50%);flex-direction:row-reverse;z-index:15;}
 .pos-right .p-info{flex-direction:column;align-items:center;}
 .pos-right .p-cards{flex-direction:row;}
 
 /* CARDS */
-.card{width:var(--card-w);height:var(--card-h);border-radius:12px;background:#fff;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 3px 12px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3);font-family:'Inter',sans-serif;flex-shrink:0;transition:transform .2s,box-shadow .2s;}
+.card{width:var(--card-w);height:var(--card-h);border-radius:12px;background:#fff;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 3px 12px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3);font-family:'Inter',sans-serif;transition:transform .2s,box-shadow .2s;}
 .card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.5);}
 .card.red{color:#e03030;}
 .card.black{color:#1a1a1a;}
@@ -273,8 +267,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .raise-wrap{display:flex;align-items:center;gap:8px;}
 .raise-wrap input{width:70px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#fff;font-size:14px;text-align:center;font-weight:700;}
 
+/* WAITING BUTTONS */
+.btn-secondary{padding:14px 28px;border-radius:16px;border:none;background:linear-gradient(135deg,#555,#333);color:#fff;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(0,0,0,.3);display:inline-flex;align-items:center;gap:8px;}
+.btn-secondary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.5);background:linear-gradient(135deg,#666,#444);}
+.btn-secondary:active{transform:translateY(1px) scale(.98);}
+.btn-green{padding:14px 28px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--accent-gold),#d4a017);color:#1a1a1a;font-weight:800;font-size:14px;cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(245,184,0,.3);display:inline-flex;align-items:center;gap:8px;}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,184,0,.5);}
+.btn-green:active{transform:translateY(1px) scale(.98);}
+
 /* STATUS */
-.status-msg{font-size:13px;color:rgba(255,255,255,.65);text-align:center;min-height:20px;font-weight:600;margin-top:6px;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+.status-msg{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,.65);text-align:center;min-height:20px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.5);z-index:5;}
 
 
 
@@ -356,8 +358,45 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 @keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.5) rotate(360deg);}}
 
 /* PARTICLES */
-
+.particle{position:fixed;pointer-events:none;z-index:500;font-size:24px;animation:particleFly 1.5s cubic-bezier(.25,.46,.45,.94) forwards;}
 @keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg);}50%{opacity:1;transform:translate(calc(var(--tx)*.5),calc(var(--ty)*.5)) scale(1.3) rotate(180deg);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.3) rotate(360deg);}}
+
+/* ===== PROFILE ===== */
+#profile-screen{padding:20px 14px;justify-content:flex-start;align-items:center;overflow-y:auto;}
+.profile-header{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px;position:relative;}
+.profile-header::before{content:'';position:absolute;inset:-20px -14px 0;background:radial-gradient(ellipse at 50% 0%,rgba(245,184,0,.08),transparent 70%);pointer-events:none;}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#333,#222);display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 0 30px rgba(245,184,0,.2);border:3px solid var(--accent-gold);position:relative;z-index:2;transition:all .3s;}
+.profile-name{font-size:18px;font-weight:800;color:#fff;position:relative;z-index:2;}
+.profile-level{font-size:12px;color:var(--accent-gold);font-weight:700;background:rgba(245,184,0,.1);padding:4px 12px;border-radius:10px;border:1px solid rgba(245,184,0,.2);position:relative;z-index:2;}
+.profile-section{width:100%;max-width:480px;margin-bottom:20px;}
+.profile-section-title{font-size:13px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:12px;}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.profile-stat{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;padding:16px 8px;text-align:center;transition:all .2s;}
+.profile-stat:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px);}
+.profile-stat-value{font-size:22px;font-weight:800;color:var(--accent-gold);text-shadow:0 0 20px rgba(245,184,0,.2);}
+.profile-stat-label{font-size:10px;color:rgba(255,255,255,.5);margin-top:4px;text-transform:uppercase;letter-spacing:1px;}
+.profile-achievements{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.profile-achieve{width:100%;aspect-ratio:1;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .2s;position:relative;overflow:hidden;}
+.profile-achieve:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px);}
+.profile-achieve.unlocked{background:linear-gradient(135deg,rgba(245,184,0,.15),rgba(245,184,0,.05));border-color:rgba(245,184,0,.3);box-shadow:0 4px 15px rgba(245,184,0,.15);}
+.profile-achieve-icon{font-size:28px;filter:grayscale(1);opacity:.4;transition:all .3s;}
+.profile-achieve.unlocked .profile-achieve-icon{filter:grayscale(0);opacity:1;}
+.profile-achieve-name{font-size:9px;color:rgba(255,255,255,.4);text-align:center;padding:0 4px;line-height:1.2;}
+.profile-achieve.unlocked .profile-achieve-name{color:var(--accent-gold);font-weight:700;}
+.custom-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.custom-label{font-size:13px;color:rgba(255,255,255,.6);font-weight:600;min-width:60px;}
+.custom-avatars{display:flex;gap:8px;flex-wrap:wrap;}
+.custom-avatar-btn{width:44px;height:44px;border-radius:50%;background:var(--glass);border:2px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:all .2s;}
+.custom-avatar-btn:hover{border-color:var(--accent-gold);transform:scale(1.1);}
+.custom-avatar-btn.active{border-color:var(--accent-gold);background:rgba(245,184,0,.15);box-shadow:0 0 15px rgba(245,184,0,.2);}
+.custom-colors{display:flex;gap:8px;}
+.custom-color-btn{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;position:relative;}
+.custom-color-btn:hover{transform:scale(1.15);}
+.custom-color-btn.active{border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.3);}
+.custom-color-btn.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+.custom-btn{padding:10px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent-gold),#d4a017);color:#1a1a1a;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(245,184,0,.3);}
+.custom-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,184,0,.4);}
+@media(max-width:380px){.profile-stats{grid-template-columns:repeat(2,1fr);}.profile-achievements{grid-template-columns:repeat(3,1fr);}}
 
 /* RESPONSIVE */
 @media(max-width:380px){
@@ -370,6 +409,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   .logo{font-size:42px;}
 }
 </style>
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -401,18 +441,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     </div>
   </div>
 
-  <!-- Name Edit Modal -->
-  <div class="name-modal" id="name-modal" style="display:none;">
-    <div class="name-modal-content">
-      <div class="name-modal-title" id="name-modal-title">Введите имя</div>
-      <input type="text" id="name-input" maxlength="12" placeholder="Player" />
-      <div class="name-modal-buttons">
-        <button class="name-modal-btn btn-cancel" id="name-cancel" onclick="closeNameModal()">Отмена</button>
-        <button class="name-modal-btn btn-save" id="name-save" onclick="saveName()">Сохранить</button>
-      </div>
-    </div>
-  </div>
-
+  
   <!-- Banner -->
   <div class="lobby-banner">
     <div class="lobby-banner-content">
@@ -425,7 +454,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <!-- Section: Quick Play -->
   <div class="lobby-section-title" id="quick-start-title">Быстрый старт</div>
   <div class="lobby-quick-play">
-    <button class="lobby-quick-btn" id="host-btn"><span>⚡</span> <span id="create-table-btn">Создать стол</span></button>
+    <button class="lobby-quick-btn" id="host-btn"><span>⚡</span> <span id="create-table-btn">Создать стол</span> <span>⚡</span></button>
   </div>
 
   <!-- Section: Game Modes -->
@@ -478,7 +507,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       <div class="lobby-nav-icon">🏠</div>
       <div class="lobby-nav-label" id="nav-play">Игра</div>
     </div>
-    <div class="lobby-nav-item" onclick="showToastProfile()">
+    <div class="lobby-nav-item" onclick="showScreen('profile')">
       <div class="lobby-nav-icon">👤</div>
       <div class="lobby-nav-label" id="nav-profile">Профиль</div>
     </div>
@@ -510,10 +539,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   </div>
   <div class="timer-wrap"><div class="timer-bar" id="timer-bar"></div></div>
   <div class="table-felt" id="table-felt">
-    <div class="player-pos pos-top"   id="pos-2"><div class="p-info"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div></div><div class="p-cards"></div></div>
-    <div class="player-pos pos-left"  id="pos-1"><div class="p-info"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div></div><div class="p-cards"></div></div>
-    <div class="player-pos pos-right" id="pos-3"><div class="p-info"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div></div><div class="p-cards"></div></div>
-    <div class="player-pos pos-bottom" id="pos-0"><div class="p-info"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div></div><div class="p-cards"></div></div>
+    <div class="player-pos pos-top"   id="pos-2"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div><div class="p-cards"></div></div>
+    <div class="player-pos pos-left"  id="pos-1"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div><div class="p-cards"></div></div>
+    <div class="player-pos pos-right" id="pos-3"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div><div class="p-cards"></div></div>
+    <div class="player-pos pos-bottom" id="pos-0"><div class="p-avatar">👤</div><div class="p-name">...</div><div class="p-chips">0</div><div class="p-bet"></div><div class="p-cards"></div></div>
     <div class="pot-display" id="pot-display">POT: 0</div>
     <div class="community-cards" id="community-cards"></div>
     <div class="status-msg" id="status-msg"></div>
@@ -539,6 +568,37 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 
 
+<div id="profile-screen" class="screen">
+  <div class="profile-header">
+    <div class="profile-avatar" id="profile-avatar">👤</div>
+    <div class="profile-name" id="profile-name">Player</div>
+    <div class="profile-level" id="profile-level">Ур. 1</div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">📊 Статистика</div>
+    <div class="profile-stats">
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-hands">0</div><div class="profile-stat-label">Рук сыграно</div></div>
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-wins">0</div><div class="profile-stat-label">Побед</div></div>
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-winrate">0%</div><div class="profile-stat-label">Винрейт</div></div>
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-chips">0</div><div class="profile-stat-label">Фишек</div></div>
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-allin">0</div><div class="profile-stat-label">All-in</div></div>
+      <div class="profile-stat"><div class="profile-stat-value" id="stat-best">—</div><div class="profile-stat-label">Лучшая рука</div></div>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">🏆 Достижения</div>
+    <div class="profile-achievements" id="profile-achievements"></div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">🎨 Кастомизация</div>
+    <div class="profile-custom">
+      <div class="custom-row"><div class="custom-label">Аватар</div><div class="custom-avatars" id="custom-avatars"></div></div>
+      <div class="custom-row"><div class="custom-label">Рамка</div><div class="custom-colors" id="custom-colors"></div></div>
+      <div class="custom-row"><div class="custom-label">Имя</div><button class="custom-btn" onclick="editName()">Изменить</button></div>
+    </div>
+  </div>
+</div>
+
 <div id="tournament-screen" class="screen">
   <div class="tourney-header">
     <div class="tourney-title">🏆 Sit & Go</div>
@@ -553,6 +613,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <button class="btn btn-secondary" onclick="endTournament()" style="margin-top:16px;">← Выйти из турнира</button>
 </div>
 
+<!-- Name Edit Modal -->
+  <div class="name-modal" id="name-modal" style="display:none;">
+    <div class="name-modal-content">
+      <div class="name-modal-title" id="name-modal-title">Введите имя</div>
+      <input type="text" id="name-input" maxlength="12" placeholder="Player" />
+      <div class="name-modal-buttons">
+        <button class="name-modal-btn btn-cancel" id="name-cancel" onclick="closeNameModal()">Отмена</button>
+        <button class="name-modal-btn btn-save" id="name-save" onclick="saveName()">Сохранить</button>
+      </div>
+    </div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -564,7 +634,7 @@ const i18n = {
     bannerSub: "Играй с друзьями или тренируйся с ботом",
     playBot: "🤖 Играть с ботом",
     quickStart: "Быстрый старт",
-    createTable: "⚡ Создать стол",
+    createTable: "Создать стол",
     modes: "Режимы",
     training: "Тренировка",
     trainingDesc: "1 на 1 с ботом. Идеально для новичков.",
@@ -643,7 +713,7 @@ const i18n = {
     bannerSub: "Play with friends or train with bot",
     playBot: "🤖 Play with Bot",
     quickStart: "Quick Start",
-    createTable: "⚡ Create Table",
+    createTable: "Create Table",
     modes: "Modes",
     training: "Training",
     trainingDesc: "1v1 with bot. Perfect for beginners.",
@@ -1088,6 +1158,7 @@ function showScreen(name){
     if(target){
     target.classList.add('active');
       }
+  if(name === 'profile') renderProfile();
 }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -1104,12 +1175,13 @@ function toArr(val){
 
 function normalizeState(state){
   if(!state) return state;
-  state.players     = toArr(state.players);
+  state.players     = toArr(state.players).filter(p => p && p.id);
   state.communityCards = toArr(state.communityCards);
   state.deck        = toArr(state.deck);
   if(state.winners) state.winners = toArr(state.winners);
   if(state.handRankings) state.handRankings = toArr(state.handRankings);
   state.players.forEach(p=>{
+    if(!p) return;
     p.hand = toArr(p.hand);
     p.chips  = +p.chips  || 0;
     p.bet    = +p.bet    || 0;
@@ -1744,9 +1816,9 @@ function renderGame(state){
     el.style.display='flex';
     const p=state.players[i];
     const infoEl = el.querySelector('.p-info');
-    if(infoEl){
-      infoEl.querySelector('.p-name').textContent=p.name;
-      infoEl.querySelector('.p-chips').textContent=p.chips;
+    if(infoEl && p){
+      infoEl.querySelector('.p-name').textContent=p.name || '...';
+      infoEl.querySelector('.p-chips').textContent=p.chips || 0;
       const betEl = infoEl.querySelector('.p-bet');
       const oldBet = parseInt(betEl.textContent) || 0;
       betEl.textContent=p.bet>0?p.bet:'';
@@ -2347,6 +2419,129 @@ function startNewHand(){
     }
   });
 }
+
+
+// ===== PROFILE DATA =====
+const PROFILE_KEY = 'poker_profile';
+const AVATARS = ['👤','🎩','🤠','👑','🦁','🐺','🦊','🐉','🦅','🦉','🦇','🤖','👽','🎭','💀','🕵️'];
+const FRAME_COLORS = [
+  {name:'gold', color:'var(--accent-gold)', shadow:'rgba(245,184,0,.3)'},
+  {name:'red', color:'var(--accent-red)', shadow:'rgba(232,59,59,.3)'},
+  {name:'blue', color:'var(--accent-blue)', shadow:'rgba(43,127,212,.3)'},
+  {name:'green', color:'var(--accent-green)', shadow:'rgba(39,165,90,.3)'},
+  {name:'purple', color:'#9b59b6', shadow:'rgba(155,89,182,.3)'},
+  {name:'white', color:'#fff', shadow:'rgba(255,255,255,.3)'}
+];
+
+const ACHIEVEMENTS = [
+  {id:'first_win', icon:'🏆', name:'Первая победа', nameEn:'First Win', condition:(s)=>s.wins>=1},
+  {id:'win_10', icon:'🥇', name:'10 побед', nameEn:'10 Wins', condition:(s)=>s.wins>=10},
+  {id:'win_50', icon:'👑', name:'50 побед', nameEn:'50 Wins', condition:(s)=>s.wins>=50},
+  {id:'win_100', icon:'💎', name:'100 побед', nameEn:'100 Wins', condition:(s)=>s.wins>=100},
+  {id:'allin_1', icon:'🔥', name:'Первый All-in', nameEn:'First All-in', condition:(s)=>s.allIns>=1},
+  {id:'allin_10', icon:'💣', name:'All-in мастер', nameEn:'All-in Master', condition:(s)=>s.allIns>=10},
+  {id:'fold_50', icon:'🧊', name:'Осторожный', nameEn:'Careful', condition:(s)=>s.folds>=50},
+  {id:'bluff_1', icon:'🎭', name:'Блефер', nameEn:'Bluffer', condition:(s)=>s.bluffs>=1},
+  {id:'straight_flush', icon:'🌈', name:'Стрит-флеш', nameEn:'Straight Flush', condition:(s)=>s.bestHandRank>=9},
+  {id:'four_kind', icon:'🎰', name:'Каре', nameEn:'Four of a Kind', condition:(s)=>s.bestHandRank>=8},
+  {id:'full_house', icon:'🏠', name:'Фулл-хаус', nameEn:'Full House', condition:(s)=>s.bestHandRank>=7},
+  {id:'flush', icon:'🌊', name:'Флеш', nameEn:'Flush', condition:(s)=>s.bestHandRank>=6},
+  {id:'tournament_win', icon:'🏅', name:'Победа в турнире', nameEn:'Tournament Win', condition:(s)=>s.tournamentWins>=1},
+  {id:'millionaire', icon:'💰', name:'Миллионер', nameEn:'Millionaire', condition:(s)=>s.maxChips>=1000000},
+  {id:'level_10', icon:'⭐', name:'Уровень 10', nameEn:'Level 10', condition:(s)=>s.level>=10},
+  {id:'level_50', icon:'🌟', name:'Уровень 50', nameEn:'Level 50', condition:(s)=>s.level>=50},
+];
+
+function getProfileStats(){
+  const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+  return {
+    hands: saved.hands || 0, wins: saved.wins || 0, allIns: saved.allIns || 0,
+    folds: saved.folds || 0, bluffs: saved.bluffs || 0, bestHandRank: saved.bestHandRank || 0,
+    tournamentWins: saved.tournamentWins || 0, maxChips: saved.maxChips || 0,
+    level: getLevel(), avatar: saved.avatar || '👤', frameColor: saved.frameColor || 'var(--accent-gold)',
+    unlockedAchievements: saved.unlockedAchievements || []
+  };
+}
+function saveProfileStats(stats){ localStorage.setItem(PROFILE_KEY, JSON.stringify(stats)); }
+
+function updateProfileStat(key, value){
+  const stats = getProfileStats();
+  if(['hands','wins','allIns','folds','bluffs','tournamentWins'].includes(key)) stats[key] = (stats[key]||0)+(value||1);
+  else if(['bestHandRank','maxChips'].includes(key)) stats[key] = Math.max(stats[key]||0, value);
+  else stats[key] = value;
+  saveProfileStats(stats); checkAchievements();
+}
+
+function checkAchievements(){
+  const stats = getProfileStats(), unlocked = new Set(stats.unlockedAchievements||[]);
+  let newUnlock = false;
+  ACHIEVEMENTS.forEach(ach => {
+    if(!unlocked.has(ach.id) && ach.condition(stats)){
+      unlocked.add(ach.id); newUnlock = true;
+      showToast('🏆 '+(currentLang==='ru'?ach.name:ach.nameEn)+'!');
+    }
+  });
+  if(newUnlock){ stats.unlockedAchievements=Array.from(unlocked); saveProfileStats(stats); renderProfile(); }
+}
+
+function renderProfile(){
+  const stats=getProfileStats(), winrate=stats.hands>0?Math.round((stats.wins/stats.hands)*100):0;
+  const bestHandNames=['—','Старшая','Пара','Две пары','Тройка','Стрит','Флеш','Фулл-хаус','Каре','Стрит-флеш'];
+  const pa=document.getElementById('profile-avatar');
+  pa.textContent=stats.avatar; pa.style.borderColor=stats.frameColor;
+  document.getElementById('profile-name').textContent=myName;
+  document.getElementById('profile-level').textContent=t('level')+' '+stats.level;
+  document.getElementById('stat-hands').textContent=stats.hands;
+  document.getElementById('stat-wins').textContent=stats.wins;
+  document.getElementById('stat-winrate').textContent=winrate+'%';
+  document.getElementById('stat-chips').textContent=getBalance().toLocaleString();
+  document.getElementById('stat-allin').textContent=stats.allIns;
+  document.getElementById('stat-best').textContent=bestHandNames[stats.bestHandRank]||'—';
+
+  const ac=document.getElementById('profile-achievements'); ac.innerHTML='';
+  const us=new Set(stats.unlockedAchievements||[]);
+  ACHIEVEMENTS.forEach(ach=>{
+    const div=document.createElement('div'); div.className='profile-achieve'+(us.has(ach.id)?' unlocked':'');
+    div.innerHTML='<div class="profile-achieve-icon">'+ach.icon+'</div><div class="profile-achieve-name">'+(currentLang==='ru'?ach.name:ach.nameEn)+'</div>';
+    ac.appendChild(div);
+  });
+
+  const av=document.getElementById('custom-avatars'); av.innerHTML='';
+  AVATARS.forEach(a=>{
+    const b=document.createElement('div'); b.className='custom-avatar-btn'+(a===stats.avatar?' active':'');
+    b.textContent=a; b.onclick=()=>{stats.avatar=a; saveProfileStats(stats); document.getElementById('lobby-avatar').textContent=a; renderProfile();};
+    av.appendChild(b);
+  });
+
+  const cc=document.getElementById('custom-colors'); cc.innerHTML='';
+  FRAME_COLORS.forEach(fc=>{
+    const b=document.createElement('div'); b.className='custom-color-btn'+(fc.color===stats.frameColor?' active':'');
+    b.style.background=fc.color; b.onclick=()=>{stats.frameColor=fc.color; saveProfileStats(stats); document.getElementById('lobby-avatar').style.borderColor=fc.color; renderProfile();};
+    cc.appendChild(b);
+  });
+}
+
+// Hook endHand
+const _endHand=endHand;
+endHand=function(state,winnerIdxs){
+  const stats=getProfileStats();
+  stats.hands=(stats.hands||0)+1;
+  if(winnerIdxs&&winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId)) stats.wins=(stats.wins||0)+1;
+  const me=state.players.find(p=>p.id===myPlayerId);
+  if(me&&!me.folded&&state.communityCards.length>0){
+    const score=getBest5From7([...me.hand,...state.communityCards]);
+    stats.bestHandRank=Math.max(stats.bestHandRank||0,score.rank);
+  }
+  if(me) stats.maxChips=Math.max(stats.maxChips||0,me.chips);
+  if(state.isTournament&&state.phase==='ended'&&winnerIdxs&&winnerIdxs.length===1&&state.players[winnerIdxs[0]]&&state.players[winnerIdxs[0]].id===myPlayerId) stats.tournamentWins=(stats.tournamentWins||0)+1;
+  saveProfileStats(stats); checkAchievements();
+  return _endHand(state,winnerIdxs);
+};
+
+// Hook actions
+const _playerAllIn=playerAllIn; playerAllIn=function(){updateProfileStat('allIns',1); return _playerAllIn();};
+const _playerFold=playerFold; playerFold=function(){updateProfileStat('folds',1); return _playerFold();};
+
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
