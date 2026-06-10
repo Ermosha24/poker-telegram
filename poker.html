@@ -191,7 +191,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 .lobby-lang-btn,
 .lobby-settings-btn {
-  width: 40px;
+  width: 52px;
   height: 40px;
   border-radius: 12px;
   background: var(--surface-card);
@@ -199,16 +199,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   transition: all .2s;
   backdrop-filter: blur(12px);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 .lobby-lang-btn:hover,
 .lobby-settings-btn:hover {
   background: rgba(255,255,255,.08);
   border-color: rgba(255,255,255,.15);
   transform: scale(1.05);
+}
+.lobby-lang-btn:hover {
+  border-color: var(--border-gold);
 }
 .lobby-settings-btn:hover { transform: rotate(30deg) scale(1.05); }
 
@@ -1519,6 +1525,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -1543,7 +1550,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       </div>
     </div>
     <div class="lobby-actions">
-      <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">🇬🇧 EN</div>
+      <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
       <div class="lobby-settings-btn" onclick="showToastSettings()">⚙️</div>
     </div>
   </div>
@@ -3840,7 +3847,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   updateLobbyLevel();
   updateLobbyChips();
   const langBtn = document.getElementById('lang-btn');
-  if(langBtn) langBtn.textContent = currentLang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN';
+  if(langBtn) {
+    langBtn.textContent = currentLang === 'ru' ? 'RU' : 'EN';
+    langBtn.title = currentLang === 'ru' ? 'Русский' : 'English';
+  }
   applyTranslations();
   setTimeout(()=>{
     const splash = document.getElementById('splash-screen');
@@ -3879,8 +3889,10 @@ function saveName(){
   closeNameModal();
 }
 function toggleLanguage(){
-  setLanguage(currentLang === 'ru' ? 'en' : 'ru');
-  document.getElementById('lang-btn').textContent = currentLang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN';
+  const newLang = currentLang === 'ru' ? 'en' : 'ru';
+  setLanguage(newLang);
+  const btn = document.getElementById('lang-btn');
+  if(btn) btn.textContent = newLang === 'ru' ? 'RU' : 'EN';
 }
 function updateLobbyChips(){
   const el = document.getElementById('lobby-chips');
