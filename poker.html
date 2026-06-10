@@ -1680,6 +1680,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 </style>
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -1948,6 +1949,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
         <button class="name-modal-btn btn-save" id="name-save" onclick="saveName()">Сохранить</button>
       </div>
     </div>
+  </div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2325,13 +2327,9 @@ function showDailyBonus(){
 
 function getBalance(){
   let bal = parseInt(localStorage.getItem(BALANCE_KEY));
-  const checksum = localStorage.getItem(BALANCE_KEY + '_hash');
-  const expectedHash = btoa(String(bal)).substring(0, 8);
-  // If checksum mismatch or invalid — reset to default (anti-cheat)
-  if(isNaN(bal) || bal <= 0 || bal > 999999999 || checksum !== expectedHash){
+  if(isNaN(bal) || bal <= 0 || bal > 999999999){
     bal = 1000;
-    localStorage.setItem(BALANCE_KEY, bal);
-    localStorage.setItem(BALANCE_KEY + '_hash', expectedHash);
+    setBalance(bal);
     showToast(t('bonus'));
   }
   return bal;
@@ -2407,7 +2405,7 @@ const AudioManager = {
     } catch(e) { console.log('Audio not available'); }
   },
   close(){
-    try { if(this.ctx) { this.ctx.close(); this.ctx = null; } } catch(e) {}
+    try { if(this.ctx) { this.ctx.suspend(); } } catch(e) {}
   },
 
   // White noise for card shuffle
@@ -2604,7 +2602,7 @@ function genCode(){
 }
 function validateRoomCode(code){
   if(!code || typeof code !== 'string') return false;
-  return /^[A-Z0-9]{4}$/.test(code.toUpperCase());
+  return /^[A-HJ-NP-Z2-9]{4}$/.test(code.toUpperCase());
 }
 function showScreen(name){
     document.querySelectorAll('.screen').forEach(s=>{
@@ -2655,9 +2653,13 @@ function normalizeState(state){
   return state;
 }
 
+let isJoiningRoom = false;
+
 function createRoom(code){
   if(!validateRoomCode(code)) { showToast('Invalid room code'); return; }
   if(roomRef && roomCode === code) return;
+  if(isJoiningRoom) return; // FIX: prevent double subscription
+  isJoiningRoom = true;
 
   // FIX: Guaranteed cleanup of old listeners - prevent memory leaks
   const oldRef = roomRef;
@@ -2731,9 +2733,8 @@ function autoFold(){
     let state = normalizeState(currentState);
     if(state.currentPlayer !== myIndex) return;
     const elapsed = Date.now() - (state.turnStartedAt || 0);
-    // FIX: If elapsed is way too high (reconnect), don't auto-fold — just sync
-    if(elapsed > TURN_TIME * 1000 + 10000) return; // > 40s = reconnect, skip
-    if(elapsed < TURN_TIME * 1000 - 500) return; // 500ms buffer
+    // FIX: Simple timeout check - fold if turn time exceeded
+    if(elapsed < TURN_TIME * 1000) return; // Not timed out yet
     const p = state.players[myIndex];
     if(!p || p.folded || p.allIn) return;
     p.folded = true;
@@ -2757,16 +2758,20 @@ function backToLobby(){
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
   AudioManager.close();
 
+  // FIX: Save roomCode before nulling it
+  const leavingRoomCode = roomCode;
+  const wasHost = isHost;
+
   // FIX: Guaranteed disconnect ALL listeners — use closure to capture old ref
   const oldRef = roomRef;
   if(oldRef){
     if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
     oldRef.off();  // All listeners
   }
-  roomRef = null; roomCode = null;
+  roomRef = null; roomCode = null; isJoiningRoom = false;
 
-  if(roomCode && isHost){
-    db.ref('poker-rooms/'+roomCode).transaction(cs => {
+  if(leavingRoomCode && wasHost){
+    db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
       if(!cs) return;
       let s = normalizeState(cs);
       const myIdx = s.players.findIndex(p => p.id === myPlayerId);
@@ -2814,16 +2819,20 @@ function leaveRoom(){
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
   AudioManager.close();
 
+  // FIX: Save roomCode before nulling it
+  const leavingRoomCode = roomCode;
+  const wasHost = isHost;
+
   // FIX: Full listener cleanup — use closure
   const oldRef = roomRef;
   if(oldRef){
     if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
     oldRef.off();  // All listeners
   }
-  roomRef = null; roomCode = null;
+  roomRef = null; roomCode = null; isJoiningRoom = false;
 
-  if(roomCode && isHost){
-    db.ref('poker-rooms/'+roomCode).transaction(cs => {
+  if(leavingRoomCode && wasHost){
+    db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
       if(!cs) return;
       let s = normalizeState(cs);
       const myIdx = s.players.findIndex(p => p.id === myPlayerId);
@@ -2872,7 +2881,7 @@ function dealHand(state){
     start=(start+1)%n;
   }
   state.currentPlayer = start;
-  state.lastRaiser = lastRaiserPreflop;
+  state.lastRaiser = start; // FIX: round ends when action returns to first-to-act
   state.phase = 'preflop';
   state.turnStartedAt = Date.now();
 }
@@ -2881,6 +2890,7 @@ function postBlind(state, idx, amount){
   const p = state.players[idx];
   const actual = Math.min(amount, p.chips);
   p.chips -= actual; p.bet = actual;
+  state.pot += actual;  // FIX: blinds go into pot immediately
   if(p.chips===0) p.allIn=true;
 }
 
@@ -2960,6 +2970,10 @@ function nextTournamentHand(){
       if(!state.eliminated.includes(p.id)) state.eliminated.push(p.id);
     });
     state.players = state.players.filter(p => p.chips > 0);
+
+    // FIX: Recalculate myIndex after elimination
+    const newMyIndex = state.players.findIndex(p => p.id === myPlayerId);
+    if(newMyIndex >= 0) myIndex = newMyIndex;
 
     if(state.players.length < 2){
       // Tournament over
@@ -3196,9 +3210,10 @@ function updateStrengthMeter(state){
 
   const me = state.players[myIndex];
   if(!me || me.folded || !me.hand || me.hand.length < 2){
-    meter.style.visibility = 'hidden';
+    meter.style.display = 'none';
     return;
   }
+  meter.style.display = 'flex';
 
   const activeOpponents = state.players.filter((p,i) => i !== myIndex && !p.folded);
   if(activeOpponents.length === 0){
@@ -3441,7 +3456,7 @@ function _renderGameImpl(state){
   const cur=state.players[state.currentPlayer];
   if(cur&&cur.isBot&&state.phase!=='ended'&&state.phase!=='showdown'){
     if(botTimer) clearTimeout(botTimer);
-    botTimer=setTimeout(()=>botMove(state),1500);
+    botTimer=setTimeout(()=>botMove(),1500);
   }
 }
 
@@ -3495,6 +3510,7 @@ function withFreshState(fn){
 
 function playerFold(){
   AudioManager.foldSound();
+  updateProfileStat('folds', 1);
   withFreshState(state=>{
     const p=state.players[myIndex];
     if(p.folded||p.allIn) return;
@@ -3549,6 +3565,7 @@ function playerRaise(){
 function playerAllIn(){
   AudioManager.allInTension();
   updateMission('allin1', 1);
+  updateProfileStat('allIns', 1);
   withFreshState(state=>{
     const p=state.players[myIndex];
     if(p.chips<=0) return;
@@ -3572,7 +3589,7 @@ function playerAllIn(){
 }
 
 // ===== BOT AI =====
-function botMove(state){
+function botMove(){
   if(!roomCode) return;
 
   // FIX: Do NOT use state from closure - read fresh state in transaction
@@ -3581,12 +3598,15 @@ function botMove(state){
     let s = normalizeState(currentState);
 
     // FIX: Re-validate bot should still act using FRESH state
-    const botIdx = s.players.findIndex(p => p.isBot && !p.folded && !p.allIn);
-    if(botIdx < 0 || s.currentPlayer !== botIdx || s.phase === 'ended' || s.phase === 'showdown') {
-      return;  // Abort transaction - stale bot move, ignore
+    // The current player must be a bot
+    const botIdx = s.currentPlayer;
+    if(botIdx < 0 || botIdx >= s.players.length) return;
+    const b = s.players[botIdx];
+    if(!b || !b.isBot || b.folded || b.allIn || s.phase === 'ended' || s.phase === 'showdown') {
+      return;  // Abort transaction - stale bot move or not bot's turn
     }
 
-    const b = s.players[botIdx];
+    const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
     const totalPot = s.pots.reduce((sum, pot) => sum + pot.amount, s.pot);
     const hs = evaluateHandStrength(b.hand, s.communityCards, s.phase);
@@ -3703,8 +3723,7 @@ function processNextPlayer(state){
   if(active.length===1){
     collectBets(state);
     const winnerIdx = state.players.indexOf(active[0]);
-    const totalPot = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
-    if(totalPot > 0) state.players[winnerIdx].chips += totalPot;
+    if(state.pot > 0) state.players[winnerIdx].chips += state.pot;
     state.pot = 0;
     state.pots = [];
     endHand(state, [winnerIdx]);
@@ -3717,7 +3736,6 @@ function processNextPlayer(state){
     collectBets(state);
     runoutBoard(state);
     showdown(state);
-    // State is modified in place - caller will save it
     return;
   }
 
@@ -3740,9 +3758,9 @@ function processNextPlayer(state){
 
   // Check if betting round is complete
   const allEven=active.every(p=>p.allIn||p.folded||p.bet===state.currentBet);
+  // FIX: round ends when all matched and action returned to last raiser (or first to act if no raise)
   const roundOver = allEven && (
     next === state.lastRaiser || 
-    (state.currentBet === 0 && state.lastRaiser === -1) ||
     canAct.length === 1
   );
 
@@ -3760,22 +3778,26 @@ function collectBets(state){
   // FIX: Classic side pot algorithm - sort bets, create pots for each unique level
   const bets = state.players.map((p, idx) => ({ idx, bet: p.bet, folded: p.folded })).filter(x => x.bet > 0);
   if (bets.length === 0) {
-    state.pot = 0;
-    state.pots = [];
     state.players.forEach(p => p.bet = 0);
+    state.currentBet = 0;
+    state.lastBet = 0;
     return;
   }
 
-  // Sort by bet size (ascending)
-  const sorted = [...bets].sort((a, b) => a.bet - b.bet);
+  // Add all current bets to the main pot
+  const totalBets = bets.reduce((sum, b) => sum + b.bet, 0);
+  state.pot += totalBets;
+
+  // Sort unique bet levels (ascending)
+  const uniqueBets = [...new Set(bets.map(b => b.bet))].sort((a, b) => a - b);
   let prevBet = 0;
   state.pots = [];
 
-  for (const threshold of sorted) {
-    if (threshold.bet <= prevBet) continue;
-    const diff = threshold.bet - prevBet;
+  for (const betLevel of uniqueBets) {
+    if (betLevel <= prevBet) continue;
+    const diff = betLevel - prevBet;
     // All players who contributed at least this amount (including folded - they forfeit)
-    const contributors = bets.filter(b => b.bet >= threshold.bet);
+    const contributors = bets.filter(b => b.bet >= betLevel);
     // Only non-folded players are eligible to win this pot
     const eligible = contributors
       .filter(b => !b.folded)
@@ -3784,11 +3806,8 @@ function collectBets(state){
     if (potAmount > 0) {
       state.pots.push({ amount: potAmount, eligible });
     }
-    prevBet = threshold.bet;
+    prevBet = betLevel;
   }
-
-  // Sum all pots for display
-  state.pot = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
 
   // Reset individual bets
   state.players.forEach(p => p.bet = 0);
@@ -3908,6 +3927,19 @@ function endHand(state,winnerIdxs){
   state.winners=winnerIdxs.map(i=>({name:state.players[i].name,idx:i}));
   state.phase='ended';
   state.turnStartedAt=0;
+
+  // Profile stats (was in hook, now inlined)
+  const stats=getProfileStats();
+  stats.hands=(stats.hands||0)+1;
+  if(winnerIdxs&&winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId)) stats.wins=(stats.wins||0)+1;
+  const me=state.players.find(p=>p.id===myPlayerId);
+  if(me&&!me.folded&&state.communityCards.length>0){
+    const score=getBest5From7([...me.hand,...state.communityCards]);
+    stats.bestHandRank=Math.max(stats.bestHandRank||0,score.rank);
+  }
+  if(me) stats.maxChips=Math.max(stats.maxChips||0,me.chips);
+  if(state.isTournament&&state.phase==='ended'&&winnerIdxs&&winnerIdxs.length===1&&state.players[winnerIdxs[0]]&&state.players[winnerIdxs[0]].id===myPlayerId) stats.tournamentWins=(stats.tournamentWins||0)+1;
+  saveProfileStats(stats); checkAchievements();
 }
 
 // ===== HAND EVALUATION =====
@@ -4163,26 +4195,7 @@ function renderProfile(){
   });
 }
 
-// Hook endHand
-const _endHand=endHand;
-endHand=function(state,winnerIdxs){
-  const stats=getProfileStats();
-  stats.hands=(stats.hands||0)+1;
-  if(winnerIdxs&&winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId)) stats.wins=(stats.wins||0)+1;
-  const me=state.players.find(p=>p.id===myPlayerId);
-  if(me&&!me.folded&&state.communityCards.length>0){
-    const score=getBest5From7([...me.hand,...state.communityCards]);
-    stats.bestHandRank=Math.max(stats.bestHandRank||0,score.rank);
-  }
-  if(me) stats.maxChips=Math.max(stats.maxChips||0,me.chips);
-  if(state.isTournament&&state.phase==='ended'&&winnerIdxs&&winnerIdxs.length===1&&state.players[winnerIdxs[0]]&&state.players[winnerIdxs[0]].id===myPlayerId) stats.tournamentWins=(stats.tournamentWins||0)+1;
-  saveProfileStats(stats); checkAchievements();
-  return _endHand(state,winnerIdxs);
-};
-
-// Hook actions
-const _playerAllIn=playerAllIn; playerAllIn=function(){updateProfileStat('allIns',1); return _playerAllIn();};
-const _playerFold=playerFold; playerFold=function(){updateProfileStat('folds',1); return _playerFold();};
+// FIX: Hooks removed — stats are now inlined in the original functions above
 
 
 // ===== INIT =====
@@ -4211,6 +4224,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
   applyTranslations();
+  showDailyBonus();
 
   // FIX: Attach all event listeners after DOM is ready
   // FIX: Keyboard accessibility for lobby cards
@@ -4242,11 +4256,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to create room')); });
   });
 
-  document.getElementById('join-btn').addEventListener('click',()=>{
-    // Click on the join mode card - scroll to join section or focus input
-    const joinSection = document.getElementById('join-code');
-    if(joinSection){ joinSection.focus(); joinSection.scrollIntoView({behavior:'smooth', block:'center'}); }
-  });
+  // FIX: Removed broken 'join-btn' listener (element doesn't exist in HTML)
+  // The join card click is handled by the join-card element below
 
   document.getElementById('join-submit-btn').addEventListener('click',()=>{
     const code=document.getElementById('join-code').value.trim().toUpperCase();
@@ -4304,6 +4315,8 @@ function editName(){
   input.value = myName;
   modal.style.display = 'flex';
   input.focus();
+  // FIX: Close on backdrop click
+  modal.onclick = (e) => { if(e.target === modal) closeNameModal(); };
 }
 function closeNameModal(){
   document.getElementById('name-modal').style.display = 'none';
