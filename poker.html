@@ -4044,7 +4044,7 @@ function renderProfile(){
   FRAME_COLORS.forEach(fc=>{
     const b=document.createElement('div'); b.className='custom-color-btn'+(fc.color===stats.frameColor?' active':'');
     b.style.background=fc.color; 
-    const handler=(e)=>{e.preventDefault(); stats.frameColor=fc.color; saveProfileStats(stats); document.getElementById('lobby-avatar').style.borderColor=fc.color; renderProfile();};
+    const handler=(e)=>{e.preventDefault(); stats.frameColor=fc.color; saveProfileStats(stats); document.getElementById('lobby-avatar').style.border='1.5px solid ' + fc.color; renderProfile();};
     b.addEventListener('click', handler);
     b.addEventListener('touchstart', handler, {passive: false});
     cc.appendChild(b);
@@ -4086,6 +4086,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(langBtn) {
     langBtn.textContent = currentLang === 'ru' ? 'RU' : 'EN';
     langBtn.title = currentLang === 'ru' ? 'Русский' : 'English';
+  }
+  // Apply saved frame color to lobby avatar
+  const savedStats = getProfileStats();
+  if(savedStats.frameColor) {
+    const lobbyAvatar = document.getElementById('lobby-avatar');
+    if(lobbyAvatar) lobbyAvatar.style.border='1.5px solid ' + savedStats.frameColor;
   }
   applyTranslations();
 
