@@ -1675,6 +1675,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 </style>
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -1688,7 +1689,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <!-- Header -->
   <div class="lobby-header">
     <div class="lobby-profile">
-      <div class="lobby-avatar" onclick="editName()">👤</div>
+      <div class="lobby-avatar" id="lobby-avatar" onclick="editName()">👤</div>
       <div class="lobby-user-info">
         <div class="lobby-username" id="lobby-username" onclick="editName()">Player</div>
         <div class="lobby-meta">
@@ -2570,6 +2571,7 @@ function showScreen(name){
     target.classList.add('active');
       }
   if(name === 'profile') renderProfile();
+  if(name === 'lobby') syncLobbyAvatar();
 }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -2717,6 +2719,7 @@ function backToLobby(){
   roomCode=null; myIndex=-1; isHost=false;
   updateLobbyLevel();
   updateLobbyChips();
+  syncLobbyAvatar();
   showScreen('lobby');
 }
 function reindexPlayers(state, removedIdx){
@@ -2770,6 +2773,7 @@ function leaveRoom(){
   roomCode=null; myIndex=-1; isHost=false;
   updateLobbyLevel();
   updateLobbyChips();
+  syncLobbyAvatar();
   showScreen('lobby');
 }
 
@@ -4008,6 +4012,19 @@ function checkAchievements(){
   if(newUnlock){ stats.unlockedAchievements=Array.from(unlocked); saveProfileStats(stats); renderProfile(); }
 }
 
+function syncLobbyAvatar(){
+  const stats=getProfileStats();
+  const lobbyAvatar=document.getElementById('lobby-avatar');
+  if(lobbyAvatar){
+    if(stats.avatar){ lobbyAvatar.textContent=stats.avatar; lobbyAvatar.style.fontSize='22px'; }
+    if(stats.frameColor){
+      lobbyAvatar.style.setProperty('border-color', stats.frameColor, 'important');
+      lobbyAvatar.style.borderWidth='1.5px';
+      lobbyAvatar.style.borderStyle='solid';
+    }
+  }
+}
+
 function renderProfile(){
   const stats=getProfileStats(), winrate=stats.hands>0?Math.round((stats.wins/stats.hands)*100):0;
   const bestHandNames=['—',t('highCard'),t('pair'),t('twoPair'),t('threeKind'),t('straight'),t('flush'),t('fullHouse'),t('fourKind'),t('straightFlush')];
@@ -4034,7 +4051,7 @@ function renderProfile(){
   AVATARS.forEach(a=>{
     const b=document.createElement('div'); b.className='custom-avatar-btn'+(a===stats.avatar?' active':'');
     b.textContent=a; 
-    const handler=(e)=>{e.preventDefault(); stats.avatar=a; saveProfileStats(stats); document.getElementById('lobby-avatar').textContent=a; renderProfile();};
+    const handler=(e)=>{e.preventDefault(); stats.avatar=a; saveProfileStats(stats); const lobbyAvatar=document.getElementById('lobby-avatar'); if(lobbyAvatar){lobbyAvatar.textContent=a; lobbyAvatar.style.fontSize='22px';} renderProfile();};
     b.addEventListener('click', handler);
     b.addEventListener('touchstart', handler, {passive: false});
     av.appendChild(b);
@@ -4044,7 +4061,7 @@ function renderProfile(){
   FRAME_COLORS.forEach(fc=>{
     const b=document.createElement('div'); b.className='custom-color-btn'+(fc.color===stats.frameColor?' active':'');
     b.style.background=fc.color; 
-    const handler=(e)=>{e.preventDefault(); stats.frameColor=fc.color; saveProfileStats(stats); document.getElementById('lobby-avatar').style.border='1.5px solid ' + fc.color; renderProfile();};
+    const handler=(e)=>{e.preventDefault(); stats.frameColor=fc.color; saveProfileStats(stats); const lobbyAvatar=document.getElementById('lobby-avatar'); if(lobbyAvatar){lobbyAvatar.style.setProperty('border-color', fc.color, 'important'); lobbyAvatar.style.borderWidth='1.5px'; lobbyAvatar.style.borderStyle='solid';} renderProfile();};
     b.addEventListener('click', handler);
     b.addEventListener('touchstart', handler, {passive: false});
     cc.appendChild(b);
@@ -4087,11 +4104,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     langBtn.textContent = currentLang === 'ru' ? 'RU' : 'EN';
     langBtn.title = currentLang === 'ru' ? 'Русский' : 'English';
   }
-  // Apply saved frame color to lobby avatar
+  // Apply saved frame color and avatar to lobby
   const savedStats = getProfileStats();
-  if(savedStats.frameColor) {
-    const lobbyAvatar = document.getElementById('lobby-avatar');
-    if(lobbyAvatar) lobbyAvatar.style.border='1.5px solid ' + savedStats.frameColor;
+  const lobbyAvatar = document.getElementById('lobby-avatar');
+  if(lobbyAvatar){
+    if(savedStats.avatar){ lobbyAvatar.textContent = savedStats.avatar; lobbyAvatar.style.fontSize = '22px'; }
+    if(savedStats.frameColor){
+      lobbyAvatar.style.setProperty('border-color', savedStats.frameColor, 'important');
+      lobbyAvatar.style.borderWidth = '1.5px';
+      lobbyAvatar.style.borderStyle = 'solid';
+    }
   }
   applyTranslations();
 
