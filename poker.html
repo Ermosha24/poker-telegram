@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a1f0a">
 <title>Poker Hold'em</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -73,7 +73,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   background: var(--surface-1);
   position: relative;
   overflow: hidden;
-  padding-bottom: 0;
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
 }
 
 /* Ambient background layers */
@@ -141,7 +141,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .lobby-user-info { display: flex; flex-direction: column; gap: 3px; }
 
 .lobby-username {
-  font-size: 15px;
+  font-size: clamp(13px, 3.5vw, 15px);
   font-weight: 700;
   color: #fff;
   letter-spacing: -.3px;
@@ -153,7 +153,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .lobby-meta { display: flex; align-items: center; gap: 8px; margin-top: 1px; }
 
 .lobby-level {
-  font-size: 10px;
+  font-size: max(10px, 2.2vw);
   color: var(--gold);
   font-weight: 700;
   background: rgba(200,168,75,.12);
@@ -179,7 +179,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 }
 
 .lobby-chips {
-  font-size: 11px;
+  font-size: max(11px, 2.4vw);
   color: var(--gold);
   font-weight: 600;
   white-space: nowrap;
@@ -598,7 +598,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 12px 4px calc(14px + env(safe-area-inset-bottom));
+  padding: 12px 4px max(14px, env(safe-area-inset-bottom));
   background: rgba(9,11,20,.96);
   backdrop-filter: blur(24px);
   border-top: 1px solid var(--border-subtle);
@@ -724,10 +724,87 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .btn-save:hover { box-shadow: 0 6px 24px rgba(200,168,75,.4); }
 
 /* RESPONSIVE LOBBY */
-@media(max-width:380px){
-  .lobby-modes { grid-template-columns: 1fr; }
-  .lobby-banner { height: 138px; }
-  .lobby-banner-title { font-size: 22px; }
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Small phones: iPhone SE, old Android (320-360px) */
+@media(max-width:360px){
+  :root{--card-w:38px;--card-h:56px;}
+  .lobby-banner { height: 120px; border-radius: 18px; }
+  .lobby-banner-title { font-size: clamp(18px, 5vw, 22px); }
+  .lobby-banner-sub { font-size: 10px; }
+  .lobby-banner-btn { padding: 6px 14px; font-size: 10px; }
+  .lobby-quick-btn { padding: 14px 20px; font-size: 13px; }
+  .lobby-mode-card { padding: 16px 14px; min-height: 110px; }
+  .lobby-mode-icon { width: 38px; height: 38px; font-size: 20px; }
+  .lobby-mode-title { font-size: 12px; }
+  .lobby-mode-desc { font-size: 10px; }
+  .lobby-join-section { padding: 16px; }
+  .lobby-input-row input[type=text] { font-size: 16px; letter-spacing: 6px; padding: 12px 14px; }
+  .lobby-join-btn { padding: 12px 16px; font-size: 12px; }
+  .lobby-room-code { font-size: 32px; letter-spacing: 8px; }
+  .lobby-nav-item { padding: 4px 10px; }
+  .lobby-nav-icon { font-size: 20px; }
+  .lobby-nav-label { font-size: 8px; }
+  .lobby-header { padding: 16px 4px 10px; }
+  .lobby-avatar { width: 40px; height: 40px; font-size: 20px; }
+  .lobby-username { font-size: 13px; }
+  .lobby-level { font-size: 9px; padding: 2px 6px; }
+  .lobby-chips { font-size: 10px; }
+  .action-btn { padding: 10px 12px; font-size: 12px; min-width: 70px; }
+  .raise-wrap input { width: 56px; padding: 8px 6px; font-size: 12px; }
+  .player-pos .p-avatar { width: 38px; height: 38px; font-size: 18px; }
+  .player-pos .p-name { font-size: 10px; max-width: 70px; }
+  .player-pos .p-chips { font-size: 9px; }
+  .player-pos .p-bet { font-size: 9px; padding: 2px 6px; }
+  .community-cards .card, .community-cards .card-placeholder { width: 36px; height: 54px; }
+  .pot-display { font-size: 11px; padding: 4px 12px; }
+  .strength-bar-bg { width: 70px; }
+  .strength-text { font-size: 8px; }
+  .strength-label { font-size: 7.5px; }
+  .game-info { font-size: 9px; padding: 4px 8px; }
+  .exit-btn { width: 30px; height: 30px; font-size: 12px; }
+  .table-felt { aspect-ratio: 16/11; }
+}
+
+/* Medium phones: iPhone 12/13/14 (390px) */
+@media(min-width:361px) and (max-width:430px){
+  .lobby-banner { height: 145px; }
+  .lobby-banner-title { font-size: clamp(20px, 5.5vw, 24px); }
+}
+
+/* Large phones: iPhone 14 Pro Max, Samsung Ultra (430px+) */
+@media(min-width:431px) and (max-width:599px){
+  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 520px; }
+  .lobby-banner { height: 170px; }
+  .lobby-banner-title { font-size: clamp(22px, 5vw, 28px); }
+}
+
+/* Tablets: iPad, Android tablets (600px+) */
+@media(min-width:600px){
+  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 560px; }
+  .lobby-banner { height: 180px; margin: 14px 0 26px; }
+  .lobby-banner-title { font-size: clamp(24px, 4vw, 32px); }
+  .lobby-banner-sub { font-size: 13px; }
+  .lobby-quick-btn { padding: 20px 28px; font-size: 16px; }
+  .lobby-mode-card { padding: 24px 22px; min-height: 150px; }
+  .lobby-mode-icon { width: 48px; height: 48px; font-size: 26px; }
+  .lobby-mode-title { font-size: 15px; }
+  .lobby-join-section { padding: 24px; }
+  .lobby-input-row input[type=text] { font-size: 20px; letter-spacing: 10px; }
+  .lobby-join-btn { padding: 16px 24px; font-size: 15px; }
+  .action-btn { padding: 14px 20px; font-size: 15px; min-width: 90px; }
+  .raise-wrap input { width: 80px; padding: 12px 10px; font-size: 15px; }
+  .player-pos .p-avatar { width: 48px; height: 48px; font-size: 24px; }
+  .player-pos .p-name { font-size: 12px; max-width: 100px; }
+  .community-cards .card, .community-cards .card-placeholder { width: 50px; height: 74px; }
+  .table-felt { max-width: 520px; }
+}
+
+/* Desktop / large tablets */
+@media(min-width:768px){
+  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 600px; }
+  .table-felt { max-width: 560px; }
+  .action-bar { max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 22px; }
 }
 
 /* ===== WAITING ===== */
@@ -740,7 +817,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ===== GAME — PREMIUM REDESIGN ===== */
 
 #game-screen {
-  padding: 12px 12px 0;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   justify-content: center;
   align-items: center;
   position: relative;
@@ -827,7 +904,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .table-felt {
   width: 100%;
   max-width: 480px;
-  aspect-ratio: 4/3;
+  aspect-ratio: 16/10; /* Better for portrait phones */
   /* Dark premium felt — deep forest green with subtle radial shading */
   background:
     radial-gradient(ellipse 70% 60% at 50% 52%, #1a5c34 0%, #0e3d20 55%, #081a0e 100%);
@@ -1122,9 +1199,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   position: relative;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   z-index: 15;
   flex-shrink: 0;
+  max-width: 28vw; /* Prevent overflow on small screens */
 }
 .pos-left .p-info {
   flex-direction: column;
@@ -1141,9 +1219,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   position: relative;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   z-index: 15;
   flex-shrink: 0;
+  max-width: 28vw; /* Prevent overflow on small screens */
 }
 .pos-right .p-info {
   flex-direction: column;
@@ -1256,10 +1335,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   border-radius: 14px;
   border: none;
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: clamp(12px, 3.2vw, 13.5px);
   cursor: pointer;
   transition: all .18s cubic-bezier(.4,0,.2,1);
   min-width: 82px;
+  min-height: 44px; /* Apple HIG minimum touch target */
   position: relative;
   overflow: hidden;
   letter-spacing: .1px;
@@ -1320,8 +1400,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 .raise-wrap { display: flex; align-items: center; gap: 7px; }
 .raise-wrap input {
-  width: 66px;
+  width: clamp(66px, 18vw, 90px);
   padding: 10px 8px;
+  min-height: 44px; /* Touch target */
   border-radius: 11px;
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(255,255,255,.05);
