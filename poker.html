@@ -1659,8 +1659,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 }
 
 /* FIX: Font display swap for fast rendering */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+
 
 /* RESPONSIVE */
 @media(max-width:380px){
@@ -1672,13 +1671,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   .action-btn{padding:12px 14px;font-size:13px;min-width:75px;}
   .logo{font-size:42px;}
 }
+/* Offline indicator */
+.offline-indicator {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+  color: #fff; text-align: center; font-size: 12px; font-weight: 700;
+  padding: 6px; letter-spacing: 1px; text-transform: uppercase;
+  transform: translateY(-100%); transition: transform .3s ease;
+}
+.offline-indicator.show { transform: translateY(0); }
 </style>
-<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
 <body>
 
+<div class="offline-indicator" id="offline-indicator">⚠️ Offline — reconnecting...</div>
 <div id="splash-screen" class="fallback">
   <div class="splash-logo">POK<span style="color:var(--accent-gold)">E</span>R</div>
   <div class="splash-sub">Texas Hold'em</div>
@@ -2173,18 +2181,29 @@ const db = firebase.database();
 // Connection state monitoring
 let isOnline = true;
 const connectedRef = db.ref('.info/connected');
+const offlineIndicator = document.getElementById('offline-indicator');
 connectedRef.on('value', (snap) => {
   isOnline = snap.val() === true;
+  if(offlineIndicator) offlineIndicator.classList.toggle('show', !isOnline);
   if(!isOnline){
     showToast(currentLang === 'ru' ? '⚠️ Нет соединения' : '⚠️ Offline');
     stopTimer(); // Pause timer when offline
+    // Disable action buttons when offline
+    const bar = document.getElementById('action-bar');
+    if(bar) bar.style.pointerEvents = 'none';
+    if(bar) bar.style.opacity = '0.5';
+  } else {
+    const bar = document.getElementById('action-bar');
+    if(bar) { bar.style.pointerEvents = ''; bar.style.opacity = ''; }
   }
 });
 
 const tg = window.Telegram?.WebApp;
 if(tg){ tg.ready(); tg.expand(); }
 
-let myName       = tg?.initDataUnsafe?.user?.first_name || 'Player';
+let myName = tg?.initDataUnsafe?.user?.first_name || 'Player';
+// Sanitize: remove HTML tags and limit length
+myName = myName.replace(/[<>"']/g, '').substring(0, 20).trim() || 'Player';
 const myPlayerId = (() => {
   const key = 'poker_player_id';
   let id = localStorage.getItem(key);
@@ -2296,15 +2315,21 @@ function showDailyBonus(){
 
 function getBalance(){
   let bal = parseInt(localStorage.getItem(BALANCE_KEY));
-  if(isNaN(bal) || bal <= 0){
+  const checksum = localStorage.getItem(BALANCE_KEY + '_hash');
+  const expectedHash = btoa(String(bal)).substring(0, 8);
+  // If checksum mismatch or invalid — reset to default (anti-cheat)
+  if(isNaN(bal) || bal <= 0 || bal > 999999999 || checksum !== expectedHash){
     bal = 1000;
     localStorage.setItem(BALANCE_KEY, bal);
+    localStorage.setItem(BALANCE_KEY + '_hash', expectedHash);
     showToast(t('bonus'));
   }
   return bal;
 }
 function setBalance(val){
-  localStorage.setItem(BALANCE_KEY, Math.max(0, val));
+  const safeVal = Math.max(0, Math.min(999999999, parseInt(val) || 0));
+  localStorage.setItem(BALANCE_KEY, safeVal);
+  localStorage.setItem(BALANCE_KEY + '_hash', btoa(String(safeVal)).substring(0, 8));
 }
 function syncBalanceFromState(state){
   // Save balance after every hand to prevent data loss on refresh
@@ -2366,8 +2391,13 @@ const BIG_BLIND   = 20;
 const AudioManager = {
   ctx: null,
   init(){
-    if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(this.ctx.state === 'suspended') this.ctx.resume();
+    try {
+      if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    } catch(e) { console.log('Audio not available'); }
+  },
+  close(){
+    try { if(this.ctx) { this.ctx.close(); this.ctx = null; } } catch(e) {}
   },
 
   // White noise for card shuffle
@@ -2562,6 +2592,10 @@ function genCode(){
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s='';for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)];return s;
 }
+function validateRoomCode(code){
+  if(!code || typeof code !== 'string') return false;
+  return /^[A-Z0-9]{4}$/.test(code.toUpperCase());
+}
 function showScreen(name){
     document.querySelectorAll('.screen').forEach(s=>{
     s.classList.remove('active');
@@ -2612,15 +2646,16 @@ function normalizeState(state){
 }
 
 function createRoom(code){
+  if(!validateRoomCode(code)) { showToast('Invalid room code'); return; }
   if(roomRef && roomCode === code) return;
 
   // FIX: Guaranteed cleanup of old listeners - prevent memory leaks
-  if(roomRef){
-    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
-    roomRef.off(); // Remove ALL listeners from old room
-    roomRef = null;
+  const oldRef = roomRef;
+  if(oldRef){
+    if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
+    oldRef.off(); // Remove ALL listeners from old room
   }
-  roomCode = null; // Clear old room code
+  roomRef = null; roomCode = null; // Clear old room code
 
   roomRef = db.ref('poker-rooms/'+code);
   roomCode = code;  // FIX: Set BEFORE creating listener
@@ -2699,13 +2734,16 @@ function backToLobby(){
   if(botTimer) clearTimeout(botTimer);
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   autoLobbyTimer=null; isEndShown=false;
+  if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
+  AudioManager.close();
 
-  // FIX: Guaranteed disconnect ALL listeners
-  if(roomRef){
-    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
-    roomRef.off();  // All listeners
-    roomRef = null;
+  // FIX: Guaranteed disconnect ALL listeners — use closure to capture old ref
+  const oldRef = roomRef;
+  if(oldRef){
+    if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
+    oldRef.off();  // All listeners
   }
+  roomRef = null; roomCode = null;
 
   if(roomCode && isHost){
     db.ref('poker-rooms/'+roomCode).transaction(cs => {
@@ -2753,13 +2791,16 @@ function leaveRoom(){
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
+  AudioManager.close();
 
-  // FIX: Full listener cleanup
-  if(roomRef){
-    if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
-    roomRef.off();  // All listeners
-    roomRef = null;
+  // FIX: Full listener cleanup — use closure
+  const oldRef = roomRef;
+  if(oldRef){
+    if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
+    oldRef.off();  // All listeners
   }
+  roomRef = null; roomCode = null;
 
   if(roomCode && isHost){
     db.ref('poker-rooms/'+roomCode).transaction(cs => {
@@ -2840,7 +2881,7 @@ function startBotGame(){
   };
   dealHand(state);
   state.ts=Date.now();
-  saveRoom(state).then(()=>{ showScreen('game'); createRoom(code); });
+  saveRoom(state).then(()=>{ showScreen('game'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start')); isProcessingAction=false; });
 }
 
 
@@ -2880,7 +2921,7 @@ function startTournament(){
   tourneyState = state;
   dealHand(state);
   state.ts = Date.now();
-  saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); });
+  saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start')); isProcessingAction=false; });
 }
 
 function nextTournamentHand(){
@@ -3386,8 +3427,10 @@ function createCardBack(){ const d=document.createElement('div');d.className='ca
 function createCardPlaceholder(){ const d=document.createElement('div');d.className='card-placeholder';return d; }
 
 // ===== PLAYER ACTIONS =====
+let isProcessingAction = false;
 function withFreshState(fn){
-  if(!roomCode) return;
+  if(!roomCode || isProcessingAction) return;
+  isProcessingAction = true;
   stopTimer();
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
@@ -3396,7 +3439,7 @@ function withFreshState(fn){
     fn(state);
     state.ts = Date.now();
     return state;
-  });
+  }).then(() => { isProcessingAction = false; }).catch(() => { isProcessingAction = false; });
 }
 
 function playerFold(){
@@ -3432,8 +3475,9 @@ function playerCall(){
 }
 function playerRaise(){
   AudioManager.chipClick();
-  const extra=parseInt(document.getElementById('raise-amount').value)||0;
-  if(!roomCode||extra<=0) return;
+  const rawVal = document.getElementById('raise-amount').value;
+  const extra = Math.max(0, parseInt(rawVal) || 0);
+  if(!roomCode || extra <= 0) { showToast('Invalid raise amount'); return; }
   withFreshState(state=>{
     const p=state.players[myIndex];
     const callAmt=Math.max(0,state.currentBet-p.bet);
@@ -4134,7 +4178,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
       turnStartedAt:Date.now(),ts:Date.now()
     };
-    saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); });
+    saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to create room')); });
   });
 
   document.getElementById('join-btn').addEventListener('click',()=>{
@@ -4145,7 +4189,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   document.getElementById('join-submit-btn').addEventListener('click',()=>{
     const code=document.getElementById('join-code').value.trim().toUpperCase();
-    if(code.length!==4){showToast(t('toastEnter4'));return;}
+    if(!validateRoomCode(code)){showToast(t('toastEnter4'));return;}
     const myChips = getBalance();
     db.ref('poker-rooms/'+code).transaction(currentState => {
       if(!currentState) return;
@@ -4199,7 +4243,8 @@ function closeNameModal(){
   document.getElementById('name-modal').style.display = 'none';
 }
 function saveName(){
-  const val = document.getElementById('name-input').value.trim();
+  let val = document.getElementById('name-input').value.trim();
+  val = val.replace(/[<>"']/g, '').substring(0, 20).trim();
   if(val){
     myName = val;
     localStorage.setItem('poker_name', val);
