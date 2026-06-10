@@ -1558,7 +1558,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       <div class="lobby-banner-eyebrow">Texas Hold'em</div>
       <div class="lobby-banner-title">Poker <span>Table</span></div>
       <div class="lobby-banner-sub" id="banner-sub">Play with friends or train with bot</div>
-      <button class="lobby-banner-btn" id="bot-btn"><span id="bot-btn-text">🤖 Play with Bot</span></button>
+      <button class="lobby-banner-btn" id="bot-btn" onclick="startBotGame()"><span id="bot-btn-text">🤖 Play with Bot</span></button>
     </div>
   </div>
 
@@ -1571,7 +1571,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <!-- Section: Game Modes -->
   <div class="lobby-section-title" id="modes-title">Modes</div>
   <div class="lobby-modes">
-    <div class="lobby-mode-card bot" id="bot-card">
+    <div class="lobby-mode-card bot" id="bot-card" onclick="startBotGame()">
       <div class="lobby-mode-icon">🤖</div>
       <div class="lobby-mode-title" id="training-title">Training</div>
       <div class="lobby-mode-desc" id="training-desc">1v1 with bot. Perfect for beginners.</div>
@@ -1587,7 +1587,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       <div class="lobby-mode-title" id="join-title">Join</div>
       <div class="lobby-mode-desc" id="join-desc">Enter code and join friends.</div>
     </div>
-    <div class="lobby-mode-card tourney" id="tourney-btn">
+    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="startTournament()">
       <div class="lobby-mode-icon">🏆</div>
       <div class="lobby-mode-title" id="tourney-title">Tournament</div>
       <div class="lobby-mode-desc" id="tourney-desc">Sit & Go 4 players. Blinds rise!</div>
@@ -3965,11 +3965,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  document.getElementById('bot-btn').addEventListener('click',startBotGame);
-  document.getElementById('bot-card').addEventListener('click',startBotGame);
+  document.getElementById('bot-btn').addEventListener('click',()=>{ startBotGame(); });
+  document.getElementById('bot-card').addEventListener('click',()=>{ startBotGame(); });
   document.getElementById('host-card').addEventListener('click',()=>document.getElementById('host-btn').click());
   document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
-  document.getElementById('tourney-btn').addEventListener('click',startTournament);
+  document.getElementById('tourney-btn').addEventListener('click',()=>{ startTournament(); });
   document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
   setTimeout(()=>{
