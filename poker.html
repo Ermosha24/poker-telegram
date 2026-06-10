@@ -1605,10 +1605,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 
 /* PARTICLES */
-.particle{position:fixed;pointer-events:none;z-index:500;font-size:24px;animation:particleFly 1.5s ease-out forwards;}
-@keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.5) rotate(360deg);}}
-
-/* PARTICLES */
 .particle{position:fixed;pointer-events:none;z-index:500;font-size:24px;animation:particleFly 1.5s cubic-bezier(.25,.46,.45,.94) forwards;}
 @keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg);}50%{opacity:1;transform:translate(calc(var(--tx)*.5),calc(var(--ty)*.5)) scale(1.3) rotate(180deg);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.3) rotate(360deg);}}
 
@@ -1678,8 +1674,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   color: #fff; text-align: center; font-size: 12px; font-weight: 700;
   padding: 6px; letter-spacing: 1px; text-transform: uppercase;
   transform: translateY(-100%); transition: transform .3s ease;
+  display: none; /* Hidden by default */
 }
-.offline-indicator.show { transform: translateY(0); }
+.offline-indicator.show { transform: translateY(0); display: block; }
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -1734,23 +1731,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <!-- Section: Game Modes -->
   <div class="lobby-section-title" id="modes-title">Modes</div>
   <div class="lobby-modes">
-    <div class="lobby-mode-card bot" id="bot-card" onclick="startBotGame()">
+    <div class="lobby-mode-card bot" id="bot-card" onclick="startBotGame()" role="button" tabindex="0" aria-label="Play training game with bot">
       <div class="lobby-mode-icon">🤖</div>
       <div class="lobby-mode-title" id="training-title">Training</div>
       <div class="lobby-mode-desc" id="training-desc">1v1 with bot. Perfect for beginners.</div>
     </div>
-    <div class="lobby-mode-card host" id="host-card">
+    <div class="lobby-mode-card host" id="host-card" role="button" tabindex="0" aria-label="Create new table">
       <div class="lobby-mode-icon">🎰</div>
       <div class="lobby-mode-title" id="create-room-title">Create Table</div>
       <div class="lobby-mode-desc" id="create-room-desc">Invite friends with room code.</div>
       <div class="lobby-mode-badge">NEW</div>
     </div>
-    <div class="lobby-mode-card join" id="join-card">
+    <div class="lobby-mode-card join" id="join-card" role="button" tabindex="0" aria-label="Join existing table">
       <div class="lobby-mode-icon">🔑</div>
       <div class="lobby-mode-title" id="join-title">Join</div>
       <div class="lobby-mode-desc" id="join-desc">Enter code and join friends.</div>
     </div>
-    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="startTournament()">
+    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="startTournament()" role="button" tabindex="0" aria-label="Start tournament">
       <div class="lobby-mode-icon">🏆</div>
       <div class="lobby-mode-title" id="tourney-title">Tournament</div>
       <div class="lobby-mode-desc" id="tourney-desc">Sit & Go 4 players. Blinds rise!</div>
@@ -1877,15 +1874,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     </div>
     <div class="strength-text" id="strength-text">0%</div>
   </div>
-  <div class="action-bar" id="action-bar" style="display:none;">
-    <button class="action-btn btn-fold"  id="btn-fold" onclick="playerFold()"><span id="fold-text">Сбросить</span></button>
-    <button class="action-btn btn-check" id="btn-check" onclick="playerCheck()"><span id="check-text">Чек</span></button>
-    <button class="action-btn btn-call"  id="btn-call" onclick="playerCall()"><span id="call-text">Колл</span></button>
+  <div class="action-bar" id="action-bar" style="display:none;" role="toolbar" aria-label="Poker actions">
+    <button class="action-btn btn-fold"  id="btn-fold" onclick="playerFold()" aria-label="Fold hand"><span id="fold-text">Сбросить</span></button>
+    <button class="action-btn btn-check" id="btn-check" onclick="playerCheck()" aria-label="Check"><span id="check-text">Чек</span></button>
+    <button class="action-btn btn-call"  id="btn-call" onclick="playerCall()" aria-label="Call bet"><span id="call-text">Колл</span></button>
     <div class="raise-wrap">
-      <button class="action-btn btn-raise" id="btn-raise" onclick="playerRaise()"><span id="raise-text">Райз</span></button>
-      <input type="number" id="raise-amount" value="20" min="20" step="10">
+      <button class="action-btn btn-raise" id="btn-raise" onclick="playerRaise()" aria-label="Raise bet"><span id="raise-text">Райз</span></button>
+      <input type="number" id="raise-amount" value="20" min="20" step="10" aria-label="Raise amount">
     </div>
-    <button class="action-btn btn-allin" id="btn-allin" onclick="playerAllIn()"><span id="allin-text">All-in</span></button>
+    <button class="action-btn btn-allin" id="btn-allin" onclick="playerAllIn()" aria-label="All-in"><span id="allin-text">All-in</span></button>
   </div>
 </div>
 
@@ -2182,19 +2179,32 @@ const db = firebase.database();
 let isOnline = true;
 const connectedRef = db.ref('.info/connected');
 const offlineIndicator = document.getElementById('offline-indicator');
+let offlineTimer = null;
+let hasConnectedOnce = false;
 connectedRef.on('value', (snap) => {
-  isOnline = snap.val() === true;
-  if(offlineIndicator) offlineIndicator.classList.toggle('show', !isOnline);
-  if(!isOnline){
-    showToast(currentLang === 'ru' ? '⚠️ Нет соединения' : '⚠️ Offline');
-    stopTimer(); // Pause timer when offline
-    // Disable action buttons when offline
-    const bar = document.getElementById('action-bar');
-    if(bar) bar.style.pointerEvents = 'none';
-    if(bar) bar.style.opacity = '0.5';
-  } else {
+  const nowOnline = snap.val() === true;
+  if(nowOnline) {
+    hasConnectedOnce = true;
+    isOnline = true;
+    if(offlineTimer) { clearTimeout(offlineTimer); offlineTimer = null; }
+    if(offlineIndicator) offlineIndicator.classList.remove('show');
     const bar = document.getElementById('action-bar');
     if(bar) { bar.style.pointerEvents = ''; bar.style.opacity = ''; }
+  } else {
+    // Only show offline after 3 seconds (prevents flash on initial load)
+    if(!offlineTimer) {
+      offlineTimer = setTimeout(() => {
+        if(hasConnectedOnce) { // Only show if we were connected before
+          isOnline = false;
+          if(offlineIndicator) offlineIndicator.classList.add('show');
+          showToast(currentLang === 'ru' ? '⚠️ Нет соединения' : '⚠️ Offline');
+          stopTimer();
+          const bar = document.getElementById('action-bar');
+          if(bar) { bar.style.pointerEvents = 'none'; bar.style.opacity = '0.5'; }
+        }
+        offlineTimer = null;
+      }, 3000);
+    }
   }
 });
 
@@ -2685,19 +2695,28 @@ function createRoom(code){
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
 // ===== TIMER =====
+let timerPausedAt = 0;
+let timerPausedElapsed = 0;
 function startTimer(turnStartedAt){
   stopTimer();
   const bar=document.getElementById('timer-bar');
   if(!bar) return;
+  let lastFrame = performance.now();
   const update=()=>{
-    const elapsed = Date.now() - turnStartedAt;
+    if(document.hidden) return; // Skip when tab hidden
+    const now = Date.now();
+    const elapsed = now - turnStartedAt;
     const remaining = Math.max(0, TURN_TIME - Math.floor(elapsed / 1000));
     bar.style.width=(remaining/TURN_TIME)*100+'%';
     remaining<=10 ? bar.classList.add('urgent') : bar.classList.remove('urgent');
     if(remaining<=0){ stopTimer(); autoFold(); }
   };
   update();
-  timerInterval=setInterval(update,1000);
+  timerInterval=setInterval(update, 1000);
+  // FIX: Also update on visibility change for instant sync
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden && timerInterval) update();
+  }, {once: true});
 }
 function stopTimer(){
   if(timerInterval) clearInterval(timerInterval);
@@ -2711,15 +2730,16 @@ function autoFold(){
     if(!currentState) return;
     let state = normalizeState(currentState);
     if(state.currentPlayer !== myIndex) return;
-    // FIX: Check if timer actually expired (prevent race with manual actions)
     const elapsed = Date.now() - (state.turnStartedAt || 0);
+    // FIX: If elapsed is way too high (reconnect), don't auto-fold — just sync
+    if(elapsed > TURN_TIME * 1000 + 10000) return; // > 40s = reconnect, skip
     if(elapsed < TURN_TIME * 1000 - 500) return; // 500ms buffer
     const p = state.players[myIndex];
     if(!p || p.folded || p.allIn) return;
     p.folded = true;
     state.lastAction = p.name + ' ' + t('toastTimeout');
     processNextPlayer(state);
-    state.turnStartedAt = Date.now(); // Reset timer for next player
+    state.turnStartedAt = Date.now();
     state.ts = Date.now();
     return state;
   });
@@ -3071,6 +3091,7 @@ function cardKey(c){ return c.c + c.v; }
 // FIX: LRU cache with 200 entry limit
 const equityCache = new Map();
 const MAX_CACHE_SIZE = 200;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function equityCacheKey(hand, community, numOpponents){
   return hand.map(c => c.c + c.v).sort().join('') + '|' + 
@@ -3079,13 +3100,17 @@ function equityCacheKey(hand, community, numOpponents){
 function quickEquity(myHand, community, numOpponents){
   if(!myHand || myHand.length < 2) return 50;
   const key = equityCacheKey(myHand, community || [], numOpponents);
+  const now = Date.now();
 
-  // FIX: Check cache with LRU update
+  // FIX: Check cache with TTL validation
   if(equityCache.has(key)){
-    const value = equityCache.get(key);
-    equityCache.delete(key);
-    equityCache.set(key, value);
-    return value;
+    const entry = equityCache.get(key);
+    if(now - entry.ts < CACHE_TTL){
+      equityCache.delete(key);
+      equityCache.set(key, entry);
+      return entry.value;
+    }
+    equityCache.delete(key); // Expired
   }
 
   const all = [...myHand, ...(community || [])];
@@ -3105,12 +3130,12 @@ function quickEquity(myHand, community, numOpponents){
   }
   const result = Math.min(98, Math.max(2, base));
 
-  // FIX: Add to cache with size control
+  // FIX: Add to cache with size control and TTL
   if(equityCache.size >= MAX_CACHE_SIZE){
     const firstKey = equityCache.keys().next().value;
     equityCache.delete(firstKey);
   }
-  equityCache.set(key, result);
+  equityCache.set(key, { value: result, ts: now });
 
   return result;
 }
@@ -3202,6 +3227,8 @@ function updateStrengthMeter(state){
 
 
 // ===== PARTICLES =====
+let activeParticles = 0;
+const MAX_PARTICLES = 50;
 function spawnWinParticles(){
   const emojis = ['💰','🪙','💎','⭐','🃏'];
   const colors = ['#F5B800','#FFD700','#FFA500','#FF6B6B','#4ade80'];
@@ -3209,6 +3236,8 @@ function spawnWinParticles(){
   const centerY = window.innerHeight / 2;
 
   for(let i = 0; i < 30; i++){
+    if(activeParticles >= MAX_PARTICLES) break; // Prevent DOM overload
+    activeParticles++;
     const p = document.createElement('div');
     p.className = 'particle';
     p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
@@ -3227,7 +3256,7 @@ function spawnWinParticles(){
     p.style.fontSize = (16 + Math.random() * 24) + 'px';
 
     document.body.appendChild(p);
-    setTimeout(() => p.remove(), 2000);
+    setTimeout(() => { p.remove(); activeParticles = Math.max(0, activeParticles - 1); }, 2000);
   }
 }
 
@@ -3428,18 +3457,40 @@ function createCardPlaceholder(){ const d=document.createElement('div');d.classN
 
 // ===== PLAYER ACTIONS =====
 let isProcessingAction = false;
+let actionRetryCount = 0;
+const MAX_RETRIES = 3;
 function withFreshState(fn){
   if(!roomCode || isProcessingAction) return;
   isProcessingAction = true;
   stopTimer();
-  db.ref('poker-rooms/'+roomCode).transaction(currentState => {
-    if(!currentState) return;
-    let state = normalizeState(currentState);
-    if(state.currentPlayer !== myIndex) return;
-    fn(state);
-    state.ts = Date.now();
-    return state;
-  }).then(() => { isProcessingAction = false; }).catch(() => { isProcessingAction = false; });
+  const attempt = () => {
+    db.ref('poker-rooms/'+roomCode).transaction(currentState => {
+      if(!currentState) return;
+      let state = normalizeState(currentState);
+      if(state.currentPlayer !== myIndex) return;
+      // FIX: Verify action is still valid (not stale)
+      const elapsed = Date.now() - (state.turnStartedAt || 0);
+      if(elapsed > TURN_TIME * 1000 + 5000) return; // Stale — abort
+      fn(state);
+      state.ts = Date.now();
+      state.lastActor = myPlayerId; // Track who acted last
+      return state;
+    }).then(result => {
+      if(!result.committed && actionRetryCount < MAX_RETRIES){
+        actionRetryCount++;
+        setTimeout(attempt, 300); // Retry with delay
+        return;
+      }
+      actionRetryCount = 0;
+      isProcessingAction = false;
+    }).catch(err => {
+      console.error('Action failed:', err);
+      actionRetryCount = 0;
+      isProcessingAction = false;
+      showToast(currentLang === 'ru' ? 'Ошибка сети, попробуйте снова' : 'Network error, try again');
+    });
+  };
+  attempt();
 }
 
 function playerFold(){
@@ -4162,6 +4213,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   applyTranslations();
 
   // FIX: Attach all event listeners after DOM is ready
+  // FIX: Keyboard accessibility for lobby cards
+  document.querySelectorAll('.lobby-mode-card').forEach(card => {
+    card.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+  });
+
   document.getElementById('host-btn').addEventListener('click',()=>{
     const code=genCode();
     roomCode=code; isHost=true; myIndex=0;
@@ -4214,6 +4275,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
   document.getElementById('tourney-btn').addEventListener('click',()=>{ startTournament(); });
   document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
+
+  // FIX: Handle orientation change for mobile
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { window.scrollTo(0, 0); }, 300);
+  });
 
   setTimeout(()=>{
     const splash = document.getElementById('splash-screen');
