@@ -21,8 +21,8 @@
   --accent-red:#E83B3B;
   --accent-green:#27A55A;
   --accent-blue:#2B7FD4;
-  --card-w:52px;
-  --card-h:76px;
+  --card-w:40px;
+  --card-h:58px;
   --shadow-sm:0 2px 8px rgba(0,0,0,.4);
   --shadow-md:0 4px 16px rgba(0,0,0,.5);
   --shadow-lg:0 8px 32px rgba(0,0,0,.6);
@@ -750,7 +750,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   .lobby-username { font-size: 13px; }
   .lobby-level { font-size: 9px; padding: 2px 6px; }
   .lobby-chips { font-size: 10px; }
-  .action-btn { padding: 10px 12px; font-size: 12px; min-width: 70px; }
+  .action-btn { padding: 6px 8px; font-size: 11px; min-width: 52px; min-height: 34px; flex: 1; max-width: 80px; border-radius: 8px; }
   .raise-wrap input { width: 56px; padding: 8px 6px; font-size: 12px; }
   .player-pos .p-avatar { width: 38px; height: 38px; font-size: 18px; }
   .player-pos .p-name { font-size: 10px; max-width: 70px; }
@@ -809,43 +809,55 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 /* Short screens: iPhone SE, small Android (height < 700px) */
 @media(max-height:700px){
-  .table-felt { max-height: 32vh; aspect-ratio: 16/13; }
-  .player-pos .p-avatar { width: 32px; height: 32px; font-size: 15px; border-radius: 9px; }
-  .player-pos .p-name { font-size: 8px; max-width: 55px; }
-  .player-pos .p-chips { font-size: 7px; padding: 1px 5px; }
-  .player-pos .p-bet { font-size: 7px; padding: 1px 4px; min-height: 14px; }
-  .action-btn { padding: 6px 8px; min-width: 52px; font-size: 10px; min-height: 36px; border-radius: 10px; }
-  .raise-wrap input { width: 44px; padding: 5px 3px; font-size: 10px; min-height: 36px; }
-  .community-cards .card, .community-cards .card-placeholder { width: 30px; height: 44px; border-radius: 7px; gap: 4px; }
-  .card-corner { font-size: 7px; }
-  .card-center { font-size: 18px; }
-  .pot-display { font-size: 9px; padding: 2px 8px; top: 15%; border-radius: 12px; }
-  .strength-meter { padding: 3px 8px; gap: 6px; bottom: max(54px, env(safe-area-inset-bottom) + 48px); }
-  .strength-bar-bg { width: 50px; height: 2px; }
-  .strength-text { font-size: 7px; }
-  .strength-label { font-size: 7px; }
-  .game-info { font-size: 8px; padding: 2px 5px; }
-  .exit-btn { width: 26px; height: 26px; font-size: 11px; border-radius: 7px; }
-  .timer-wrap { height: 2px; margin-bottom: 1px; }
-  #game-screen { gap: 1px; padding: 6px 6px max(70px, env(safe-area-inset-bottom) + 60px); }
-  .action-bar { padding: 5px 3px 7px; gap: 3px; border-radius: 12px 12px 0 0; }
-  .action-bar { bottom: 0; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
-  .top-bar { margin-bottom: 1px; padding: 1px 2px; }
-  .pos-top { margin-bottom: 0; gap: 0; }
-  .pos-bottom { margin-top: 0; gap: 0; }
+  .table-felt { max-height: 26vh; aspect-ratio: 16/14; }
+  .player-pos .p-avatar { width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
+  .player-pos .p-name { font-size: 7px; max-width: 50px; }
+  .player-pos .p-chips { font-size: 6px; padding: 1px 4px; }
+  .player-pos .p-bet { font-size: 6px; padding: 1px 3px; min-height: 12px; }
+  .action-btn { padding: 5px 6px; min-width: 48px; font-size: 9px; min-height: 32px; border-radius: 8px; }
+  .raise-wrap input { width: 38px; padding: 4px 2px; font-size: 9px; min-height: 32px; }
+  .community-cards .card, .community-cards .card-placeholder { width: 26px; height: 38px; border-radius: 6px; gap: 3px; }
+  .card-corner { font-size: 6px; }
+  .card-center { font-size: 16px; }
+  .pot-display { font-size: 8px; padding: 2px 6px; top: 12%; border-radius: 10px; }
+  
+  .strength-bar-bg { width: 40px; height: 2px; }
+  .strength-text { font-size: 6px; }
+  .strength-label { font-size: 6px; }
+  .game-info { font-size: 7px; padding: 2px 4px; }
+  .exit-btn { width: 24px; height: 24px; font-size: 10px; border-radius: 6px; }
+  .timer-wrap { height: 2px; margin-bottom: 0; }
+  #game-screen {
+  padding: max(4px, env(safe-area-inset-top)) 4px max(75px, env(safe-area-inset-bottom) + 68px);
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  background: #080B14;
+  min-height: 100vh;
+  gap: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+  .action-bar { padding: 3px 3px 5px; gap: 2px; border-radius: 10px 10px 0 0; }
+  .action-bar { bottom: 0; padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+  .top-bar { margin-bottom: 0; padding: 0 2px; min-height: 24px; }
+  .pos-top { margin-bottom: -2px; gap: 0; }
+  .pos-bottom { margin-top: -2px; gap: 0; }
   .table-felt::before { border-radius: 50% / 45%; }
 }
 
 /* Very short screens (iPhone SE 1st gen: 568px height) */
 @media(max-height:600px){
-  .table-felt { max-height: 28vh; aspect-ratio: 16/14; }
-  .player-pos .p-avatar { width: 28px; height: 28px; font-size: 13px; }
-  .community-cards .card, .community-cards .card-placeholder { width: 26px; height: 38px; gap: 3px; }
-  .card-center { font-size: 16px; }
-  .action-btn { padding: 5px 6px; min-width: 48px; font-size: 9px; min-height: 32px; }
-  .raise-wrap input { width: 40px; font-size: 9px; min-height: 32px; }
-  .strength-meter { bottom: max(50px, env(safe-area-inset-bottom) + 44px); padding: 2px 6px; }
-  .pot-display { top: 12%; }
+  .table-felt { max-height: 22vh; aspect-ratio: 16/15; }
+  .player-pos .p-avatar { width: 24px; height: 24px; font-size: 11px; }
+  .community-cards .card, .community-cards .card-placeholder { width: 22px; height: 32px; gap: 2px; border-radius: 5px; }
+  .card-center { font-size: 14px; }
+  .action-btn { padding: 4px 5px; min-width: 44px; font-size: 8px; min-height: 28px; border-radius: 6px; }
+  .raise-wrap input { width: 34px; font-size: 8px; min-height: 28px; }
+  
+  .pot-display { top: 10%; font-size: 7px; padding: 1px 5px; }
+  .card { border-radius: 6px; }
 }
 
 /* ===== WAITING ===== */
@@ -858,14 +870,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ===== GAME — PREMIUM REDESIGN ===== */
 
 #game-screen {
-  padding: max(8px, env(safe-area-inset-top)) 8px max(70px, env(safe-area-inset-bottom) + 60px); /* Space for fixed action bar */
+  padding: max(4px, env(safe-area-inset-top)) 4px max(60px, env(safe-area-inset-bottom) + 52px); /* Space for fixed action bar */
   justify-content: flex-start; /* Stack from top */
   align-items: center;
   position: relative;
   background: #080B14;
   min-height: 100vh;
-  gap: 2px;
-  overflow-y: auto; /* Scroll if needed */
+  gap: 0; /* NO gap between elements */
+  overflow-y: hidden; /* No scroll, fit everything */
 }
 
 /* Ambient glow behind the table */
@@ -888,14 +900,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 2px;
-  padding: 1px 4px;
+  margin-bottom: 0;
+  padding: 0 4px;
   position: relative;
   z-index: 10;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   flex-shrink: 0;
+  min-height: 28px;
 }
 
 .game-info {
@@ -921,7 +934,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   height: 2px;
   background: rgba(255,255,255,.04);
   border-radius: 2px;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   overflow: hidden;
   position: relative;
   z-index: 10;
@@ -947,14 +960,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 .table-felt {
   width: 100%;
-  max-width: min(380px, 88vw); /* Even smaller for phones */
-  aspect-ratio: 16/12; /* Flatter for portrait */
-  max-height: 38vh; /* Much smaller height limit */
-  /* Dark premium felt — deep forest green with subtle radial shading */
+  max-width: min(320px, 80vw);
+  aspect-ratio: 16/14;
+  max-height: 28vh;
   background:
     radial-gradient(ellipse 70% 60% at 50% 52%, #1a5c34 0%, #0e3d20 55%, #081a0e 100%);
   border-radius: 50% / 45%;
-  /* Three-layer border: outer dark ring, mid rim, inner highlight */
   box-shadow:
     0 0 0 8px #050a07,
     0 0 0 11px #1a2e1c,
@@ -998,18 +1009,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ── POT ── */
 .pot-display {
   position: absolute;
-  top: 18%; /* Even higher for small screens */
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: clamp(10px, 2.8vw, 12px);
+  font-size: clamp(8px, 2.5vw, 11px);
   font-weight: 800;
   color: var(--gold-light);
   letter-spacing: .5px;
   z-index: 5;
   background: rgba(0,0,0,.6);
   border: 1px solid rgba(200,168,75,.25);
-  padding: 3px 10px;
-  border-radius: 14px;
+  padding: 2px 8px;
+  border-radius: 10px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 12px rgba(200,168,75,.12);
   white-space: nowrap;
@@ -1050,24 +1061,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ── STRENGTH METER ── */
 .strength-meter {
   display: flex !important;
-  flex-direction: row; /* Horizontal to save space */
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  margin: 2px auto;
-  padding: 4px 10px;
-  background: rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.08);
+  gap: 6px;
+  margin: 0 auto;
+  padding: 3px 10px;
+  background: rgba(0,0,0,.9);
+  border: 1px solid rgba(255,255,255,.2);
   border-radius: 10px;
   backdrop-filter: blur(12px);
-  animation: fadeIn .3s ease;
   min-width: auto;
   width: fit-content;
   flex-shrink: 0;
   position: fixed;
-  bottom: max(58px, env(safe-area-inset-bottom) + 52px); /* Just above action bar */
+  bottom: max(72px, env(safe-area-inset-bottom) + 66px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 90;
+  z-index: 101;
+  box-shadow: 0 2px 12px rgba(0,0,0,.5);
 }
 @keyframes fadeIn { from{opacity:0;transform:scale(.92);} to{opacity:1;transform:scale(1);} }
 
@@ -1200,10 +1211,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   position: relative;
   flex-direction: column-reverse;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   z-index: 15;
-  margin-top: 0;
-  padding-bottom: 1px;
+  margin-top: -2px; /* Overlap with table */
+  padding-bottom: 0;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -1225,10 +1236,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   position: relative;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   z-index: 15;
-  margin-bottom: 0;
-  padding-top: 1px;
+  margin-bottom: -2px; /* Overlap with table */
+  padding-top: 0;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -1368,26 +1379,28 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ── ACTION BAR ── */
 .action-bar {
   display: flex;
-  gap: 5px;
+  gap: 3px;
   justify-content: center;
   align-items: center;
   width: 100%;
   margin-top: 0;
-  flex-wrap: wrap;
-  padding: 6px 4px 8px;
-  position: fixed; /* FIXED at bottom */
+  flex-wrap: nowrap;
+  padding: 2px 3px 4px;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 100;
   background: rgba(6,8,16,.95);
   border-top: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px 16px 0 0;
+  border-radius: 8px 8px 0 0;
   backdrop-filter: blur(24px);
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
-  padding-bottom: max(8px, env(safe-area-inset-bottom)); /* Respect safe area */
+  padding-bottom: max(3px, env(safe-area-inset-bottom));
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .action-btn {
@@ -1790,7 +1803,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     <button class="exit-btn" onclick="leaveRoom()" id="exit-btn">✕</button>
   </div>
   <div class="timer-wrap"><div class="timer-bar" id="timer-bar"></div></div>
-  <div class="table-area" style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 auto;">
+  <div class="table-area" style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:0;">
 
   <!-- Top player (bot) — ABOVE the table -->
   <div class="player-pos pos-top" id="pos-2">
@@ -3103,27 +3116,38 @@ function updateStrengthMeter(state){
   const meter = document.getElementById('strength-meter');
   const barFill = document.getElementById('strength-bar-fill');
   const text = document.getElementById('strength-text');
-  if(!meter || !state || !state.players || myIndex < 0){
-    if(meter) meter.style.visibility = 'hidden';
+  if(!meter || !barFill || !text) return;
+
+  // Always show meter by default, hide only if definitely can't
+  if(!state || !state.players || myIndex < 0 || myIndex >= state.players.length){
+    meter.style.visibility = 'hidden';
     return;
   }
+
   const me = state.players[myIndex];
   if(!me || me.folded || !me.hand || me.hand.length < 2){
     meter.style.visibility = 'hidden';
     return;
   }
+
   const activeOpponents = state.players.filter((p,i) => i !== myIndex && !p.folded);
   if(activeOpponents.length === 0){
     meter.style.visibility = 'hidden';
     return;
   }
+
+  // Show the meter
   meter.style.visibility = 'visible';
+  meter.style.display = 'flex';
+
   const quick = quickEquity(me.hand, state.communityCards, activeOpponents.length);
   const pct = Math.round(quick);
   barFill.style.width = pct + '%';
   text.textContent = pct + '%';
   barFill.className = 'strength-bar-fill ' + (pct >= 60 ? 'high' : pct >= 35 ? 'medium' : 'low');
+
   calculateEquity(me.hand, state.communityCards, activeOpponents.length, (equity) => {
+    if(!barFill || !text) return;
     const finalPct = Math.round(equity);
     barFill.style.width = finalPct + '%';
     text.textContent = finalPct + '%';
