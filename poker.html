@@ -28,6 +28,22 @@
   --shadow-lg:0 8px 32px rgba(0,0,0,.6);
   --glass:rgba(255,255,255,.06);
   --glass-border:rgba(255,255,255,.1);
+  --gold: #C8A84B;
+  --gold-light: #E8C96D;
+  --gold-pale: #F5E6B8;
+  --gold-glow: rgba(200,168,75,.35);
+  --surface-1: #0C0F1A;
+  --surface-2: #121828;
+  --surface-3: #1A2235;
+  --surface-card: rgba(255,255,255,.04);
+  --border-subtle: rgba(255,255,255,.07);
+  --border-gold: rgba(200,168,75,.25);
+  --text-dim: rgba(255,255,255,.38);
+  --text-mid: rgba(255,255,255,.62);
+  --red: #D4434C;
+  --blue: #3D8EE8;
+  --purple: #7B68EE;
+  --emerald: #2DBD7E;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -52,24 +68,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ===== LOBBY — PREMIUM REDESIGN ===== */
 /* Combined import moved to end with display=swap */
 
-:root {
-  --gold: #C8A84B;
-  --gold-light: #E8C96D;
-  --gold-pale: #F5E6B8;
-  --gold-glow: rgba(200,168,75,.35);
-  --surface-1: #0C0F1A;
-  --surface-2: #121828;
-  --surface-3: #1A2235;
-  --surface-card: rgba(255,255,255,.04);
-  --border-subtle: rgba(255,255,255,.07);
-  --border-gold: rgba(200,168,75,.25);
-  --text-dim: rgba(255,255,255,.38);
-  --text-mid: rgba(255,255,255,.62);
-  --red: #D4434C;
-  --blue: #3D8EE8;
-  --purple: #7B68EE;
-  --emerald: #2DBD7E;
-}
 
 #lobby-screen {
   background: var(--surface-1);
@@ -1523,9 +1521,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 </style>
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -1551,7 +1546,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     </div>
     <div class="lobby-actions">
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
-      <div class="lobby-settings-btn" onclick="showToastSettings()">⚙️</div>
+      <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
   </div>
 
@@ -1613,7 +1608,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
     <div class="lobby-join-title" id="join-section-title">Join by Code</div>
     <div class="lobby-input-row">
       <input type="text" id="join-code" maxlength="4" placeholder="КОД" />
-      <button class="lobby-join-btn" id="join-btn">Войти</button>
+      <button class="lobby-join-btn" id="join-submit-btn">Войти</button>
     </div>
   </div>
 
@@ -1627,11 +1622,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       <div class="lobby-nav-icon">👤</div>
       <div class="lobby-nav-label" id="nav-profile">Profile</div>
     </div>
-    <div class="lobby-nav-item" onclick="showToastShop()">
+    <div class="lobby-nav-item" onclick="showShopScreen()">
       <div class="lobby-nav-icon">🛒</div>
       <div class="lobby-nav-label" id="nav-shop">Shop</div>
     </div>
-    <div class="lobby-nav-item" onclick="showToastSettings()">
+    <div class="lobby-nav-item" onclick="showSettingsScreen()">
       <div class="lobby-nav-icon">⚙️</div>
       <div class="lobby-nav-label" id="nav-settings">Settings</div>
     </div>
@@ -1995,6 +1990,13 @@ function applyTranslations(){
   }
   const codeInput = document.getElementById('join-code');
   if(codeInput) codeInput.placeholder = t('enterCode');
+  // Update waiting screen text
+  const waitingTitle = document.getElementById('waiting-title');
+  if(waitingTitle) waitingTitle.textContent = t('waiting');
+  const waitingHint = document.getElementById('waiting-hint');
+  if(waitingHint) waitingHint.textContent = t('waitingHint');
+  const startBtn = document.getElementById('start-btn');
+  if(startBtn) startBtn.querySelector('span').textContent = t('startGame');
   updateLobbyLevel();
 }
 
@@ -2012,6 +2014,17 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+// Connection state monitoring
+let isOnline = true;
+const connectedRef = db.ref('.info/connected');
+connectedRef.on('value', (snap) => {
+  isOnline = snap.val() === true;
+  if(!isOnline){
+    showToast(currentLang === 'ru' ? '⚠️ Нет соединения' : '⚠️ Offline');
+    stopTimer(); // Pause timer when offline
+  }
+});
 
 const tg = window.Telegram?.WebApp;
 if(tg){ tg.ready(); tg.expand(); }
@@ -2137,6 +2150,13 @@ function getBalance(){
 }
 function setBalance(val){
   localStorage.setItem(BALANCE_KEY, Math.max(0, val));
+}
+function syncBalanceFromState(state){
+  // Save balance after every hand to prevent data loss on refresh
+  const me = state.players.find(p => p.id === myPlayerId);
+  if(me && me.chips !== undefined){
+    setBalance(me.chips);
+  }
 }
 
 function getXP(){
@@ -2293,8 +2313,75 @@ const AudioManager = {
 
 
 function showToastSettings(){ showToast(t('navSettings') + ' soon'); }
+function showSettingsScreen(){
+  // Placeholder settings screen
+  const settingsModal = document.createElement('div');
+  settingsModal.className = 'daily-modal';
+  settingsModal.id = 'settings-modal';
+  settingsModal.innerHTML = `
+    <div class="daily-modal-content" style="max-width:360px;">
+      <div class="daily-modal-icon">⚙️</div>
+      <div class="daily-modal-title">${currentLang === 'ru' ? 'Настройки' : 'Settings'}</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Звук' : 'Sound'}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Язык' : 'Language'}</span>
+          <span style="font-size:12px;color:var(--accent-gold);font-weight:700;cursor:pointer;" onclick="toggleLanguage(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'RU' : 'EN'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Версия' : 'Version'}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.3);">1.0.0</span>
+        </div>
+      </div>
+      <button class="daily-modal-btn" onclick="document.getElementById('settings-modal').remove()">${currentLang === 'ru' ? 'Закрыть' : 'Close'}</button>
+    </div>
+  `;
+  document.body.appendChild(settingsModal);
+}
 function showToastProfile(){ showToast(t('navProfile') + ' soon'); }
 function showToastShop(){ showToast(t('navShop') + ' soon'); }
+function showShopScreen(){
+  // Placeholder shop screen
+  const shopModal = document.createElement('div');
+  shopModal.className = 'daily-modal';
+  shopModal.id = 'shop-modal';
+  shopModal.innerHTML = `
+    <div class="daily-modal-content" style="max-width:360px;">
+      <div class="daily-modal-icon">🛒</div>
+      <div class="daily-modal-title">${currentLang === 'ru' ? 'Магазин' : 'Shop'}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:20px;">
+        ${currentLang === 'ru' ? 'Скоро здесь появятся товары!' : 'Items coming soon!'}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div style="padding:12px;background:rgba(255,255,255,.05);border-radius:12px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:24px;">💎</span>
+          <div style="text-align:left;flex:1;">
+            <div style="font-size:13px;font-weight:700;">VIP Status</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">Coming soon</div>
+          </div>
+          <div style="font-size:13px;color:var(--accent-gold);font-weight:800;">???</div>
+        </div>
+        <div style="padding:12px;background:rgba(255,255,255,.05);border-radius:12px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:24px;">🎨</span>
+          <div style="text-align:left;flex:1;">
+            <div style="font-size:13px;font-weight:700;">Custom Themes</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">Coming soon</div>
+          </div>
+          <div style="font-size:13px;color:var(--accent-gold);font-weight:800;">???</div>
+        </div>
+      </div>
+      <button class="daily-modal-btn" onclick="document.getElementById('shop-modal').remove()">${currentLang === 'ru' ? 'Закрыть' : 'Close'}</button>
+    </div>
+  `;
+  document.body.appendChild(shopModal);
+}
 function showToastTourney(){ showToast(t('tournament') + ' soon!'); }
 
 // ===== DECK =====
@@ -2371,11 +2458,13 @@ function normalizeState(state){
 function createRoom(code){
   if(roomRef && roomCode === code) return;
 
-  // FIX: Guaranteed cleanup of old listeners
+  // FIX: Guaranteed cleanup of old listeners - prevent memory leaks
   if(roomRef){
     if(unsubscribe){ roomRef.off('value', unsubscribe); unsubscribe=null; }
-    roomRef.off();
+    roomRef.off(); // Remove ALL listeners from old room
+    roomRef = null;
   }
+  roomCode = null; // Clear old room code
 
   roomRef = db.ref('poker-rooms/'+code);
   roomCode = code;  // FIX: Set BEFORE creating listener
@@ -2405,12 +2494,13 @@ function createRoom(code){
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
 // ===== TIMER =====
-function startTimer(turnExpiresAt){
+function startTimer(turnStartedAt){
   stopTimer();
   const bar=document.getElementById('timer-bar');
   if(!bar) return;
   const update=()=>{
-    const remaining=Math.max(0,Math.floor((turnExpiresAt-Date.now())/1000));
+    const elapsed = Date.now() - turnStartedAt;
+    const remaining = Math.max(0, TURN_TIME - Math.floor(elapsed / 1000));
     bar.style.width=(remaining/TURN_TIME)*100+'%';
     remaining<=10 ? bar.classList.add('urgent') : bar.classList.remove('urgent');
     if(remaining<=0){ stopTimer(); autoFold(); }
@@ -2430,63 +2520,22 @@ function autoFold(){
     if(!currentState) return;
     let state = normalizeState(currentState);
     if(state.currentPlayer !== myIndex) return;
+    // FIX: Check if timer actually expired (prevent race with manual actions)
+    const elapsed = Date.now() - (state.turnStartedAt || 0);
+    if(elapsed < TURN_TIME * 1000 - 500) return; // 500ms buffer
     const p = state.players[myIndex];
     if(!p || p.folded || p.allIn) return;
     p.folded = true;
     state.lastAction = p.name + ' ' + t('toastTimeout');
     processNextPlayer(state);
+    state.turnStartedAt = Date.now(); // Reset timer for next player
     state.ts = Date.now();
     return state;
   });
 }
 
 // ===== LOBBY =====
-document.getElementById('host-btn').addEventListener('click',()=>{
-  const code=genCode();
-  roomCode=code; isHost=true; myIndex=0;
-  document.getElementById('my-room-id').textContent=code;
-  document.getElementById('waiting-code').textContent=code;
-  const display = document.getElementById('room-display');
-  if(display) display.style.display='block';
-  const myChips = getBalance();
-  const state={
-    code,phase:'waiting',
-    players:[{id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false}],
-    dealer:0,smallBlind:SMALL_BLIND,bigBlind:BIG_BLIND,
-    pot:0,pots:[],currentBet:0,communityCards:[],deck:[],
-    currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
-    turnStartedAt:Date.now(),ts:Date.now()
-  };
-  saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); });
-});
 
-document.getElementById('join-btn').addEventListener('click',()=>{
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
-  if(code.length!==4){showToast(t('toastEnter4'));return;}
-  const myChips = getBalance();
-  db.ref('poker-rooms/'+code).transaction(currentState => {
-    if(!currentState) return;
-    let state = normalizeState(currentState);
-    if(state.phase !== 'waiting'){ showToast(t('toastGameStarted')); return; }
-    if(state.players.length >= 4){ showToast(t('toastRoomFull')); return; }
-    if(state.players.some(p => p.id === myPlayerId)){ showToast(t('toastAlreadyIn')); return; }
-    state.players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
-    state.ts = Date.now();
-    return state;
-  }).then(result => {
-    if(result.committed){
-      roomCode = code; isHost = false;
-      showScreen('waiting'); createRoom(code);
-    }
-  });
-});
-
-document.getElementById('bot-btn').addEventListener('click',startBotGame);
-document.getElementById('bot-card').addEventListener('click',startBotGame);
-document.getElementById('host-card').addEventListener('click',()=>document.getElementById('host-btn').click());
-document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
-document.getElementById('tourney-btn').addEventListener('click',startTournament);
-document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
 function backToLobby(){
   clearWinnerAnim();
@@ -2607,7 +2656,6 @@ function dealHand(state){
   state.lastRaiser = lastRaiserPreflop;
   state.phase = 'preflop';
   state.turnStartedAt = Date.now();
-  state.turnExpiresAt = Date.now() + TURN_TIME * 1000;
 }
 
 function postBlind(state, idx, amount){
@@ -2674,7 +2722,7 @@ function startTournament(){
   tourneyState = state;
   dealHand(state);
   state.ts = Date.now();
-  saveRoom(state).then(() => { createRoom(code); });
+  saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); });
 }
 
 function nextTournamentHand(){
@@ -3037,13 +3085,20 @@ function _renderGameImpl(state){
   const canAct=me&&state.currentPlayer===myIdx&&!me.folded&&!me.allIn
                &&state.phase!=='showdown'&&state.phase!=='ended';
 
-  for(let i=0;i<4;i++) document.getElementById('pos-'+i).style.display='none';
+  for(let i=0;i<4;i++){
+    const posEl = document.getElementById('pos-'+i);
+    if(posEl) posEl.style.display='none';
+  }
   for(let i=0;i<n;i++){
     let rel;
     if(n===2){
-      rel = (i===myIdx) ? 0 : 2;
+      rel = (i===myIdx) ? 0 : 2; // Bottom vs Top
+    } else if(n===3){
+      // 3 players: bottom (0), left (1), top (2) - hide right (3)
+      rel = (i-myIdx+n)%n;
+      if(rel === 3) rel = 2; // Map right to top for 3 players
     } else {
-      rel=(i-myIdx+n)%n;
+      rel=(i-myIdx+n)%n; // 4 players: all positions
     }
     const el=document.getElementById('pos-'+rel);
     console.log('Player', i, 'rel', rel, 'el:', el ? 'found' : 'NOT FOUND');
@@ -3141,7 +3196,7 @@ function _renderGameImpl(state){
   } else { bar.style.display='none'; }
 
   if(state.turnStartedAt && state.phase!=='ended' && state.phase!=='showdown'){
-    startTimer(state.turnExpiresAt || (Date.now() + TURN_TIME * 1000));
+    startTimer(state.turnStartedAt || Date.now());
   } else { stopTimer(); }
 
   const cur=state.players[state.currentPlayer];
@@ -3234,13 +3289,20 @@ function playerAllIn(){
     const p=state.players[myIndex];
     if(p.chips<=0) return;
     const total=p.chips;
+    const wasBet = p.bet;
     p.bet+=total; p.chips=0; p.allIn=true;
-    if(p.bet>state.currentBet){
-      state.lastBet=state.currentBet;
-      state.currentBet=p.bet;
-      state.lastRaiser=myIndex;
+    // If this is the first bet (currentBet was 0) or a raise, update lastRaiser
+    if(p.bet > state.currentBet){
+      state.lastBet = state.currentBet;
+      state.currentBet = p.bet;
+      state.lastRaiser = myIndex;
+    } else if(state.currentBet === 0) {
+      // First bet in round - still mark as raiser
+      state.lastBet = 0;
+      state.currentBet = p.bet;
+      state.lastRaiser = myIndex;
     }
-    state.lastAction=p.name+' '+t('toastAllIn')+' '+p.bet;
+    state.lastAction = p.name+' '+t('toastAllIn')+' '+p.bet;
     processNextPlayer(state);
   });
 }
@@ -3254,10 +3316,10 @@ function botMove(state){
     if(!currentState) return;
     let s = normalizeState(currentState);
 
-    // FIX: Re-validate bot should still act
+    // FIX: Re-validate bot should still act using FRESH state
     const botIdx = s.players.findIndex(p => p.isBot && !p.folded && !p.allIn);
     if(botIdx < 0 || s.currentPlayer !== botIdx || s.phase === 'ended' || s.phase === 'showdown') {
-      return;  // Abort transaction
+      return;  // Abort transaction - stale bot move, ignore
     }
 
     const b = s.players[botIdx];
@@ -3391,6 +3453,7 @@ function processNextPlayer(state){
     collectBets(state);
     runoutBoard(state);
     showdown(state);
+    // State is modified in place - caller will save it
     return;
   }
 
@@ -3427,7 +3490,6 @@ function processNextPlayer(state){
 
   state.currentPlayer=next;
   state.turnStartedAt=Date.now();
-  state.turnExpiresAt=Date.now() + TURN_TIME * 1000;
 }
 
 function collectBets(state){
@@ -3440,7 +3502,7 @@ function collectBets(state){
     return;
   }
 
-  // Sort by bet size
+  // Sort by bet size (ascending)
   const sorted = [...bets].sort((a, b) => a.bet - b.bet);
   let prevBet = 0;
   state.pots = [];
@@ -3448,13 +3510,16 @@ function collectBets(state){
   for (const threshold of sorted) {
     if (threshold.bet <= prevBet) continue;
     const diff = threshold.bet - prevBet;
-    // Who contributed at least threshold.bet and is not folded
-    const eligible = bets
-      .filter(b => !b.folded && b.bet >= threshold.bet)
-      .map(b => b.idx);
+    // All players who contributed at least this amount (including folded - they forfeit)
     const contributors = bets.filter(b => b.bet >= threshold.bet);
+    // Only non-folded players are eligible to win this pot
+    const eligible = contributors
+      .filter(b => !b.folded)
+      .map(b => b.idx);
     const potAmount = diff * contributors.length;
-    state.pots.push({ amount: potAmount, eligible });
+    if (potAmount > 0) {
+      state.pots.push({ amount: potAmount, eligible });
+    }
     prevBet = threshold.bet;
   }
 
@@ -3505,7 +3570,6 @@ function initBettingRound(state){
   state.currentPlayer=start;
   state.lastRaiser=start;  // FIX: Round ends when we return to start
   state.turnStartedAt=Date.now();
-  state.turnExpiresAt=Date.now() + TURN_TIME * 1000;
 }
 
 function runoutBoard(state){
@@ -3650,6 +3714,7 @@ function renderEnd(state){
   const me = state.players.find(p => p.id === myPlayerId);
   if(me){
     setBalance(me.chips);
+    syncBalanceFromState(state); // Ensure balance is saved
     updateLobbyChips();
     const won = state.winners && state.winners.some(w => w.name === myName);
     addXP(won ? 10 : 0);
@@ -3852,6 +3917,61 @@ document.addEventListener('DOMContentLoaded',()=>{
     langBtn.title = currentLang === 'ru' ? 'Русский' : 'English';
   }
   applyTranslations();
+
+  // FIX: Attach all event listeners after DOM is ready
+  document.getElementById('host-btn').addEventListener('click',()=>{
+    const code=genCode();
+    roomCode=code; isHost=true; myIndex=0;
+    document.getElementById('my-room-id').textContent=code;
+    document.getElementById('waiting-code').textContent=code;
+    const display = document.getElementById('room-display');
+    if(display) display.style.display='block';
+    const myChips = getBalance();
+    const state={
+      code,phase:'waiting',
+      players:[{id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false}],
+      dealer:0,smallBlind:SMALL_BLIND,bigBlind:BIG_BLIND,
+      pot:0,pots:[],currentBet:0,communityCards:[],deck:[],
+      currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
+      turnStartedAt:Date.now(),ts:Date.now()
+    };
+    saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); });
+  });
+
+  document.getElementById('join-btn').addEventListener('click',()=>{
+    // Click on the join mode card - scroll to join section or focus input
+    const joinSection = document.getElementById('join-code');
+    if(joinSection){ joinSection.focus(); joinSection.scrollIntoView({behavior:'smooth', block:'center'}); }
+  });
+
+  document.getElementById('join-submit-btn').addEventListener('click',()=>{
+    const code=document.getElementById('join-code').value.trim().toUpperCase();
+    if(code.length!==4){showToast(t('toastEnter4'));return;}
+    const myChips = getBalance();
+    db.ref('poker-rooms/'+code).transaction(currentState => {
+      if(!currentState) return;
+      let state = normalizeState(currentState);
+      if(state.phase !== 'waiting'){ showToast(t('toastGameStarted')); return; }
+      if(state.players.length >= 4){ showToast(t('toastRoomFull')); return; }
+      if(state.players.some(p => p.id === myPlayerId)){ showToast(t('toastAlreadyIn')); return; }
+      state.players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
+      state.ts = Date.now();
+      return state;
+    }).then(result => {
+      if(result.committed){
+        roomCode = code; isHost = false;
+        showScreen('waiting'); createRoom(code);
+      }
+    });
+  });
+
+  document.getElementById('bot-btn').addEventListener('click',startBotGame);
+  document.getElementById('bot-card').addEventListener('click',startBotGame);
+  document.getElementById('host-card').addEventListener('click',()=>document.getElementById('host-btn').click());
+  document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
+  document.getElementById('tourney-btn').addEventListener('click',startTournament);
+  document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
+
   setTimeout(()=>{
     const splash = document.getElementById('splash-screen');
     if(splash){
