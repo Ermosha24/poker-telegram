@@ -4430,6 +4430,7 @@ function processNextPlayer(state){
 }
 
 function collectBets(state){
+  AudioManager.potSlide();
   // FIX: Classic side pot algorithm - sort bets, create pots for each unique level
   const bets = state.players.map((p, idx) => ({ idx, bet: p.bet, folded: p.folded })).filter(x => x.bet > 0);
   if (bets.length === 0) {
