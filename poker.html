@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a1f0a">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="format-detection" content="telephone=no">
 <title>Poker Hold'em</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -673,9 +669,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   padding: 34px 28px;
   width: 90%;
   max-width: 320px;
-  min-width: 260px;
   text-align: center;
   box-shadow: 0 24px 80px rgba(0,0,0,.65), 0 0 50px rgba(200,168,75,.08);
+  position: relative;
   overflow: hidden;
 }
 .name-modal-content::before {
@@ -879,14 +875,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ===== GAME — PREMIUM REDESIGN ===== */
 
 #game-screen {
-  padding: max(4px, env(safe-area-inset-top)) 4px max(60px, env(safe-area-inset-bottom) + 52px);
-  justify-content: flex-start;
+  padding: max(4px, env(safe-area-inset-top)) 4px max(60px, env(safe-area-inset-bottom) + 52px); /* Space for fixed action bar */
+  justify-content: flex-start; /* Stack from top */
   align-items: center;
   position: relative;
-  background: radial-gradient(ellipse at 50% 30%, #2a0a0a 0%, #0d0505 50%, #050303 100%);
+  background: #080B14;
   min-height: 100vh;
-  gap: 0;
-  overflow-y: hidden;
+  gap: 0; /* NO gap between elements */
+  overflow-y: hidden; /* No scroll, fit everything */
 }
 
 /* Ambient glow behind the table */
@@ -896,9 +892,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   top: 20%;
   left: 50%;
   transform: translateX(-50%);
-  width: 420px;
-  height: 320px;
-  background: radial-gradient(ellipse, rgba(180,30,30,.25) 0%, rgba(100,15,15,.1) 40%, transparent 75%);
+  width: 380px;
+  height: 280px;
+  background: radial-gradient(ellipse, rgba(14,80,40,.55) 0%, transparent 75%);
   pointer-events: none;
   z-index: 0;
 }
@@ -953,13 +949,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 }
 .timer-bar {
   height: 100%;
-  background: linear-gradient(90deg, #f5b800, #ffd700);
+  background: linear-gradient(90deg, var(--emerald), #5df0a8);
   width: 100%;
   transition: width 1s linear;
   border-radius: 2px;
 }
 .timer-bar.urgent {
-  background: linear-gradient(90deg, #dc2626, #ff6b6b);
+  background: linear-gradient(90deg, var(--red), #ff7070);
   animation: urgent-pulse .5s infinite;
 }
 @keyframes urgent-pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
@@ -969,80 +965,73 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 .table-felt {
   width: 100%;
-  max-width: min(340px, 85vw);
-  aspect-ratio: 16/13;
-  max-height: 30vh;
+  max-width: min(320px, 80vw);
+  aspect-ratio: 16/14;
+  max-height: 28vh;
   background:
-    radial-gradient(ellipse 75% 65% at 50% 50%, #b91c1c 0%, #7f1d1d 40%, #450a0a 100%);
-  border-radius: 50% / 42%;
+    radial-gradient(ellipse 70% 60% at 50% 52%, #1a5c34 0%, #0e3d20 55%, #081a0e 100%);
+  border-radius: 50% / 45%;
   box-shadow:
-    0 0 0 6px #1a0505,
-    0 0 0 9px #2d0a0a,
-    0 0 0 11px rgba(200,168,75,.22),
-    inset 0 0 80px rgba(0,0,0,.5),
-    inset 0 2px 0 rgba(255,255,255,.06),
-    0 20px 60px rgba(0,0,0,.8);
+    0 0 0 8px #050a07,
+    0 0 0 11px #1a2e1c,
+    0 0 0 13px rgba(200,168,75,.18),
+    inset 0 0 100px rgba(0,0,0,.55),
+    inset 0 2px 0 rgba(255,255,255,.04),
+    0 16px 48px rgba(0,0,0,.7);
   border: none;
   position: relative;
   margin: 0 auto;
   flex-shrink: 0;
 }
 
-/* Velvet texture overlay */
+/* Subtle felt texture via repeating pattern */
 .table-felt::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50% / 42%;
+  border-radius: 50% / 45%;
   background:
     repeating-linear-gradient(
-      0deg,
+      45deg,
       transparent,
-      transparent 2px,
-      rgba(0,0,0,.04) 2px,
-      rgba(0,0,0,.04) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,.03) 2px,
-      rgba(0,0,0,.03) 4px
+      transparent 3px,
+      rgba(255,255,255,.008) 3px,
+      rgba(255,255,255,.008) 6px
     );
   pointer-events: none;
-  mix-blend-mode: multiply;
 }
 
-/* Inner gold rim */
+/* Inner glow ring on felt */
 .table-felt::after {
   content: '';
   position: absolute;
-  inset: 5%;
+  inset: 6%;
   border-radius: 50%;
-  border: 1.5px solid rgba(200,168,75,.15);
+  border: 1px solid rgba(255,255,255,.04);
   pointer-events: none;
-  box-shadow: inset 0 0 20px rgba(0,0,0,.3);
 }
 
 /* ── POT ── */
 .pot-display {
   position: absolute;
-  top: 12%;
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: clamp(9px, 2.5vw, 12px);
+  font-size: clamp(8px, 2.5vw, 11px);
   font-weight: 800;
   color: var(--gold-light);
   letter-spacing: .5px;
   z-index: 5;
-  background: rgba(10,5,5,.75);
-  border: 1px solid rgba(200,168,75,.3);
-  padding: 3px 12px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.5), 0 0 12px rgba(200,168,75,.15);
+  background: rgba(0,0,0,.6);
+  border: 1px solid rgba(200,168,75,.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 12px rgba(200,168,75,.12);
   white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
+/* No emoji - using text only for reliability */
+.pot-display { padding-left: 14px; }
 
 /* ── COMMUNITY CARDS ── */
 .community-cards {
@@ -1060,7 +1049,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   height: 68px;
   font-size: 16px;
   animation: dealCard .4s cubic-bezier(.4,0,.2,1) both;
-  box-shadow: 0 8px 24px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.15);
+  box-shadow: 0 6px 20px rgba(0,0,0,.6), 0 2px 4px rgba(0,0,0,.4);
 }
 .community-cards .card-placeholder {
   width: 46px;
@@ -1200,7 +1189,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   display: flex; 
   gap: 4px; 
   justify-content: center;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,.6));
 }
 .player-pos.folded { opacity: .3; filter: grayscale(1); }
 .player-pos.folded .p-name { text-decoration: line-through; }
@@ -1346,15 +1334,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 /* Card back — dark navy with subtle diamond pattern */
 .card-back {
-  background: linear-gradient(145deg, #1a0a2e 0%, #0f0618 100%);
-  border: 1px solid rgba(200,168,75,.25);
+  background: linear-gradient(145deg, #15274a 0%, #0d1a33 100%);
+  border: 1px solid rgba(200,168,75,.2);
   box-shadow: 0 6px 18px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
 }
 .card-back::before {
   content: '';
   position: absolute;
   inset: 4px;
-  border: 1px solid rgba(200,168,75,.18);
+  border: 1px solid rgba(200,168,75,.15);
   border-radius: 8px;
 }
 .card-back::after {
@@ -1365,7 +1353,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: rgba(200,168,75,.22);
+  color: rgba(200,168,75,.18);
 }
 
 /* ── EXIT BUTTON ── */
@@ -1408,16 +1396,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(15,5,5,.97);
-  border-top: 1px solid rgba(200,168,75,.12);
-  border-radius: 12px 12px 0 0;
+  background: rgba(6,8,16,.95);
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px 8px 0 0;
+  backdrop-filter: blur(24px);
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   padding-bottom: max(3px, env(safe-area-inset-bottom));
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  box-shadow: 0 -4px 24px rgba(0,0,0,.5);
 }
 
 .action-btn {
@@ -1646,8 +1634,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .player-pos.winner-anim .p-avatar{animation:winnerPulse 1.5s infinite;}
 
 /* DAILY BONUS MODAL */
-.daily-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:grid;place-items:center;}
-.daily-modal-content{background:linear-gradient(180deg,#1a3a1a,#0f1f0f);border:2px solid rgba(245,184,0,.3);border-radius:28px;padding:36px 32px;width:90%;max-width:340px;min-width:280px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(245,184,0,.15);overflow:hidden;}
+.daily-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:400;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease;}
+.daily-modal-content{background:linear-gradient(180deg,#1a3a1a,#0f1f0f);border:2px solid rgba(245,184,0,.3);border-radius:28px;padding:36px 32px;width:90%;max-width:340px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(245,184,0,.15);position:relative;overflow:hidden;}
 .daily-modal-content::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(245,184,0,.12),transparent 70%);pointer-events:none;}
 .daily-modal-icon{font-size:56px;margin-bottom:16px;animation:bounce 1s infinite;position:relative;}
 .daily-modal-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px;position:relative;text-shadow:0 2px 10px rgba(0,0,0,.5);}
@@ -1905,17 +1893,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* FIX: Font display swap for fast rendering */
 
 
-/* ===== SETTINGS FIX ===== */
-#settings-sound-status { display: inline-block; min-width: 36px; text-align: right; }
-.settings-row { display: flex; justify-content: space-between; align-items: center; }
-
-/* ===== TELEGRAM WEBAPP FIXES ===== */
-body { -webkit-text-size-adjust: 100%; }
-.screen { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-html, body { overscroll-behavior-y: none; }
-.lobby-tables-list { scrollbar-width: none; }
-.lobby-tables-list::-webkit-scrollbar { display: none; }
-
 /* RESPONSIVE */
 @media(max-width:380px){
   :root{--card-w:46px;--card-h:68px;}
@@ -1926,9 +1903,22 @@ html, body { overscroll-behavior-y: none; }
   .action-btn{padding:12px 14px;font-size:13px;min-width:75px;}
   .logo{font-size:42px;}
 }
+/* Offline indicator */
+.offline-indicator {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: rgba(20,24,40,.95);
+  color: var(--gold); text-align: center; font-size: 11px; font-weight: 600;
+  padding: 6px; letter-spacing: 1px;
+  transform: translateY(-100%); transition: transform .3s ease;
+  display: none; /* Hidden by default */
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(200,168,75,.2);
+}
+.offline-indicator.show { transform: translateY(0); display: block; }
+
 /* ===== BETTING SLIDER ===== */
 .betting-slider { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; justify-content: flex-end; }
-.betting-slider-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.92); }
+.betting-slider-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); }
 .betting-slider-panel { position: relative; background: linear-gradient(180deg,#1a2235,#0c0f1a); border-radius: 24px 24px 0 0; padding: 20px 18px calc(24px + env(safe-area-inset-bottom)); border-top: 1.5px solid var(--border-gold); animation: slideUp .35s cubic-bezier(.4,0,.2,1); box-shadow: 0 -8px 40px rgba(0,0,0,.6); }
 @keyframes slideUp { from { transform: translateY(110%); } to { transform: translateY(0); } }
 .betting-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -1953,7 +1943,7 @@ html, body { overscroll-behavior-y: none; }
 
 /* ===== ONBOARDING ===== */
 .onboarding-overlay { position: fixed; inset: 0; z-index: 500; display: flex; align-items: flex-end; justify-content: center; }
-.onboarding-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.92); }
+.onboarding-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
 .onboarding-card { position: relative; background: linear-gradient(160deg, var(--surface-3), var(--surface-2)); border: 1px solid var(--border-gold); border-radius: 28px 28px 0 0; padding: 28px 24px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; text-align: center; animation: slideUp .4s ease; }
 .onboarding-step { font-size: 11px; color: var(--text-dim); font-weight: 700; letter-spacing: 2px; margin-bottom: 12px; text-transform: uppercase; }
 .onboarding-icon { font-size: 48px; margin-bottom: 12px; }
@@ -1969,11 +1959,10 @@ html, body { overscroll-behavior-y: none; }
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
-
+<div class="offline-indicator" id="offline-indicator">Reconnecting...</div>
 
 <div id="splash-screen" class="fallback">
   <div class="splash-logo">POK<span style="color:var(--accent-gold)">E</span>R</div>
@@ -1996,6 +1985,7 @@ html, body { overscroll-behavior-y: none; }
       </div>
     </div>
     <div class="lobby-actions">
+      <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#E83B3B;margin-right:4px;box-shadow:0 0 8px #E83B3B;transition:all .3s;" title="Firebase status"></div>
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
       <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
@@ -2316,29 +2306,6 @@ html, body { overscroll-behavior-y: none; }
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- Static Settings Modal -->
-<div class="daily-modal" id="settings-modal" style="display:none;">
-  <div class="daily-modal-content">
-    <div class="daily-modal-icon">⚙️</div>
-    <div class="daily-modal-title" id="settings-title">Настройки</div>
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;text-align:left;">
-      <div class="settings-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleSound();">
-        <span class="settings-label-sound" style="font-size:13px;color:rgba(255,255,255,.7);">Звук</span>
-        <span id="settings-sound-status" style="font-size:12px;font-weight:700;min-width:36px;text-align:right;">Вкл</span>
-      </div>
-      <div class="settings-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleLanguage();">
-        <span class="settings-label-lang" style="font-size:13px;color:rgba(255,255,255,.7);">Язык</span>
-        <span id="settings-lang-status" style="font-size:12px;color:var(--accent-gold);font-weight:700;min-width:36px;text-align:right;">RU</span>
-      </div>
-      <div class="settings-row" style="padding:10px 0;">
-        <span class="settings-label-ver" style="font-size:13px;color:rgba(255,255,255,.7);">Версия</span>
-        <span style="font-size:12px;color:rgba(255,255,255,.3);min-width:36px;text-align:right;">1.0.0</span>
-      </div>
-    </div>
-    <button class="daily-modal-btn" onclick="document.getElementById('settings-modal').style.display='none';">Закрыть</button>
-  </div>
-</div>
 
 <script>
 // ===== I18N =====
@@ -2740,9 +2707,7 @@ function showDailyBonus(){
 
 function getBalance(){
   let bal = parseInt(localStorage.getItem(BALANCE_KEY));
-  const hash = localStorage.getItem(BALANCE_KEY + '_hash');
-  const expectedHash = hash ? atob(hash) : null;
-  if(isNaN(bal) || bal <= 0 || bal > 999999999 || (expectedHash && expectedHash !== String(bal))){
+  if(isNaN(bal) || bal <= 0 || bal > 999999999){
     bal = 1000;
     setBalance(bal);
     showToast(t('bonus'));
@@ -2805,16 +2770,6 @@ let timerInterval  = null;
 let autoLobbyTimer = null;
 let isEndShown     = false;
 let botTimer       = null;
-let toastTimer     = null;
-
-function clearAllTimers(){
-  if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
-  if(autoLobbyTimer){ clearTimeout(autoLobbyTimer); autoLobbyTimer=null; }
-  if(botTimer){ clearTimeout(botTimer); botTimer=null; }
-  if(renderTimeout){ clearTimeout(renderTimeout); renderTimeout=null; }
-  if(toastTimer){ clearTimeout(toastTimer); toastTimer=null; }
-  if(tourneyAutoTimer){ clearTimeout(tourneyAutoTimer); tourneyAutoTimer=null; }
-}
 const TURN_TIME = 30;
 const SMALL_BLIND = 10;
 const BIG_BLIND   = 20;
@@ -2827,23 +2782,16 @@ const AudioManager = {
   init(){
     try {
       if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if(this.ctx && this.ctx.state === 'suspended'){
-        this.ctx.resume().catch(()=>{});
-      }
-    } catch(e) { }
+      if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    } catch(e) { console.log('Audio not available'); }
   },
-  ensureContext(){
-    this.init();
-    if(this.ctx && this.ctx.state === 'suspended'){
-      this.ctx.resume().catch(()=>{});
-    }
+  close(){
+    try { if(this.ctx) { this.ctx.suspend(); } } catch(e) {}
   },
 
   // White noise for card shuffle
   cardShuffle(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
+    this.init();
     const ctx = this.ctx;
     const bufferSize = ctx.sampleRate * 0.15;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -2865,9 +2813,7 @@ const AudioManager = {
 
   // Chip click - short sine
   chipClick(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
+    this.init();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -2883,9 +2829,7 @@ const AudioManager = {
 
   // All-in tension - low rising tone
   allInTension(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
+    this.init();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
@@ -2906,9 +2850,7 @@ const AudioManager = {
 
   // Win chime - pleasant arpeggio
   winChime(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
+    this.init();
     const ctx = this.ctx;
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {
@@ -2927,9 +2869,7 @@ const AudioManager = {
 
   // Fold - soft dismiss
   foldSound(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
+    this.init();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -2941,26 +2881,6 @@ const AudioManager = {
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.25);
-  },
-  potSlide(){
-    if(!soundEnabled) return;
-    this.ensureContext();
-    if(!this.ctx) return;
-    const ctx = this.ctx;
-    const bufferSize = ctx.sampleRate * 0.3;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for(let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufferSize);
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 800;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    noise.connect(filter).connect(gain).connect(ctx.destination);
-    noise.start();
   }
 };
 
@@ -3127,15 +3047,26 @@ function showSettingsScreen(){
       <div class="daily-modal-icon">⚙️</div>
       <div class="daily-modal-title">${currentLang === 'ru' ? 'Настройки' : 'Settings'}</div>
       <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;text-align:left;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleSound(); document.getElementById('settings-modal').remove(); showSettingsScreen();">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Звук' : 'Sound'}</span>
-          <span id="settings-sound-status" style="font-size:12px;color:${localStorage.getItem('poker_sound') === 'off' ? 'rgba(255,255,255,.3)' : 'var(--accent-gold)'};font-weight:700;">${localStorage.getItem('poker_sound') === 'off' ? (currentLang === 'ru' ? 'Выкл' : 'Off') : (currentLang === 'ru' ? 'Вкл' : 'On')}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Язык' : 'Language'}</span>
           <span style="font-size:12px;color:var(--accent-gold);font-weight:700;cursor:pointer;" onclick="toggleLanguage(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'RU' : 'EN'}</span>
         </div>
-
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'ID игрока' : 'Player ID'}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.3);font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${myPlayerId.substring(0,8)}...</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Сбросить ID' : 'Reset ID'}</span>
+          <button style="font-size:12px;color:var(--accent-red);font-weight:700;background:rgba(232,59,59,.15);border:1px solid rgba(232,59,59,.3);padding:4px 10px;border-radius:6px;cursor:pointer;" onclick="resetPlayerId(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'Сброс' : 'Reset'}</button>
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Версия' : 'Version'}</span>
           <span style="font-size:12px;color:rgba(255,255,255,.3);">1.0.0</span>
@@ -3210,31 +3141,26 @@ function genCode(){
 }
 function validateRoomCode(code){
   if(!code || typeof code !== 'string') return false;
-  if(code.length !== 4) return false;
   return /^[A-HJ-NP-Z2-9]{4}$/.test(code.toUpperCase());
 }
-function validatePlayerName(name){
-  if(!name || typeof name !== 'string') return false;
-  if(name.length < 1 || name.length > 16) return false;
-  return !/[<>'"]|javascript:|on\w+=/i.test(name);
-}
 function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.remove('active');
+      });
   const target = document.getElementById(name+'-screen');
-  if(target && target.classList.contains('active')) return;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  if(target) target.classList.add('active');
+    if(target){
+    target.classList.add('active');
+      }
   if(name === 'profile') renderProfile();
   if(name === 'lobby') syncLobbyAvatar();
 }
 function showToast(msg, type='info'){
   const t = document.getElementById('toast');
-  if(!t) return;
-  if(toastTimer){ clearTimeout(toastTimer); toastTimer=null; }
   t.textContent = msg;
   t.className = 'toast ' + (type === 'error' || type === 'warning' ? type : '');
   t.classList.add('show');
   if(type === 'error') haptic('error');
-  toastTimer = setTimeout(() => { if(t) t.classList.remove('show'); }, 2800);
+  setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 // ===== FIREBASE =====
@@ -3245,11 +3171,8 @@ function toArr(val){
 }
 
 function normalizeState(state){
-  if(!state || typeof state !== 'object') return null;
-  if(!state.code || !validateRoomCode(state.code)) return null;
-  if(!state.phase || !['waiting','preflop','flop','turn','river','showdown','ended'].includes(state.phase)) return null;
-
-  state.players     = toArr(state.players).filter(p => p && p.id && typeof p.id === 'string');
+  if(!state) return state;
+  state.players     = toArr(state.players).filter(p => p && p.id);
   state.communityCards = toArr(state.communityCards);
   state.deck        = toArr(state.deck);
   if(state.winners) state.winners = toArr(state.winners);
@@ -3257,41 +3180,27 @@ function normalizeState(state){
   state.players.forEach(p=>{
     if(!p) return;
     p.hand = toArr(p.hand);
-    p.chips  = Math.max(0, Math.min(999999999, +p.chips || 0));
-    p.bet    = Math.max(0, +p.bet || 0);
-    if(p.name && !validatePlayerName(p.name)) p.name = 'Player';
+    p.chips  = +p.chips  || 0;
+    p.bet    = +p.bet    || 0;
   });
-  state.pot          = Math.max(0, +state.pot || 0);
+  state.pot          = +state.pot          || 0;
   state.pots         = toArr(state.pots);
-  state.currentBet   = Math.max(0, +state.currentBet || 0);
-  state.currentPlayer= Math.max(-1, +state.currentPlayer || -1);
+  state.currentBet   = +state.currentBet   || 0;
+  state.currentPlayer= +state.currentPlayer;
   state.lastRaiser   = state.lastRaiser !== undefined ? +state.lastRaiser : -1;
-  state.lastBet      = Math.max(0, state.lastBet !== undefined ? +state.lastBet : 0);
-  state.dealer       = Math.max(0, +state.dealer || 0);
-  state.smallBlind   = Math.max(1, +state.smallBlind || SMALL_BLIND);
-  state.bigBlind     = Math.max(2, +state.bigBlind || BIG_BLIND);
-  state.ts           = +state.ts || Date.now();
+  state.lastBet      = state.lastBet !== undefined ? +state.lastBet : 0;
+  state.dealer       = +state.dealer       || 0;
+  state.smallBlind   = +state.smallBlind   || SMALL_BLIND;
+  state.bigBlind     = +state.bigBlind     || BIG_BLIND;
   return state;
 }
 
 // isJoiningRoom removed — using roomRef guard instead
 
 function createRoom(code){
+  console.log('createRoom called:', code);
   if(!validateRoomCode(code)) { showToast('Invalid room code', 'error'); return; }
-  if(roomRef && roomCode === code) { 
-    // Ensure we show correct screen
-    if(roomRef){
-      roomRef.once('value').then(snap => {
-        const state = normalizeState(snap.val());
-        if(state){
-          if(state.phase === 'waiting') showScreen('waiting');
-          else if(state.phase === 'ended') renderEnd(state);
-          else showScreen('game');
-        }
-      });
-    }
-    return; 
-  }
+  if(roomRef && roomCode === code) { console.log('Already connected to this room'); return; }
 
   const oldRef = roomRef;
   if(oldRef){
@@ -3306,6 +3215,7 @@ function createRoom(code){
   const listener = snap=>{
     if(!roomCode || roomCode !== code) return;
     let state=snap.val();
+    console.log('Room listener update, phase:', state && state.phase);
     if(!state) return;
     state = normalizeState(state);
     let foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
@@ -3314,11 +3224,15 @@ function createRoom(code){
 
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
-    else if(state.isTournament){ _renderGameImpl(state); renderTournament(state); }
-    else _renderGameImpl(state);
+    else if(state.isTournament){
+      _renderGameImpl(state);
+      renderTournament(state);
+    }
+    else debouncedRenderGame(state);
   };
   roomRef.on('value', listener);
   unsubscribe = listener;
+  console.log('Room listener attached');
 }
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
@@ -3377,9 +3291,12 @@ function autoFold(){
 
 function backToLobby(){
   clearWinnerAnim();
-  clearAllTimers();
-  
-  equityCache.clear();
+  stopTimer();
+  if(botTimer) clearTimeout(botTimer);
+  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
+  autoLobbyTimer=null; isEndShown=false;
+  if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
+  AudioManager.close();
 
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
@@ -3390,34 +3307,18 @@ function backToLobby(){
     oldRef.off();
   }
   roomRef = null; roomCode = null;
-  isEndShown = false;
 
   if(leavingRoomCode){
-    db.ref('poker-lobby/rooms/' + leavingRoomCode + '/meta').transaction(meta => {
-      if(!meta) return null;
-      meta.playersCount = Math.max(0, (meta.playersCount || 1) - 1);
-      meta.lastActivity = Date.now();
-      if(meta.playersCount <= 0 || (wasHost && meta.playersCount <= 0)) return null;
-      return meta;
-    }).catch(()=>{});
+    db.ref('poker-lobby/rooms/' + leavingRoomCode).remove().catch(()=>{});
   }
 
-  if(leavingRoomCode){
+  if(leavingRoomCode && wasHost){
     db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
       if(!cs) return;
       let s = normalizeState(cs);
       const myIdx = s.players.findIndex(p => p.id === myPlayerId);
-      if(myIdx >= 0){ 
-        s.players.splice(myIdx, 1); 
-        if(s.players.length > 0){ 
-          s.hostId = s.players[0].id; 
-          reindexPlayers(s, myIdx);
-        } else {
-          return null;
-        }
-      }
-      s.ts = Date.now(); 
-      return s;
+      if(myIdx >= 0){ s.players.splice(myIdx, 1); if(s.players.length > 0){ s.hostId = s.players[0].id; reindexPlayers(s, myIdx);} }
+      s.ts = Date.now(); return s;
     }).catch(()=>{});
   }
   myIndex=-1; isHost=false;
@@ -3459,7 +3360,7 @@ function leaveRoom(){
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
-  
+  AudioManager.close();
 
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
@@ -3494,7 +3395,7 @@ function leaveRoom(){
 
 // ===== DEAL HAND =====
 function dealHand(state){
-  try{ AudioManager.cardShuffle(); }catch(e){ console.error('Audio shuffle error:', e); }
+  AudioManager.cardShuffle();
   const n=state.players.length;
   state.deck=shuffle(buildDeck());
   state.communityCards=[];
@@ -3541,9 +3442,6 @@ function postBlind(state, idx, amount){
 
 // ===== BOT GAME =====
 function startBotGame(){
-  clearAllTimers();
-  isEndShown = false;
-  equityCache.clear();
   const code=genCode();
   roomCode=code; isHost=true; myIndex=0;
   const myChips = getBalance();
@@ -3559,8 +3457,7 @@ function startBotGame(){
   };
   dealHand(state);
   state.ts=Date.now();
-  console.log('[STARTBOT] after dealHand:', {phase: state.phase, currentPlayer: state.currentPlayer, myIndex: myIndex, players: state.players.map(p=>p.name)});
-  saveRoom(state).then(()=>{ console.log('[STARTBOT] saved, showing game'); showScreen('game'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
+  saveRoom(state).then(()=>{ showScreen('game'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
 }
 
 
@@ -3981,22 +3878,17 @@ let renderTimeout = null;
 let lastRenderState = null;
 
 function debouncedRenderGame(state){
-  _renderGameImpl(state);
+  if(renderTimeout) clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => {
+    _renderGameImpl(state);
+  }, 50);  // 50ms debounce
 }
 
 // ===== GAME RENDER =====
 function _renderGameImpl(state){
+  console.log('renderGame called, state:', state);
   lastGameState = state;
-  console.log('[RENDER] phase:', state?.phase, 'players:', state?.players?.length, 'currentPlayer:', state?.currentPlayer, 'myIndex:', myIndex);
-  if(!state || !state.players || state.players.length === 0) { 
-    console.log('[RENDER] abort: no players');
-    return; 
-  }
-  if(myIndex < 0 || myIndex >= state.players.length) {
-    myIndex = state.players.findIndex(p => p.id === myPlayerId);
-    if(myIndex < 0) myIndex = state.players.findIndex(p => p.name === myName);
-    if(myIndex < 0) { return; }
-  }
+  if(!state) { console.log('No state, returning'); return; }
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
 
@@ -4025,10 +3917,12 @@ function _renderGameImpl(state){
       rel=(i-myIdx+n)%n; // 4 players: all positions
     }
     const el=document.getElementById('pos-'+rel);
+    console.log('Player', i, 'rel', rel, 'el:', el ? 'found' : 'NOT FOUND');
     if(!el) continue;
     el.style.display='flex';
     const p=state.players[i];
     const infoEl = el.querySelector('.p-info');
+    console.log('Player', i, 'infoEl:', infoEl ? 'found' : 'NOT FOUND', 'p:', p ? p.name : 'null');
     if(infoEl && p){
       infoEl.querySelector('.p-name').textContent=p.name || '...';
       infoEl.querySelector('.p-chips').textContent=p.chips || 0;
@@ -4097,11 +3991,8 @@ function _renderGameImpl(state){
   updateStrengthMeter(state);
 
   const bar=document.getElementById('action-bar');
-  console.log('[RENDER] canAct:', canAct, 'myIdx:', myIdx, 'currentPlayer:', state.currentPlayer, 'me:', !!me, 'folded:', me?.folded, 'allIn:', me?.allIn);
   if(canAct){
     bar.style.display='flex';
-    bar.style.visibility='visible';
-    bar.style.opacity='1';
     const callAmt=Math.max(0,state.currentBet-me.bet);
     
     document.getElementById('btn-fold').style.display='flex';
@@ -4153,25 +4044,25 @@ let isProcessingAction = false;
 let actionRetryCount = 0;
 const MAX_RETRIES = 3;
 function withFreshState(fn){
-  if(!roomCode || isProcessingAction) { console.log('[ACTION] blocked, processing:', isProcessingAction, 'roomCode:', roomCode); return; }
+  if(!roomCode || isProcessingAction) return;
   isProcessingAction = true;
   stopTimer();
   const attempt = () => {
     db.ref('poker-rooms/'+roomCode).transaction(currentState => {
       if(!currentState) return;
       let state = normalizeState(currentState);
-      if(!state) return;
-      if(state.currentPlayer !== myIndex) { console.log('[ACTION] wrong player, expected', myIndex, 'got', state.currentPlayer); return; }
+      if(state.currentPlayer !== myIndex) return;
+      // FIX: Verify action is still valid (not stale)
       const elapsed = Date.now() - (state.turnStartedAt || 0);
-      if(elapsed > TURN_TIME * 1000 + 5000) { console.log('[ACTION] stale turn'); return; }
+      if(elapsed > TURN_TIME * 1000 + 5000) return; // Stale — abort
       fn(state);
       state.ts = Date.now();
-      state.lastActor = myPlayerId;
+      state.lastActor = myPlayerId; // Track who acted last
       return state;
     }).then(result => {
       if(!result.committed && actionRetryCount < MAX_RETRIES){
         actionRetryCount++;
-        setTimeout(attempt, 300);
+        setTimeout(attempt, 300); // Retry with delay
         return;
       }
       actionRetryCount = 0;
@@ -4187,13 +4078,12 @@ function withFreshState(fn){
 }
 
 function playerFold(){
-  if(isProcessingAction) return;
   haptic('light');
   AudioManager.foldSound();
   updateProfileStat('folds', 1);
   withFreshState(state=>{
     const p=state.players[myIndex];
-    if(!p || p.folded||p.allIn) return;
+    if(p.folded||p.allIn) return;
     p.folded=true;
     state.lastAction=p.name+' '+t('toastFold');
     processNextPlayer(state);
@@ -4275,18 +4165,19 @@ function playerAllIn(){
 function botMove(){
   if(!roomCode) return;
 
+  // FIX: Do NOT use state from closure - read fresh state in transaction
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
     let s = normalizeState(currentState);
 
+    // FIX: Re-validate bot should still act using FRESH state
+    // The current player must be a bot
     const botIdx = s.currentPlayer;
     if(botIdx < 0 || botIdx >= s.players.length) return;
     const b = s.players[botIdx];
     if(!b || !b.isBot || b.folded || b.allIn || s.phase === 'ended' || s.phase === 'showdown') {
-      return;
+      return;  // Abort transaction - stale bot move or not bot's turn
     }
-    // Extra safety: check if turn is fresh (not stale)
-    if(Date.now() - (s.turnStartedAt || 0) > (TURN_TIME + 5) * 1000) return;
 
     const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
@@ -4401,19 +4292,14 @@ function processNextPlayer(state){
   const n=state.players.length;
   const active=state.players.filter(p=>!p.folded);
 
-  // If only 1 active player left, award pot and end hand immediately
-  if(active.length<=1){
+  // FIX: If only 1 active player left, award pot and end hand immediately
+  if(active.length===1){
     collectBets(state);
-    if(active.length===1){
-      const winnerIdx = state.players.indexOf(active[0]);
-      if(state.pot > 0 || state.pots.length > 0){
-        const totalPot = state.pots.reduce((sum,p)=>sum+p.amount, state.pot);
-        state.players[winnerIdx].chips += totalPot;
-      }
-    }
+    const winnerIdx = state.players.indexOf(active[0]);
+    if(state.pot > 0) state.players[winnerIdx].chips += state.pot;
     state.pot = 0;
     state.pots = [];
-    endHand(state, active.length===1 ? [state.players.indexOf(active[0])] : []);
+    endHand(state, [winnerIdx]);
     return;
   }
 
@@ -4437,7 +4323,7 @@ function processNextPlayer(state){
 
   // FIX: If no one can act (all allIn/folded), force showdown
   if(loops >= n){
-    try { collectBets(state); } catch(e) { console.error('[PROCESS] collectBets error:', e); }
+    collectBets(state);
     runoutBoard(state);
     showdown(state);
     return;
@@ -4462,7 +4348,6 @@ function processNextPlayer(state){
 }
 
 function collectBets(state){
-  AudioManager.potSlide();
   // FIX: Classic side pot algorithm - sort bets, create pots for each unique level
   const bets = state.players.map((p, idx) => ({ idx, bet: p.bet, folded: p.folded })).filter(x => x.bet > 0);
   if (bets.length === 0) {
@@ -4552,18 +4437,13 @@ function runoutBoard(state){
 // ===== SHOWDOWN =====
 function showdown(state){
   const results=state.players.map((p,i)=>{
-    if(p.folded || !p.hand || p.hand.length < 2) return null;
+    if(p.folded) return null;
     const all=[...p.hand,...state.communityCards];
     const score=getBest5From7(all);
     return {idx:i,score,name:p.name,rankName:handRankName(score.rank)};
   }).filter(Boolean);
 
-  if(results.length===0){ 
-    // No one to compare - award to last active (shouldn't happen, but safety)
-    const lastActive = state.players.findIndex(p => !p.folded);
-    endHand(state, lastActive >= 0 ? [lastActive] : []); 
-    return; 
-  }
+  if(results.length===0){ endHand(state,[]); return; }
 
   // FIX: Award each pot separately, properly handle splits
   const allWinners = new Set();
@@ -4646,16 +4526,6 @@ function getBest5From7(cards7){
     const vals = (cards7 || []).map(c=>cardVal(c.v)).sort((a,b)=>b-a);
     return {rank: 1, kickers: vals};
   }
-  if(cards7.length === 5) return score5(cards7);
-  if(cards7.length === 6){
-    let best=null;
-    for(let i=0;i<6;i++){
-      const five=cards7.filter((_,idx)=>idx!==i);
-      const s=score5(five);
-      if(!best||compareScores(s,best)>0) best=s;
-    }
-    return best;
-  }
   let best=null;
   for(let i=0;i<7;i++) for(let j=i+1;j<7;j++){
     const five=cards7.filter((_,idx)=>idx!==i&&idx!==j);
@@ -4670,8 +4540,6 @@ function score5(cards){
     const vals = (cards || []).map(c=>cardVal(c.v)).sort((a,b)=>b-a);
     return {rank: 1, kickers: vals};
   }
-  // Remove any undefined/null cards
-  cards = cards.filter(c => c && c.v && c.c);
   const vals=cards.map(c=>cardVal(c.v)).sort((a,b)=>b-a);
   const suits=cards.map(c=>c.c);
   const isFlush=suits.every(s=>s===suits[0]);
@@ -4706,7 +4574,6 @@ function compareScores(a,b){
 
 // ===== END SCREEN =====
 function renderEnd(state){
-  if(!state) return;
   stopTimer();
   if(state.winners && state.winners.length > 0) AudioManager.winChime();
   if(isEndShown) return;
@@ -4941,22 +4808,6 @@ function resetPlayerId(){
   location.reload();
 }
 
-// ===== ANTI-SPAM =====
-function cleanupOldRooms(){
-  db.ref('poker-lobby/rooms').once('value').then(snap => {
-    const data = snap.val();
-    if(!data) return;
-    const now = Date.now();
-    Object.entries(data).forEach(([code, room]) => {
-      const meta = room && room.meta ? room.meta : room;
-      if(meta && meta.hostId === myPlayerId && (now - (meta.createdAt || 0)) > 30 * 60 * 1000){
-        db.ref('poker-lobby/rooms/' + code).remove().catch(()=>{});
-        db.ref('poker-rooms/' + code).remove().catch(()=>{});
-      }
-    });
-  }).catch(()=>{});
-}
-
 // ===== LOBBY TABLES =====
 let lobbyTablesRef = null;
 let lobbyTablesUnsub = null;
@@ -4969,6 +4820,7 @@ function escapeHtml(text){
 }
 
 function initLobbyTables(){
+  console.log('initLobbyTables called');
   if(lobbyTablesUnsub && lobbyTablesRef){
     lobbyTablesRef.off('value', lobbyTablesUnsub);
     lobbyTablesUnsub = null;
@@ -4976,6 +4828,7 @@ function initLobbyTables(){
   lobbyTablesRef = db.ref('poker-lobby/rooms');
   lobbyTablesUnsub = lobbyTablesRef.on('value', snap => {
     const data = snap.val();
+    console.log('Lobby tables data:', data);
     renderLobbyTables(data);
   }, err => {
     console.error('Lobby tables error (silent):', err);
@@ -4985,6 +4838,7 @@ function initLobbyTables(){
 }
 
 function renderLobbyTables(rooms){
+  console.log('renderLobbyTables called, rooms:', rooms);
   const list = document.getElementById('lobby-tables-list');
   const yourTable = document.getElementById('lobby-your-table');
   if(!list) return;
@@ -4998,6 +4852,7 @@ function renderLobbyTables(rooms){
   const now = Date.now();
   Object.entries(rooms).forEach(([code, data]) => {
     const meta = data && data.meta ? data.meta : data;
+    console.log('Processing room:', code, 'meta:', meta);
     if(!meta || meta.status !== 'waiting') return;
     if(now - (meta.createdAt || 0) > 15 * 60 * 1000) return;
 
@@ -5038,6 +4893,7 @@ function renderLobbyTables(rooms){
     const btn = card.querySelector('.lt-join-btn');
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      console.log('Join button clicked for code:', code);
       btn.textContent = currentLang === 'ru' ? '...' : '...';
       btn.style.opacity = '0.6';
       btn.disabled = true;
@@ -5083,38 +4939,45 @@ function returnToMyTable(code){
 }
 
 function joinTableByCode(code){
-  if(!validateRoomCode(code)) { return Promise.reject('invalid'); }
+  console.log('joinTableByCode called with:', code, 'myPlayerId:', myPlayerId);
+  if(!validateRoomCode(code)) { console.log('Invalid code'); return Promise.reject('invalid'); }
   const myChips = getBalance();
   const roomRefCheck = db.ref('poker-rooms/' + code);
 
   return roomRefCheck.once('value').then(snap => {
     const rawVal = snap.val();
+    console.log('Room snapshot raw:', rawVal);
     const state = normalizeState(rawVal);
     console.log('Normalized state:', state ? {phase: state.phase, playersCount: state.players ? state.players.length : 0, playerIds: state.players ? state.players.map(p=>p.id) : []} : null);
-    if(!state) { showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
-    if(state.phase !== 'waiting') { showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
-    if(state.players.length >= 4) { showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
-    if(state.players.some(p => p.id === myPlayerId)) { showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
+    if(!state) { console.log('Room not found'); showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
+    if(state.phase !== 'waiting') { console.log('Game already started, phase:', state.phase); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
+    if(state.players.length >= 4) { console.log('Room full:', state.players.length); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
+    if(state.players.some(p => p.id === myPlayerId)) { console.log('Already in room'); showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
+
+    console.log('Joining room, myChips:', myChips, 'attempting transaction...');
     return db.ref('poker-rooms/' + code).transaction(currentState => {
       console.log('Transaction callback, currentState:', currentState ? {phase: currentState.phase, players: currentState.players ? (Array.isArray(currentState.players) ? currentState.players.length : Object.keys(currentState.players).length) : 'none'} : 'null');
-      if(!currentState) { return; }
+      if(!currentState) { console.log('TX abort: no currentState'); return; }
 
       // Create clean copy to avoid mutation issues
       const s = JSON.parse(JSON.stringify(currentState));
       const players = toArr(s.players).filter(p => p && p.id);
       console.log('TX players count:', players.length, 'ids:', players.map(p=>p.id));
 
-      if(s.phase !== 'waiting') { return; }
-      if(players.length >= 4) { return; }
-      if(players.some(p => p.id === myPlayerId)) { return; }
+      if(s.phase !== 'waiting') { console.log('TX abort: phase is', s.phase); return; }
+      if(players.length >= 4) { console.log('TX abort: full'); return; }
+      if(players.some(p => p.id === myPlayerId)) { console.log('TX abort: already in'); return; }
 
       players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
       s.players = players;
       s.ts = Date.now();
+      console.log('TX returning new state with', players.length, 'players');
       return s;
     });
   }).then(result => {
+    console.log('Transaction result:', result ? {committed: result.committed, snapshotExists: !!result.snapshot} : 'null');
     if(result && result.committed){
+      console.log('Join committed, updating lobby meta');
       db.ref('poker-lobby/rooms/' + code + '/meta').transaction(m => {
         if(!m) return;
         m.playersCount = (m.playersCount || 0) + 1;
@@ -5122,13 +4985,17 @@ function joinTableByCode(code){
         return m;
       });
       roomCode = code; isHost = false;
+      console.log('Switching to waiting screen, creating room listener');
       showScreen('waiting');
       createRoom(code);
+      console.log('createRoom called');
     } else {
+      console.log('Transaction not committed, trying fallback update...');
       // Fallback: try direct update (less safe but works if transaction fails)
       return roomRefCheck.once('value').then(snap => {
         const s = normalizeState(snap.val());
         if(!s || s.phase !== 'waiting' || s.players.length >= 4 || s.players.some(p => p.id === myPlayerId)) {
+          console.log('Fallback abort: state changed');
           showToast(currentLang === 'ru' ? 'Не удалось присоединиться' : 'Failed to join', 'warning');
           return;
         }
@@ -5137,6 +5004,7 @@ function joinTableByCode(code){
           players: players,
           ts: Date.now()
         }).then(() => {
+          console.log('Fallback update succeeded');
           db.ref('poker-lobby/rooms/' + code + '/meta').update({
             playersCount: players.length,
             lastActivity: Date.now()
@@ -5151,7 +5019,7 @@ function joinTableByCode(code){
       });
     }
   }).catch(err => {
-    if(typeof err === 'string') { return; }
+    if(typeof err === 'string') { console.log('Expected error:', err); return; }
     console.error('Join table error:', err);
     showToast(currentLang === 'ru' ? 'Ошибка подключения' : 'Connection error', 'error');
   });
@@ -5160,6 +5028,7 @@ function joinTableByCode(code){
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
+  console.log('DOMContentLoaded start');
   const savedName = localStorage.getItem('poker_name');
   if(savedName) myName = savedName;
   const usernameEl = document.getElementById('lobby-username');
@@ -5196,11 +5065,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  let isCreatingRoom = false;
   document.getElementById('host-btn').addEventListener('click',()=>{
-    if(isCreatingRoom) return;
-    isCreatingRoom = true;
     const code=genCode();
+    console.log('Creating room:', code, 'playerId:', myPlayerId);
     roomCode=code; isHost=true; myIndex=0;
     document.getElementById('my-room-id').textContent=code;
     document.getElementById('waiting-code').textContent=code;
@@ -5216,6 +5083,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       turnStartedAt:Date.now(),ts:Date.now()
     };
     saveRoom(state).then(()=>{
+      console.log('Room saved to poker-rooms');
       // Publish to lobby listing
       db.ref('poker-lobby/rooms/' + code + '/meta').set({
         code: code,
@@ -5285,6 +5153,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Показать onboarding
   setTimeout(showOnboarding, 800);
   initLobbyTables();
+  console.log('DOMContentLoaded end');
 });
 
 function editName(){
@@ -5315,32 +5184,11 @@ function saveName(){
   }
   closeNameModal();
 }
-let soundEnabled = localStorage.getItem('poker_sound') !== 'off';
-
-function toggleSound(){
-  soundEnabled = !soundEnabled;
-  localStorage.setItem('poker_sound', soundEnabled ? 'on' : 'off');
-  if(!soundEnabled && AudioManager.ctx){
-    try { AudioManager.ctx.suspend(); } catch(e){}
-  }
-  const statusEl = document.getElementById('settings-sound-status');
-  if(statusEl){
-    statusEl.textContent = soundEnabled ? (currentLang === 'ru' ? 'Вкл' : 'On') : (currentLang === 'ru' ? 'Выкл' : 'Off');
-    statusEl.style.color = soundEnabled ? 'var(--accent-gold)' : 'rgba(255,255,255,.3)';
-  }
-  // No toast - avoids backdrop-filter repaint glitch
-}
-
 function toggleLanguage(){
   const newLang = currentLang === 'ru' ? 'en' : 'ru';
   setLanguage(newLang);
   const btn = document.getElementById('lang-btn');
   if(btn) btn.textContent = newLang === 'ru' ? 'RU' : 'EN';
-  // Refresh settings modal if open
-  const modal = document.getElementById('settings-modal');
-  if(modal && modal.style.display !== 'none'){
-    showSettingsScreen();
-  }
 }
 function updateLobbyChips(){
   const el = document.getElementById('lobby-chips');
