@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a1f0a">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
 <title>Poker Hold'em</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1893,6 +1897,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* FIX: Font display swap for fast rendering */
 
 
+/* ===== TELEGRAM WEBAPP FIXES ===== */
+body { -webkit-text-size-adjust: 100%; }
+.screen { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+html, body { overscroll-behavior-y: none; }
+.lobby-tables-list { scrollbar-width: none; }
+.lobby-tables-list::-webkit-scrollbar { display: none; }
+
 /* RESPONSIVE */
 @media(max-width:380px){
   :root{--card-w:46px;--card-h:68px;}
@@ -1903,19 +1914,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   .action-btn{padding:12px 14px;font-size:13px;min-width:75px;}
   .logo{font-size:42px;}
 }
-/* Offline indicator */
-.offline-indicator {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-  background: rgba(20,24,40,.95);
-  color: var(--gold); text-align: center; font-size: 11px; font-weight: 600;
-  padding: 6px; letter-spacing: 1px;
-  transform: translateY(-100%); transition: transform .3s ease;
-  display: none; /* Hidden by default */
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(200,168,75,.2);
-}
-.offline-indicator.show { transform: translateY(0); display: block; }
-
 /* ===== BETTING SLIDER ===== */
 .betting-slider { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; justify-content: flex-end; }
 .betting-slider-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); }
@@ -1962,7 +1960,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 </head>
 <body>
 
-<div class="offline-indicator" id="offline-indicator">Reconnecting...</div>
+
 
 <div id="splash-screen" class="fallback">
   <div class="splash-logo">POK<span style="color:var(--accent-gold)">E</span>R</div>
@@ -1985,7 +1983,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       </div>
     </div>
     <div class="lobby-actions">
-      <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#E83B3B;margin-right:4px;box-shadow:0 0 8px #E83B3B;transition:all .3s;" title="Firebase status"></div>
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
       <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
@@ -2707,7 +2704,9 @@ function showDailyBonus(){
 
 function getBalance(){
   let bal = parseInt(localStorage.getItem(BALANCE_KEY));
-  if(isNaN(bal) || bal <= 0 || bal > 999999999){
+  const hash = localStorage.getItem(BALANCE_KEY + '_hash');
+  const expectedHash = hash ? atob(hash) : null;
+  if(isNaN(bal) || bal <= 0 || bal > 999999999 || (expectedHash && expectedHash !== String(bal))){
     bal = 1000;
     setBalance(bal);
     showToast(t('bonus'));
@@ -2795,7 +2794,7 @@ const AudioManager = {
       if(this.ctx && this.ctx.state === 'suspended'){
         this.ctx.resume().catch(()=>{});
       }
-    } catch(e) { console.log('Audio not available'); }
+    } catch(e) { }
   },
   ensureContext(){
     this.init();
@@ -3159,7 +3158,13 @@ function genCode(){
 }
 function validateRoomCode(code){
   if(!code || typeof code !== 'string') return false;
+  if(code.length !== 4) return false;
   return /^[A-HJ-NP-Z2-9]{4}$/.test(code.toUpperCase());
+}
+function validatePlayerName(name){
+  if(!name || typeof name !== 'string') return false;
+  if(name.length < 1 || name.length > 16) return false;
+  return !/[<>'"]|javascript:|on\w+=/i.test(name);
 }
 function showScreen(name){
     document.querySelectorAll('.screen').forEach(s=>{
@@ -3191,8 +3196,11 @@ function toArr(val){
 }
 
 function normalizeState(state){
-  if(!state) return state;
-  state.players     = toArr(state.players).filter(p => p && p.id);
+  if(!state || typeof state !== 'object') return null;
+  if(!state.code || !validateRoomCode(state.code)) return null;
+  if(!state.phase || !['waiting','preflop','flop','turn','river','showdown','ended'].includes(state.phase)) return null;
+
+  state.players     = toArr(state.players).filter(p => p && p.id && typeof p.id === 'string');
   state.communityCards = toArr(state.communityCards);
   state.deck        = toArr(state.deck);
   if(state.winners) state.winners = toArr(state.winners);
@@ -3200,28 +3208,28 @@ function normalizeState(state){
   state.players.forEach(p=>{
     if(!p) return;
     p.hand = toArr(p.hand);
-    p.chips  = +p.chips  || 0;
-    p.bet    = +p.bet    || 0;
+    p.chips  = Math.max(0, Math.min(999999999, +p.chips || 0));
+    p.bet    = Math.max(0, +p.bet || 0);
+    if(p.name && !validatePlayerName(p.name)) p.name = 'Player';
   });
-  state.pot          = +state.pot          || 0;
+  state.pot          = Math.max(0, +state.pot || 0);
   state.pots         = toArr(state.pots);
-  state.currentBet   = +state.currentBet   || 0;
-  state.currentPlayer= +state.currentPlayer;
+  state.currentBet   = Math.max(0, +state.currentBet || 0);
+  state.currentPlayer= Math.max(-1, +state.currentPlayer || -1);
   state.lastRaiser   = state.lastRaiser !== undefined ? +state.lastRaiser : -1;
-  state.lastBet      = state.lastBet !== undefined ? +state.lastBet : 0;
-  state.dealer       = +state.dealer       || 0;
-  state.smallBlind   = +state.smallBlind   || SMALL_BLIND;
-  state.bigBlind     = +state.bigBlind     || BIG_BLIND;
+  state.lastBet      = Math.max(0, state.lastBet !== undefined ? +state.lastBet : 0);
+  state.dealer       = Math.max(0, +state.dealer || 0);
+  state.smallBlind   = Math.max(1, +state.smallBlind || SMALL_BLIND);
+  state.bigBlind     = Math.max(2, +state.bigBlind || BIG_BLIND);
+  state.ts           = +state.ts || Date.now();
   return state;
 }
 
 // isJoiningRoom removed — using roomRef guard instead
 
 function createRoom(code){
-  console.log('createRoom called:', code);
   if(!validateRoomCode(code)) { showToast('Invalid room code', 'error'); return; }
   if(roomRef && roomCode === code) { 
-    console.log('Already connected to this room'); 
     // Ensure we show correct screen
     if(roomRef){
       roomRef.once('value').then(snap => {
@@ -3249,7 +3257,6 @@ function createRoom(code){
   const listener = snap=>{
     if(!roomCode || roomCode !== code) return;
     let state=snap.val();
-    console.log('Room listener update, phase:', state && state.phase);
     if(!state) return;
     state = normalizeState(state);
     let foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
@@ -3266,7 +3273,6 @@ function createRoom(code){
   };
   roomRef.on('value', listener);
   unsubscribe = listener;
-  console.log('Room listener attached');
 }
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
@@ -3935,17 +3941,14 @@ function debouncedRenderGame(state){
 
 // ===== GAME RENDER =====
 function _renderGameImpl(state){
-  console.log('renderGame called, state:', state);
   lastGameState = state;
   if(!state || !state.players || state.players.length === 0) { 
-    console.log('No valid state, returning'); 
     return; 
   }
   if(myIndex < 0 || myIndex >= state.players.length) {
-    console.log('Invalid myIndex:', myIndex, 'players:', state.players.length);
     myIndex = state.players.findIndex(p => p.id === myPlayerId);
     if(myIndex < 0) myIndex = state.players.findIndex(p => p.name === myName);
-    if(myIndex < 0) { console.log('Player not found in state'); return; }
+    if(myIndex < 0) { return; }
   }
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
@@ -3975,12 +3978,10 @@ function _renderGameImpl(state){
       rel=(i-myIdx+n)%n; // 4 players: all positions
     }
     const el=document.getElementById('pos-'+rel);
-    console.log('Player', i, 'rel', rel, 'el:', el ? 'found' : 'NOT FOUND');
     if(!el) continue;
     el.style.display='flex';
     const p=state.players[i];
     const infoEl = el.querySelector('.p-info');
-    console.log('Player', i, 'infoEl:', infoEl ? 'found' : 'NOT FOUND', 'p:', p ? p.name : 'null');
     if(infoEl && p){
       infoEl.querySelector('.p-name').textContent=p.name || '...';
       infoEl.querySelector('.p-chips').textContent=p.chips || 0;
@@ -4889,6 +4890,22 @@ function resetPlayerId(){
   location.reload();
 }
 
+// ===== ANTI-SPAM =====
+function cleanupOldRooms(){
+  db.ref('poker-lobby/rooms').once('value').then(snap => {
+    const data = snap.val();
+    if(!data) return;
+    const now = Date.now();
+    Object.entries(data).forEach(([code, room]) => {
+      const meta = room && room.meta ? room.meta : room;
+      if(meta && meta.hostId === myPlayerId && (now - (meta.createdAt || 0)) > 30 * 60 * 1000){
+        db.ref('poker-lobby/rooms/' + code).remove().catch(()=>{});
+        db.ref('poker-rooms/' + code).remove().catch(()=>{});
+      }
+    });
+  }).catch(()=>{});
+}
+
 // ===== LOBBY TABLES =====
 let lobbyTablesRef = null;
 let lobbyTablesUnsub = null;
@@ -4901,7 +4918,6 @@ function escapeHtml(text){
 }
 
 function initLobbyTables(){
-  console.log('initLobbyTables called');
   if(lobbyTablesUnsub && lobbyTablesRef){
     lobbyTablesRef.off('value', lobbyTablesUnsub);
     lobbyTablesUnsub = null;
@@ -4909,7 +4925,6 @@ function initLobbyTables(){
   lobbyTablesRef = db.ref('poker-lobby/rooms');
   lobbyTablesUnsub = lobbyTablesRef.on('value', snap => {
     const data = snap.val();
-    console.log('Lobby tables data:', data);
     renderLobbyTables(data);
   }, err => {
     console.error('Lobby tables error (silent):', err);
@@ -4919,7 +4934,6 @@ function initLobbyTables(){
 }
 
 function renderLobbyTables(rooms){
-  console.log('renderLobbyTables called, rooms:', rooms);
   const list = document.getElementById('lobby-tables-list');
   const yourTable = document.getElementById('lobby-your-table');
   if(!list) return;
@@ -4933,7 +4947,6 @@ function renderLobbyTables(rooms){
   const now = Date.now();
   Object.entries(rooms).forEach(([code, data]) => {
     const meta = data && data.meta ? data.meta : data;
-    console.log('Processing room:', code, 'meta:', meta);
     if(!meta || meta.status !== 'waiting') return;
     if(now - (meta.createdAt || 0) > 15 * 60 * 1000) return;
 
@@ -4974,7 +4987,6 @@ function renderLobbyTables(rooms){
     const btn = card.querySelector('.lt-join-btn');
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('Join button clicked for code:', code);
       btn.textContent = currentLang === 'ru' ? '...' : '...';
       btn.style.opacity = '0.6';
       btn.disabled = true;
@@ -5020,45 +5032,38 @@ function returnToMyTable(code){
 }
 
 function joinTableByCode(code){
-  console.log('joinTableByCode called with:', code, 'myPlayerId:', myPlayerId);
-  if(!validateRoomCode(code)) { console.log('Invalid code'); return Promise.reject('invalid'); }
+  if(!validateRoomCode(code)) { return Promise.reject('invalid'); }
   const myChips = getBalance();
   const roomRefCheck = db.ref('poker-rooms/' + code);
 
   return roomRefCheck.once('value').then(snap => {
     const rawVal = snap.val();
-    console.log('Room snapshot raw:', rawVal);
     const state = normalizeState(rawVal);
     console.log('Normalized state:', state ? {phase: state.phase, playersCount: state.players ? state.players.length : 0, playerIds: state.players ? state.players.map(p=>p.id) : []} : null);
-    if(!state) { console.log('Room not found'); showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
-    if(state.phase !== 'waiting') { console.log('Game already started, phase:', state.phase); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
-    if(state.players.length >= 4) { console.log('Room full:', state.players.length); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
-    if(state.players.some(p => p.id === myPlayerId)) { console.log('Already in room'); showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
-
-    console.log('Joining room, myChips:', myChips, 'attempting transaction...');
+    if(!state) { showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
+    if(state.phase !== 'waiting') { showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
+    if(state.players.length >= 4) { showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
+    if(state.players.some(p => p.id === myPlayerId)) { showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
     return db.ref('poker-rooms/' + code).transaction(currentState => {
       console.log('Transaction callback, currentState:', currentState ? {phase: currentState.phase, players: currentState.players ? (Array.isArray(currentState.players) ? currentState.players.length : Object.keys(currentState.players).length) : 'none'} : 'null');
-      if(!currentState) { console.log('TX abort: no currentState'); return; }
+      if(!currentState) { return; }
 
       // Create clean copy to avoid mutation issues
       const s = JSON.parse(JSON.stringify(currentState));
       const players = toArr(s.players).filter(p => p && p.id);
       console.log('TX players count:', players.length, 'ids:', players.map(p=>p.id));
 
-      if(s.phase !== 'waiting') { console.log('TX abort: phase is', s.phase); return; }
-      if(players.length >= 4) { console.log('TX abort: full'); return; }
-      if(players.some(p => p.id === myPlayerId)) { console.log('TX abort: already in'); return; }
+      if(s.phase !== 'waiting') { return; }
+      if(players.length >= 4) { return; }
+      if(players.some(p => p.id === myPlayerId)) { return; }
 
       players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
       s.players = players;
       s.ts = Date.now();
-      console.log('TX returning new state with', players.length, 'players');
       return s;
     });
   }).then(result => {
-    console.log('Transaction result:', result ? {committed: result.committed, snapshotExists: !!result.snapshot} : 'null');
     if(result && result.committed){
-      console.log('Join committed, updating lobby meta');
       db.ref('poker-lobby/rooms/' + code + '/meta').transaction(m => {
         if(!m) return;
         m.playersCount = (m.playersCount || 0) + 1;
@@ -5066,17 +5071,13 @@ function joinTableByCode(code){
         return m;
       });
       roomCode = code; isHost = false;
-      console.log('Switching to waiting screen, creating room listener');
       showScreen('waiting');
       createRoom(code);
-      console.log('createRoom called');
     } else {
-      console.log('Transaction not committed, trying fallback update...');
       // Fallback: try direct update (less safe but works if transaction fails)
       return roomRefCheck.once('value').then(snap => {
         const s = normalizeState(snap.val());
         if(!s || s.phase !== 'waiting' || s.players.length >= 4 || s.players.some(p => p.id === myPlayerId)) {
-          console.log('Fallback abort: state changed');
           showToast(currentLang === 'ru' ? 'Не удалось присоединиться' : 'Failed to join', 'warning');
           return;
         }
@@ -5085,7 +5086,6 @@ function joinTableByCode(code){
           players: players,
           ts: Date.now()
         }).then(() => {
-          console.log('Fallback update succeeded');
           db.ref('poker-lobby/rooms/' + code + '/meta').update({
             playersCount: players.length,
             lastActivity: Date.now()
@@ -5100,7 +5100,7 @@ function joinTableByCode(code){
       });
     }
   }).catch(err => {
-    if(typeof err === 'string') { console.log('Expected error:', err); return; }
+    if(typeof err === 'string') { return; }
     console.error('Join table error:', err);
     showToast(currentLang === 'ru' ? 'Ошибка подключения' : 'Connection error', 'error');
   });
@@ -5109,7 +5109,6 @@ function joinTableByCode(code){
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
-  console.log('DOMContentLoaded start');
   const savedName = localStorage.getItem('poker_name');
   if(savedName) myName = savedName;
   const usernameEl = document.getElementById('lobby-username');
@@ -5148,7 +5147,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   document.getElementById('host-btn').addEventListener('click',()=>{
     const code=genCode();
-    console.log('Creating room:', code, 'playerId:', myPlayerId);
     roomCode=code; isHost=true; myIndex=0;
     document.getElementById('my-room-id').textContent=code;
     document.getElementById('waiting-code').textContent=code;
@@ -5164,7 +5162,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       turnStartedAt:Date.now(),ts:Date.now()
     };
     saveRoom(state).then(()=>{
-      console.log('Room saved to poker-rooms');
       // Publish to lobby listing
       db.ref('poker-lobby/rooms/' + code + '/meta').set({
         code: code,
@@ -5234,7 +5231,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Показать onboarding
   setTimeout(showOnboarding, 800);
   initLobbyTables();
-  console.log('DOMContentLoaded end');
 });
 
 function editName(){
