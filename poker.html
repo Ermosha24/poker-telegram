@@ -4949,24 +4949,37 @@ function joinTableByCode(code){
   const roomRefCheck = db.ref('poker-rooms/' + code);
 
   return roomRefCheck.once('value').then(snap => {
-    console.log('Room snapshot:', snap.val());
-    const state = normalizeState(snap.val());
+    const rawVal = snap.val();
+    console.log('Room snapshot raw:', rawVal);
+    const state = normalizeState(rawVal);
+    console.log('Normalized state:', state ? {phase: state.phase, playersCount: state.players ? state.players.length : 0, playerIds: state.players ? state.players.map(p=>p.id) : []} : null);
     if(!state) { console.log('Room not found'); showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
-    if(state.phase !== 'waiting') { console.log('Game already started'); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
-    if(state.players.length >= 4) { console.log('Room full'); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
+    if(state.phase !== 'waiting') { console.log('Game already started, phase:', state.phase); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
+    if(state.players.length >= 4) { console.log('Room full:', state.players.length); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
     if(state.players.some(p => p.id === myPlayerId)) { console.log('Already in room'); showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
 
-    console.log('Joining room, myChips:', myChips);
+    console.log('Joining room, myChips:', myChips, 'attempting transaction...');
     return db.ref('poker-rooms/' + code).transaction(currentState => {
-      if(!currentState) return;
-      let s = normalizeState(currentState);
-      if(s.phase !== 'waiting' || s.players.length >= 4) return;
-      s.players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
+      console.log('Transaction callback, currentState:', currentState ? {phase: currentState.phase, players: currentState.players ? (Array.isArray(currentState.players) ? currentState.players.length : Object.keys(currentState.players).length) : 'none'} : 'null');
+      if(!currentState) { console.log('TX abort: no currentState'); return; }
+
+      // Create clean copy to avoid mutation issues
+      const s = JSON.parse(JSON.stringify(currentState));
+      const players = toArr(s.players).filter(p => p && p.id);
+      console.log('TX players count:', players.length, 'ids:', players.map(p=>p.id));
+
+      if(s.phase !== 'waiting') { console.log('TX abort: phase is', s.phase); return; }
+      if(players.length >= 4) { console.log('TX abort: full'); return; }
+      if(players.some(p => p.id === myPlayerId)) { console.log('TX abort: already in'); return; }
+
+      players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
+      s.players = players;
       s.ts = Date.now();
+      console.log('TX returning new state with', players.length, 'players');
       return s;
     });
   }).then(result => {
-    console.log('Transaction result:', result);
+    console.log('Transaction result:', result ? {committed: result.committed, snapshotExists: !!result.snapshot} : 'null');
     if(result && result.committed){
       console.log('Join committed, updating lobby meta');
       db.ref('poker-lobby/rooms/' + code + '/meta').transaction(m => {
@@ -4981,8 +4994,33 @@ function joinTableByCode(code){
       createRoom(code);
       console.log('createRoom called');
     } else {
-      console.log('Transaction not committed:', result);
-      showToast(currentLang === 'ru' ? 'Не удалось присоединиться' : 'Failed to join', 'warning');
+      console.log('Transaction not committed, trying fallback update...');
+      // Fallback: try direct update (less safe but works if transaction fails)
+      return roomRefCheck.once('value').then(snap => {
+        const s = normalizeState(snap.val());
+        if(!s || s.phase !== 'waiting' || s.players.length >= 4 || s.players.some(p => p.id === myPlayerId)) {
+          console.log('Fallback abort: state changed');
+          showToast(currentLang === 'ru' ? 'Не удалось присоединиться' : 'Failed to join', 'warning');
+          return;
+        }
+        const players = [...s.players, {id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false}];
+        return db.ref('poker-rooms/' + code).update({
+          players: players,
+          ts: Date.now()
+        }).then(() => {
+          console.log('Fallback update succeeded');
+          db.ref('poker-lobby/rooms/' + code + '/meta').update({
+            playersCount: players.length,
+            lastActivity: Date.now()
+          });
+          roomCode = code; isHost = false;
+          showScreen('waiting');
+          createRoom(code);
+        }).catch(err => {
+          console.error('Fallback update failed:', err);
+          showToast(currentLang === 'ru' ? 'Ошибка подключения' : 'Connection error', 'error');
+        });
+      });
     }
   }).catch(err => {
     if(typeof err === 'string') { console.log('Expected error:', err); return; }
