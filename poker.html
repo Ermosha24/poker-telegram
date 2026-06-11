@@ -673,9 +673,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   padding: 34px 28px;
   width: 90%;
   max-width: 320px;
+  min-width: 260px;
   text-align: center;
   box-shadow: 0 24px 80px rgba(0,0,0,.65), 0 0 50px rgba(200,168,75,.08);
-  position: relative;
   overflow: hidden;
 }
 .name-modal-content::before {
@@ -1638,8 +1638,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .player-pos.winner-anim .p-avatar{animation:winnerPulse 1.5s infinite;}
 
 /* DAILY BONUS MODAL */
-.daily-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:400;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease;}
-.daily-modal-content{background:linear-gradient(180deg,#1a3a1a,#0f1f0f);border:2px solid rgba(245,184,0,.3);border-radius:28px;padding:36px 32px;width:90%;max-width:340px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(245,184,0,.15);position:relative;overflow:hidden;}
+.daily-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:grid;place-items:center;}
+.daily-modal-content{background:linear-gradient(180deg,#1a3a1a,#0f1f0f);border:2px solid rgba(245,184,0,.3);border-radius:28px;padding:36px 32px;width:90%;max-width:340px;min-width:280px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(245,184,0,.15);overflow:hidden;}
 .daily-modal-content::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(245,184,0,.12),transparent 70%);pointer-events:none;}
 .daily-modal-icon{font-size:56px;margin-bottom:16px;animation:bounce 1s infinite;position:relative;}
 .daily-modal-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px;position:relative;text-shadow:0 2px 10px rgba(0,0,0,.5);}
@@ -1897,6 +1897,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* FIX: Font display swap for fast rendering */
 
 
+/* ===== SETTINGS FIX ===== */
+#settings-sound-status { display: inline-block; min-width: 36px; text-align: right; }
+.settings-row { display: flex; justify-content: space-between; align-items: center; }
+
 /* ===== TELEGRAM WEBAPP FIXES ===== */
 body { -webkit-text-size-adjust: 100%; }
 .screen { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -1916,7 +1920,7 @@ html, body { overscroll-behavior-y: none; }
 }
 /* ===== BETTING SLIDER ===== */
 .betting-slider { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; justify-content: flex-end; }
-.betting-slider-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); }
+.betting-slider-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.92); }
 .betting-slider-panel { position: relative; background: linear-gradient(180deg,#1a2235,#0c0f1a); border-radius: 24px 24px 0 0; padding: 20px 18px calc(24px + env(safe-area-inset-bottom)); border-top: 1.5px solid var(--border-gold); animation: slideUp .35s cubic-bezier(.4,0,.2,1); box-shadow: 0 -8px 40px rgba(0,0,0,.6); }
 @keyframes slideUp { from { transform: translateY(110%); } to { transform: translateY(0); } }
 .betting-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -1941,7 +1945,7 @@ html, body { overscroll-behavior-y: none; }
 
 /* ===== ONBOARDING ===== */
 .onboarding-overlay { position: fixed; inset: 0; z-index: 500; display: flex; align-items: flex-end; justify-content: center; }
-.onboarding-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
+.onboarding-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.92); }
 .onboarding-card { position: relative; background: linear-gradient(160deg, var(--surface-3), var(--surface-2)); border: 1px solid var(--border-gold); border-radius: 28px 28px 0 0; padding: 28px 24px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; text-align: center; animation: slideUp .4s ease; }
 .onboarding-step { font-size: 11px; color: var(--text-dim); font-weight: 700; letter-spacing: 2px; margin-bottom: 12px; text-transform: uppercase; }
 .onboarding-icon { font-size: 48px; margin-bottom: 12px; }
@@ -2303,6 +2307,29 @@ html, body { overscroll-behavior-y: none; }
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Static Settings Modal -->
+<div class="daily-modal" id="settings-modal" style="display:none;">
+  <div class="daily-modal-content">
+    <div class="daily-modal-icon">⚙️</div>
+    <div class="daily-modal-title" id="settings-title">Настройки</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;text-align:left;">
+      <div class="settings-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleSound();">
+        <span class="settings-label-sound" style="font-size:13px;color:rgba(255,255,255,.7);">Звук</span>
+        <span id="settings-sound-status" style="font-size:12px;font-weight:700;min-width:36px;text-align:right;">Вкл</span>
+      </div>
+      <div class="settings-row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleLanguage();">
+        <span class="settings-label-lang" style="font-size:13px;color:rgba(255,255,255,.7);">Язык</span>
+        <span id="settings-lang-status" style="font-size:12px;color:var(--accent-gold);font-weight:700;min-width:36px;text-align:right;">RU</span>
+      </div>
+      <div class="settings-row" style="padding:10px 0;">
+        <span class="settings-label-ver" style="font-size:13px;color:rgba(255,255,255,.7);">Версия</span>
+        <span style="font-size:12px;color:rgba(255,255,255,.3);min-width:36px;text-align:right;">1.0.0</span>
+      </div>
+    </div>
+    <button class="daily-modal-btn" onclick="document.getElementById('settings-modal').style.display='none';">Закрыть</button>
+  </div>
+</div>
 
 <script>
 // ===== I18N =====
@@ -2802,12 +2829,10 @@ const AudioManager = {
       this.ctx.resume().catch(()=>{});
     }
   },
-  close(){
-    try { if(this.ctx) { this.ctx.suspend(); } } catch(e) {}
-  },
 
   // White noise for card shuffle
   cardShuffle(){
+    if(!soundEnabled) return;
     this.ensureContext();
     const ctx = this.ctx;
     const bufferSize = ctx.sampleRate * 0.15;
@@ -2830,6 +2855,7 @@ const AudioManager = {
 
   // Chip click - short sine
   chipClick(){
+    if(!soundEnabled) return;
     this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
@@ -2846,6 +2872,7 @@ const AudioManager = {
 
   // All-in tension - low rising tone
   allInTension(){
+    if(!soundEnabled) return;
     this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
@@ -2867,6 +2894,7 @@ const AudioManager = {
 
   // Win chime - pleasant arpeggio
   winChime(){
+    if(!soundEnabled) return;
     this.ensureContext();
     const ctx = this.ctx;
     const notes = [523, 659, 784, 1047];
@@ -2886,6 +2914,7 @@ const AudioManager = {
 
   // Fold - soft dismiss
   foldSound(){
+    if(!soundEnabled) return;
     this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
@@ -3064,26 +3093,15 @@ function showSettingsScreen(){
       <div class="daily-modal-icon">⚙️</div>
       <div class="daily-modal-title">${currentLang === 'ru' ? 'Настройки' : 'Settings'}</div>
       <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;text-align:left;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="toggleSound(); document.getElementById('settings-modal').remove(); showSettingsScreen();">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Звук' : 'Sound'}</span>
-          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
-          <span style="font-size:12px;color:rgba(255,255,255,.3);">On</span>
+          <span id="settings-sound-status" style="font-size:12px;color:${localStorage.getItem('poker_sound') === 'off' ? 'rgba(255,255,255,.3)' : 'var(--accent-gold)'};font-weight:700;">${localStorage.getItem('poker_sound') === 'off' ? (currentLang === 'ru' ? 'Выкл' : 'Off') : (currentLang === 'ru' ? 'Вкл' : 'On')}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Язык' : 'Language'}</span>
           <span style="font-size:12px;color:var(--accent-gold);font-weight:700;cursor:pointer;" onclick="toggleLanguage(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'RU' : 'EN'}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'ID игрока' : 'Player ID'}</span>
-          <span style="font-size:10px;color:rgba(255,255,255,.3);font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${myPlayerId.substring(0,8)}...</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
-          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Сбросить ID' : 'Reset ID'}</span>
-          <button style="font-size:12px;color:var(--accent-red);font-weight:700;background:rgba(232,59,59,.15);border:1px solid rgba(232,59,59,.3);padding:4px 10px;border-radius:6px;cursor:pointer;" onclick="resetPlayerId(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'Сброс' : 'Reset'}</button>
-        </div>
+
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Версия' : 'Version'}</span>
           <span style="font-size:12px;color:rgba(255,255,255,.3);">1.0.0</span>
@@ -3332,7 +3350,7 @@ function autoFold(){
 function backToLobby(){
   clearWinnerAnim();
   clearAllTimers();
-  AudioManager.close();
+  
   equityCache.clear();
 
   const leavingRoomCode = roomCode;
@@ -3413,7 +3431,7 @@ function leaveRoom(){
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
-  AudioManager.close();
+  
 
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
@@ -5261,11 +5279,32 @@ function saveName(){
   }
   closeNameModal();
 }
+let soundEnabled = localStorage.getItem('poker_sound') !== 'off';
+
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('poker_sound', soundEnabled ? 'on' : 'off');
+  if(!soundEnabled && AudioManager.ctx){
+    try { AudioManager.ctx.suspend(); } catch(e){}
+  }
+  const statusEl = document.getElementById('settings-sound-status');
+  if(statusEl){
+    statusEl.textContent = soundEnabled ? (currentLang === 'ru' ? 'Вкл' : 'On') : (currentLang === 'ru' ? 'Выкл' : 'Off');
+    statusEl.style.color = soundEnabled ? 'var(--accent-gold)' : 'rgba(255,255,255,.3)';
+  }
+  // No toast - avoids backdrop-filter repaint glitch
+}
+
 function toggleLanguage(){
   const newLang = currentLang === 'ru' ? 'en' : 'ru';
   setLanguage(newLang);
   const btn = document.getElementById('lang-btn');
   if(btn) btn.textContent = newLang === 'ru' ? 'RU' : 'EN';
+  // Refresh settings modal if open
+  const modal = document.getElementById('settings-modal');
+  if(modal && modal.style.display !== 'none'){
+    showSettingsScreen();
+  }
 }
 function updateLobbyChips(){
   const el = document.getElementById('lobby-chips');
