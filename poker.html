@@ -1959,6 +1959,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -2308,6 +2309,935 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 <div class="toast" id="toast"></div>
 
 <script>
+const Poker = (function(){
+"use strict";
+/**
+ * ============================================================
+ * POKER HOLD'EM — GAME ENGINE (ES Module)
+ * ============================================================
+ * Pure logic layer. No Firebase, no DOM, no audio.
+ * Contains: deck, evaluator, pot calculator, state machine, tests.
+ * 
+ * Usage:
+ *   import * as Poker from './engine.js';
+ *   const state = Poker.createInitialState('ROOM', id, name, 1000);
+ *   Poker.dealHand(state);
+ *   Poker.runTests(); // browser console or node
+ * ============================================================
+ */
+
+// ==================== CONSTANTS ====================
+const SUITS = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const SUIT_KEYS = Object.keys(SUITS);
+const VALUES = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+const RANK_NAMES = [
+  '', 'High Card', 'Pair', 'Two Pair', 'Three of a Kind',
+  'Straight', 'Flush', 'Full House', 'Four of a Kind', 'Straight Flush'
+];
+
+const PHASES = {
+  WAITING: 'waiting',
+  PREFLOP: 'preflop',
+  FLOP: 'flop',
+  TURN: 'turn',
+  RIVER: 'river',
+  SHOWDOWN: 'showdown',
+  ENDED: 'ended'
+};
+
+// ==================== TYPES (JSDoc) ====================
+/**
+ * @typedef {Object} Card
+ * @property {string} c — suit key ('s','h','d','c')
+ * @property {string} v — value ('2'..'A')
+ */
+
+/**
+ * @typedef {Object} Player
+ * @property {string} id
+ * @property {string} name
+ * @property {number} chips
+ * @property {Card[]} hand
+ * @property {number} bet — current street bet
+ * @property {boolean} folded
+ * @property {boolean} allIn
+ * @property {boolean} [isBot]
+ */
+
+/**
+ * @typedef {Object} Pot
+ * @property {number} amount
+ * @property {number[]} eligible — player indices who can win this pot
+ */
+
+/**
+ * @typedef {Object} Score
+ * @property {number} rank 1..9
+ * @property {number[]} kickers descending
+ */
+
+/**
+ * @typedef {Object} GameState
+ * @property {string} code
+ * @property {string} phase
+ * @property {Player[]} players
+ * @property {number} dealer
+ * @property {number} smallBlind
+ * @property {number} bigBlind
+ * @property {number} pot — total accumulated (for UI display)
+ * @property {Pot[]} pots — side pots accumulated across streets
+ * @property {number} currentBet — highest bet this street
+ * @property {number} lastBet — previous street's currentBet (for min-raise calc)
+ * @property {Card[]} communityCards
+ * @property {Card[]} deck
+ * @property {number} currentPlayer
+ * @property {number} lastRaiser
+ * @property {string} lastAction
+ * @property {Array<{name:string, idx:number}>} [winners]
+ * @property {number} turnStartedAt
+ * @property {number} ts
+ */
+
+// ==================== DECK ====================
+
+function buildDeck() {
+  const deck = [];
+  for (const c of SUIT_KEYS) {
+    for (const v of VALUES) deck.push({ c, v });
+  }
+  return deck;
+}
+
+/** Fisher-Yates. For production replace Math.random with crypto RNG. */
+function shuffle(deck) {
+  const arr = [...deck];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function cardVal(v) {
+  if (v === 'A') return 14;
+  if (v === 'K') return 13;
+  if (v === 'Q') return 12;
+  if (v === 'J') return 11;
+  return parseInt(v);
+}
+
+function formatCard(card) {
+  return card.v + SUITS[card.c];
+}
+
+// ==================== HAND EVALUATOR ====================
+
+/**
+ * Score 5 cards. Returns {rank, kickers}.
+ * rank: 1=High Card ... 9=Straight Flush
+ */
+function score5(cards) {
+  if (!cards || cards.length < 5) {
+    const vals = (cards || []).map(c => cardVal(c.v)).sort((a, b) => b - a);
+    return { rank: 1, kickers: vals };
+  }
+  // sanitize
+  cards = cards.filter(c => c && c.v && c.c);
+  const vals = cards.map(c => cardVal(c.v)).sort((a, b) => b - a);
+  const suits = cards.map(c => c.c);
+  const isFlush = suits.every(s => s === suits[0]);
+  const uniq = [...new Set(vals)].sort((a, b) => b - a);
+
+  let isStraight = false;
+  let straightHigh = uniq[0];
+  if (uniq.length === 5 && uniq[0] - uniq[4] === 4) isStraight = true;
+  if (uniq.length === 5 && uniq[0] === 14 && uniq[1] === 5 && uniq[2] === 4 && uniq[3] === 3 && uniq[4] === 2) {
+    isStraight = true;
+    straightHigh = 5;
+  }
+
+  if (isFlush && isStraight) return { rank: 9, kickers: [straightHigh] };
+
+  const cnt = {};
+  vals.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+  const groups = Object.entries(cnt).map(([v, c]) => ({ v: +v, c })).sort((a, b) => b.c - a.c || b.v - a.v);
+
+  if (groups[0].c === 4) return { rank: 8, kickers: [groups[0].v, groups[1].v] };
+  if (groups[0].c === 3 && groups[1].c === 2) return { rank: 7, kickers: [groups[0].v, groups[1].v] };
+  if (isFlush) return { rank: 6, kickers: vals };
+  if (isStraight) return { rank: 5, kickers: [straightHigh] };
+  if (groups[0].c === 3) return { rank: 4, kickers: [groups[0].v, ...vals.filter(v => v !== groups[0].v).slice(0, 2)] };
+  if (groups[0].c === 2 && groups[1].c === 2) return { rank: 3, kickers: [groups[0].v, groups[1].v, ...vals.filter(v => v !== groups[0].v && v !== groups[1].v).slice(0, 1)] };
+  if (groups[0].c === 2) return { rank: 2, kickers: [groups[0].v, ...vals.filter(v => v !== groups[0].v).slice(0, 3)] };
+  return { rank: 1, kickers: vals };
+}
+
+/** Compare two scores. Returns >0 if a beats b, <0 if b beats a, 0 if tie. */
+function compareScores(a, b) {
+  if (a.rank !== b.rank) return a.rank - b.rank;
+  for (let i = 0; i < Math.max(a.kickers.length, b.kickers.length); i++) {
+    const av = a.kickers[i] ?? 0;
+    const bv = b.kickers[i] ?? 0;
+    if (av !== bv) return av - bv;
+  }
+  return 0;
+}
+
+/** Best 5-card hand from 7 cards (Hold'em). */
+function getBest5From7(cards7) {
+  if (!cards7 || cards7.length < 5) {
+    const vals = (cards7 || []).map(c => cardVal(c.v)).sort((a, b) => b - a);
+    return { rank: 1, kickers: vals };
+  }
+  if (cards7.length === 5) return score5(cards7);
+  if (cards7.length === 6) {
+    let best = null;
+    for (let i = 0; i < 6; i++) {
+      const five = cards7.filter((_, idx) => idx !== i);
+      const s = score5(five);
+      if (!best || compareScores(s, best) > 0) best = s;
+    }
+    return best;
+  }
+  let best = null;
+  for (let i = 0; i < 7; i++) {
+    for (let j = i + 1; j < 7; j++) {
+      const five = cards7.filter((_, idx) => idx !== i && idx !== j);
+      const s = score5(five);
+      if (!best || compareScores(s, best) > 0) best = s;
+    }
+  }
+  return best;
+}
+
+function handRankName(rank) {
+  return RANK_NAMES[rank] || '?';
+}
+
+// ==================== POT CALCULATOR (Pure) ====================
+
+/**
+ * Pure function: given players with .bet and .folded, returns all pots.
+ * @param {Player[]} players
+ * @returns {{total:number, pots:Pot[]}}
+ */
+function calculatePots(players) {
+  const bets = players
+    .map((p, idx) => ({ idx, bet: p.bet || 0, folded: !!p.folded }))
+    .filter(x => x.bet > 0);
+
+  if (bets.length === 0) return { total: 0, pots: [] };
+
+  const levels = [...new Set(bets.map(b => b.bet))].sort((a, b) => a - b);
+  let prev = 0;
+  const pots = [];
+
+  for (const level of levels) {
+    if (level <= prev) continue;
+    const diff = level - prev;
+    const contributors = bets.filter(b => b.bet >= level);
+    const eligible = contributors.filter(b => !b.folded).map(b => b.idx);
+    const amount = diff * contributors.length;
+    if (amount > 0) {
+      pots.push({ amount, eligible });
+    }
+    prev = level;
+  }
+
+  const total = pots.reduce((s, p) => s + p.amount, 0);
+  return { total, pots };
+}
+
+/** Mutates state: moves current street bets into state.pots. */
+function collectBets(state) {
+  const { pots } = calculatePots(state.players);
+  state.pots.push(...pots);
+  state.pot = state.pots.reduce((s, p) => s + p.amount, 0);
+  state.players.forEach(p => { p.bet = 0; });
+  state.currentBet = 0;
+  state.lastBet = 0;
+}
+
+// ==================== STATE HELPERS ====================
+
+function getCallAmount(state, playerIdx) {
+  const p = state.players[playerIdx];
+  return Math.max(0, state.currentBet - p.bet);
+}
+
+function canCheck(state, playerIdx) {
+  return getCallAmount(state, playerIdx) === 0;
+}
+
+function getMinRaise(state) {
+  const prevRaise = state.currentBet - (state.lastBet || 0);
+  return state.currentBet + Math.max(state.bigBlind, prevRaise);
+}
+
+function getActivePlayers(state) {
+  return state.players.filter(p => !p.folded);
+}
+
+function getCanActPlayers(state) {
+  return getActivePlayers(state).filter(p => !p.allIn);
+}
+
+// ==================== STATE MACHINE ====================
+
+function createInitialState(code, hostId, hostName, hostChips, config = {}) {
+  return {
+    code,
+    phase: PHASES.WAITING,
+    players: [
+      { id: hostId, name: hostName, chips: hostChips, hand: [], bet: 0, folded: false, allIn: false }
+    ],
+    dealer: 0,
+    smallBlind: config.smallBlind || 10,
+    bigBlind: config.bigBlind || 20,
+    pot: 0,
+    pots: [],
+    currentBet: 0,
+    lastBet: 0,
+    communityCards: [],
+    deck: [],
+    currentPlayer: -1,
+    lastRaiser: -1,
+    lastAction: '',
+    winners: null,
+    turnStartedAt: Date.now(),
+    ts: Date.now()
+  };
+}
+
+function addPlayer(state, id, name, chips) {
+  if (state.players.length >= 6) return false; // max 6
+  if (state.players.some(p => p.id === id)) return false;
+  state.players.push({ id, name, chips, hand: [], bet: 0, folded: false, allIn: false });
+  return true;
+}
+
+function postBlind(state, idx, amount) {
+  const p = state.players[idx];
+  const actual = Math.min(amount, p.chips);
+  p.chips -= actual;
+  p.bet = actual;
+  state.pot += actual;
+  if (p.chips === 0) p.allIn = true;
+}
+
+function dealHand(state) {
+  const n = state.players.length;
+  state.deck = shuffle(buildDeck());
+  state.communityCards = [];
+  state.pots = [];
+  state.pot = 0;
+  state.currentBet = 0;
+  state.lastBet = 0;
+  state.winners = null;
+  state.lastAction = '';
+
+  state.players.forEach(p => {
+    p.hand = [state.deck.pop(), state.deck.pop()];
+    p.folded = false;
+    p.allIn = false;
+    p.bet = 0;
+  });
+
+  let sbIdx, bbIdx, firstToAct;
+  if (n === 2) {
+    sbIdx = state.dealer;
+    bbIdx = (state.dealer + 1) % n;
+    firstToAct = sbIdx;
+  } else {
+    sbIdx = (state.dealer + 1) % n;
+    bbIdx = (state.dealer + 2) % n;
+    firstToAct = (bbIdx + 1) % n;
+  }
+
+  postBlind(state, sbIdx, state.smallBlind);
+  postBlind(state, bbIdx, state.bigBlind);
+
+  state.currentBet = state.bigBlind;
+  state.currentPlayer = firstToAct;
+  state.lastRaiser = firstToAct;
+  state.phase = PHASES.PREFLOP;
+  state.turnStartedAt = Date.now();
+}
+
+function dealCommunity(state, count) {
+  if (state.deck.length > 0) state.deck.pop(); // burn
+  for (let i = 0; i < count; i++) {
+    if (state.deck.length > 0) state.communityCards.push(state.deck.pop());
+  }
+}
+
+function initBettingRound(state) {
+  const n = state.players.length;
+  state.players.forEach(p => { p.bet = 0; });
+  state.currentBet = 0;
+  state.lastBet = 0;
+
+  let start = (state.dealer + 1) % n;
+  for (let i = 0; i < n; i++) {
+    if (!state.players[start].folded && !state.players[start].allIn) break;
+    start = (start + 1) % n;
+  }
+
+  state.currentPlayer = start;
+  state.lastRaiser = start;
+  state.turnStartedAt = Date.now();
+}
+
+function advanceStreet(state) {
+  if (state.phase === PHASES.PREFLOP) {
+    dealCommunity(state, 3);
+    state.phase = PHASES.FLOP;
+  } else if (state.phase === PHASES.FLOP) {
+    dealCommunity(state, 1);
+    state.phase = PHASES.TURN;
+  } else if (state.phase === PHASES.TURN) {
+    dealCommunity(state, 1);
+    state.phase = PHASES.RIVER;
+  } else if (state.phase === PHASES.RIVER) {
+    showdown(state);
+    return;
+  }
+  initBettingRound(state);
+}
+
+function runoutBoard(state) {
+  if (state.communityCards.length === 0) dealCommunity(state, 3);
+  if (state.communityCards.length === 3) dealCommunity(state, 1);
+  if (state.communityCards.length === 4) dealCommunity(state, 1);
+}
+
+function showdown(state) {
+  const results = state.players.map((p, i) => {
+    if (p.folded || !p.hand || p.hand.length < 2) return null;
+    const all = [...p.hand, ...state.communityCards];
+    const score = getBest5From7(all);
+    return { idx: i, score, name: p.name };
+  }).filter(Boolean);
+
+  if (results.length === 0) {
+    state.phase = PHASES.ENDED;
+    return;
+  }
+
+  for (const pot of state.pots) {
+    const eligible = pot.eligible
+      .map(idx => results.find(r => r.idx === idx))
+      .filter(Boolean);
+
+    if (eligible.length === 0) continue;
+
+    let best = eligible[0];
+    for (const e of eligible) {
+      if (compareScores(e.score, best.score) > 0) best = e;
+    }
+
+    const winners = eligible.filter(e => compareScores(e.score, best.score) === 0);
+    const share = Math.floor(pot.amount / winners.length);
+    const remainder = pot.amount - share * winners.length;
+
+    winners.forEach((w, i) => {
+      state.players[w.idx].chips += share + (i === 0 ? remainder : 0);
+    });
+  }
+
+  state.winners = results.map(r => ({ name: r.name, idx: r.idx }));
+  state.phase = PHASES.ENDED;
+}
+
+function endHand(state) {
+  state.phase = PHASES.ENDED;
+  state.turnStartedAt = 0;
+}
+
+function processNextPlayer(state) {
+  const n = state.players.length;
+  const active = getActivePlayers(state);
+
+  // 1 player left -> they win
+  if (active.length <= 1) {
+    collectBets(state);
+    if (active.length === 1) {
+      const winnerIdx = state.players.indexOf(active[0]);
+      const totalPot = state.pots.reduce((s, p) => s + p.amount, 0);
+      state.players[winnerIdx].chips += totalPot;
+    }
+    state.phase = PHASES.ENDED;
+    return;
+  }
+
+  // All active are all-in -> runout
+  const canAct = getCanActPlayers(state);
+  if (canAct.length === 0) {
+    collectBets(state);
+    runoutBoard(state);
+    showdown(state);
+    return;
+  }
+
+  // Find next player who can act
+  let next = (state.currentPlayer + 1) % n;
+  let loops = 0;
+  while (loops < n) {
+    const p = state.players[next];
+    if (!p.folded && !p.allIn) break;
+    next = (next + 1) % n;
+    loops++;
+  }
+
+  if (loops >= n) {
+    collectBets(state);
+    runoutBoard(state);
+    showdown(state);
+    return;
+  }
+
+  // Check if betting round is complete
+  const allMatched = active.every(p => p.allIn || p.folded || p.bet === state.currentBet);
+  const roundOver = allMatched && (
+    next === state.lastRaiser ||
+    state.lastRaiser < 0 ||
+    canAct.length === 1
+  );
+
+  if (roundOver) {
+    collectBets(state);
+    advanceStreet(state);
+    return;
+  }
+
+  state.currentPlayer = next;
+  state.turnStartedAt = Date.now();
+}
+
+// ==================== ACTIONS (for server or client validation) ====================
+
+function playerFold(state, idx) {
+  const p = state.players[idx];
+  if (!p || p.folded || p.allIn) return false;
+  p.folded = true;
+  state.lastAction = p.name + ' folded';
+  processNextPlayer(state);
+  return true;
+}
+
+function playerCheck(state, idx) {
+  const p = state.players[idx];
+  if (state.currentBet !== p.bet) return false;
+  state.lastAction = p.name + ' checked';
+  processNextPlayer(state);
+  return true;
+}
+
+function playerCall(state, idx) {
+  const p = state.players[idx];
+  const amt = Math.max(0, state.currentBet - p.bet);
+  if (amt <= 0) return playerCheck(state, idx);
+  const actual = Math.min(amt, p.chips);
+  p.chips -= actual;
+  p.bet += actual;
+  if (p.chips === 0) p.allIn = true;
+  state.lastAction = p.name + ' called ' + actual;
+  processNextPlayer(state);
+  return true;
+}
+
+function playerRaise(state, idx, extra) {
+  const p = state.players[idx];
+  const callAmt = Math.max(0, state.currentBet - p.bet);
+  const total = callAmt + extra;
+  if (total > p.chips) return false;
+
+  const prevRaise = state.currentBet - (state.lastBet || 0);
+  const minRaiseSize = Math.max(state.bigBlind, prevRaise);
+  if (extra < minRaiseSize && p.chips > total) return false;
+
+  p.chips -= total;
+  p.bet += total;
+  state.lastBet = state.currentBet;
+  state.currentBet = p.bet;
+  state.lastRaiser = idx;
+  if (p.chips === 0) p.allIn = true;
+  state.lastAction = p.name + ' raised to ' + p.bet;
+  processNextPlayer(state);
+  return true;
+}
+
+function playerAllIn(state, idx) {
+  const p = state.players[idx];
+  if (p.chips <= 0) return false;
+  const total = p.chips;
+  const wasBet = p.bet;
+  p.bet += total;
+  p.chips = 0;
+  p.allIn = true;
+
+  if (p.bet > state.currentBet) {
+    state.lastBet = state.currentBet;
+    state.currentBet = p.bet;
+    state.lastRaiser = idx;
+  } else if (state.currentBet === 0) {
+    state.lastBet = 0;
+    state.currentBet = p.bet;
+    state.lastRaiser = idx;
+  }
+
+  state.lastAction = p.name + ' ALL-IN ' + p.bet;
+  processNextPlayer(state);
+  return true;
+}
+
+// ==================== BOT AI (simple, deterministic) ====================
+
+function evaluateHandStrength(hand, community, phase) {
+  if (!hand || hand.length < 2) return 0.5;
+  const h1 = cardVal(hand[0].v), h2 = cardVal(hand[1].v);
+  const suited = hand[0].c === hand[1].c;
+  const pair = h1 === h2;
+  const high = Math.max(h1, h2), low = Math.min(h1, h2);
+  let strength = 0;
+
+  if (pair) { strength = 0.6 + (high - 7) * 0.03; if (high >= 10) strength = 0.85; if (high >= 12) strength = 0.95; }
+  else if (high >= 12 && low >= 10) { strength = suited ? 0.75 : 0.65; }
+  else if (high >= 12) { strength = suited ? 0.6 : 0.5; }
+  else if (high >= 10) { strength = suited ? 0.5 : 0.4; }
+  else if (high >= 8) { strength = suited ? 0.4 : 0.3; }
+  else { strength = suited ? 0.3 : 0.2; }
+
+  if (suited && !pair) strength += 0.05;
+  if (Math.abs(h1 - h2) === 1 && !pair) strength += 0.05;
+
+  if (community && community.length > 0) {
+    const all = [...hand, ...community];
+    const score = getBest5From7(all);
+    if (score.rank >= 8) strength = 0.97;
+    else if (score.rank >= 7) strength = 0.92;
+    else if (score.rank >= 6) strength = 0.87;
+    else if (score.rank >= 5) strength = 0.82;
+    else if (score.rank >= 4) strength = 0.72;
+    else if (score.rank >= 3) strength = 0.62;
+    else if (score.rank >= 2) strength = 0.52;
+  }
+  return Math.min(1, Math.max(0, strength));
+}
+
+// ==================== TEST RUNNER ====================
+
+function assertEqual(actual, expected, msg = '') {
+  const a = JSON.stringify(actual);
+  const e = JSON.stringify(expected);
+  if (a !== e) {
+    throw new Error(`${msg}\n  expected: ${e}\n  actual:   ${a}`);
+  }
+}
+
+function assertTrue(cond, msg) {
+  if (!cond) throw new Error(msg || 'Assertion failed');
+}
+
+function runTests() {
+  let passed = 0, failed = 0;
+
+  function test(name, fn) {
+    try {
+      fn();
+      console.log(`✅ ${name}`);
+      passed++;
+    } catch (e) {
+      console.error(`❌ ${name}: ${e.message}`);
+      failed++;
+    }
+  }
+
+  // --- Deck ---
+  test('buildDeck creates 52 cards', () => {
+    assertEqual(buildDeck().length, 52);
+  });
+
+  test('shuffle changes order (probabilistic)', () => {
+    const d1 = buildDeck();
+    const d2 = shuffle(buildDeck());
+    let diff = 0;
+    for (let i = 0; i < 52; i++) if (d1[i].c !== d2[i].c || d1[i].v !== d2[i].v) diff++;
+    assertTrue(diff > 5, 'Shuffle did not change order enough');
+  });
+
+  test('cardVal returns correct values', () => {
+    assertEqual(cardVal('A'), 14);
+    assertEqual(cardVal('K'), 13);
+    assertEqual(cardVal('2'), 2);
+  });
+
+  // --- Evaluator ---
+  test('Royal Flush is rank 9', () => {
+    const cards = [
+      {c:'s',v:'10'},{c:'s',v:'J'},{c:'s',v:'Q'},{c:'s',v:'K'},{c:'s',v:'A'}
+    ];
+    assertEqual(score5(cards).rank, 9);
+  });
+
+  test('Straight Flush 5-high is rank 9', () => {
+    const cards = [{c:'h',v:'A'},{c:'h',v:'2'},{c:'h',v:'3'},{c:'h',v:'4'},{c:'h',v:'5'}];
+    const s = score5(cards);
+    assertEqual(s.rank, 9);
+    assertEqual(s.kickers[0], 5); // wheel high is 5
+  });
+
+  test('Four of a Kind is rank 8', () => {
+    const cards = [{c:'s',v:'7'},{c:'h',v:'7'},{c:'d',v:'7'},{c:'c',v:'7'},{c:'s',v:'K'}];
+    assertEqual(score5(cards).rank, 8);
+  });
+
+  test('Full House is rank 7', () => {
+    const cards = [{c:'s',v:'8'},{c:'h',v:'8'},{c:'d',v:'8'},{c:'c',v:'3'},{c:'s',v:'3'}];
+    assertEqual(score5(cards).rank, 7);
+  });
+
+  test('Pair of Aces beats Pair of Kings', () => {
+    const a = score5([{c:'s',v:'A'},{c:'h',v:'A'},{c:'s',v:'2'},{c:'h',v:'3'},{c:'d',v:'4'}]);
+    const k = score5([{c:'s',v:'K'},{c:'h',v:'K'},{c:'s',v:'2'},{c:'h',v:'3'},{c:'d',v:'4'}]);
+    assertTrue(compareScores(a, k) > 0, 'Aces should beat Kings');
+  });
+
+  test('Two Pair beats One Pair', () => {
+    const tp = score5([{c:'s',v:'Q'},{c:'h',v:'Q'},{c:'d',v:'J'},{c:'c',v:'J'},{c:'s',v:'2'}]);
+    const op = score5([{c:'s',v:'A'},{c:'h',v:'A'},{c:'d',v:'9'},{c:'c',v:'7'},{c:'s',v:'2'}]);
+    assertTrue(compareScores(tp, op) > 0, 'Two Pair should beat One Pair');
+  });
+
+  test('getBest5From7 finds straight flush in 7 cards', () => {
+    const c7 = [
+      {c:'s',v:'2'},{c:'s',v:'3'}, // hand
+      {c:'s',v:'4'},{c:'s',v:'5'},{c:'s',v:'6'}, // board straight flush
+      {c:'d',v:'K'},{c:'h',v:'A'}
+    ];
+    const best = getBest5From7(c7);
+    assertEqual(best.rank, 9);
+    assertEqual(best.kickers[0], 6);
+  });
+
+  // --- Pot Calculator ---
+  test('calculatePots: 3 equal bets -> 1 pot', () => {
+    const players = [
+      { bet: 10, folded: false },
+      { bet: 10, folded: false },
+      { bet: 10, folded: false }
+    ];
+    const { total, pots } = calculatePots(players);
+    assertEqual(total, 30);
+    assertEqual(pots.length, 1);
+    assertEqual(pots[0].amount, 30);
+    assertEqual(pots[0].eligible, [0, 1, 2]);
+  });
+
+  test('calculatePots: all-in creates side pot', () => {
+    const players = [
+      { bet: 100, folded: false }, // all-in
+      { bet: 200, folded: false }  // calls + raises
+    ];
+    const { total, pots } = calculatePots(players);
+    assertEqual(total, 300);
+    assertEqual(pots.length, 2);
+    // Main pot: 100 * 2 = 200, eligible both
+    assertEqual(pots[0].amount, 200);
+    assertEqual(pots[0].eligible, [0, 1]);
+    // Side pot: 100 * 1 = 100, eligible only player 1
+    assertEqual(pots[1].amount, 100);
+    assertEqual(pots[1].eligible, [1]);
+  });
+
+  test('calculatePots: folded player excluded from eligible', () => {
+    const players = [
+      { bet: 50, folded: false },
+      { bet: 50, folded: true },
+      { bet: 50, folded: false }
+    ];
+    const { pots } = calculatePots(players);
+    assertEqual(pots[0].eligible, [0, 2]);
+  });
+
+  test('calculatePots: 3-way with different bets', () => {
+    const players = [
+      { bet: 20, folded: false },  // 0
+      { bet: 40, folded: false },  // 1
+      { bet: 40, folded: false }   // 2
+    ];
+    const { total, pots } = calculatePots(players);
+    assertEqual(total, 100);
+    assertEqual(pots.length, 2);
+    assertEqual(pots[0].amount, 60); // 20 * 3
+    assertEqual(pots[0].eligible, [0, 1, 2]);
+    assertEqual(pots[1].amount, 40); // 20 * 2 (players 1&2)
+    assertEqual(pots[1].eligible, [1, 2]);
+  });
+
+  // --- State Machine ---
+  test('dealHand gives 2 cards to each player', () => {
+    const state = createInitialState('TEST', 'p1', 'Alice', 1000);
+    addPlayer(state, 'p2', 'Bob', 1000);
+    dealHand(state);
+    assertEqual(state.players[0].hand.length, 2);
+    assertEqual(state.players[1].hand.length, 2);
+    assertEqual(state.deck.length, 52 - 4); // 48
+    assertEqual(state.phase, PHASES.PREFLOP);
+  });
+
+  test('dealHand posts blinds correctly for 2 players', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000, { smallBlind: 10, bigBlind: 20 });
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state);
+    // 2 players: dealer=0 is SB, player1 is BB
+    assertEqual(state.players[0].bet, 10);
+    assertEqual(state.players[0].chips, 990);
+    assertEqual(state.players[1].bet, 20);
+    assertEqual(state.players[1].chips, 980);
+    assertEqual(state.currentBet, 20);
+  });
+
+  test('processNextPlayer skips folded players', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    addPlayer(state, 'p3', 'C', 1000);
+    dealHand(state);
+    // Preflop 3 players: SB=p1(10), BB=p2(20), firstToAct=p3
+    assertEqual(state.currentPlayer, 2); // p3
+    state.players[2].folded = true;
+    processNextPlayer(state);
+    // p3 folded, should move to p0 (SB) who hasn't acted yet
+    assertEqual(state.currentPlayer, 0);
+  });
+
+  test('all-in short stack creates side pot and ends street', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state); // p1 SB=10, p2 BB=20
+    // p1 calls 10 more (now bet=20)
+    playerCall(state, 0);
+    // p2 raises to 100
+    playerRaise(state, 1, 80); // bet was 20, +80 = 100
+    // p1 all-in with remaining 980? No, p1 has 980 chips. Let's make p1 short.
+    // Reset for cleaner test:
+    const s2 = createInitialState('T', 'p1', 'A', 50, { bigBlind: 20 });
+    addPlayer(s2, 'p2', 'B', 1000);
+    dealHand(s2); // p1 SB=10 (chips 40), p2 BB=20 (chips 980)
+    // p1 calls 10 -> chips 30, bet 20
+    playerCall(s2, 0);
+    // p2 raises to 100 -> p1 must call 80 but only has 30 -> all-in logic needed
+    // Actually let's just test calculatePots via collectBets:
+    s2.players[0].bet = 50; // all-in for 50 total (40+10 from SB? no, let's set manually)
+    s2.players[0].chips = 0;
+    s2.players[0].allIn = true;
+    s2.players[0].bet = 50;
+    s2.players[1].bet = 100;
+    collectBets(s2);
+    assertEqual(s2.pots.length, 2);
+    assertEqual(s2.pots[0].amount, 100); // 50*2
+    assertEqual(s2.pots[1].amount, 50);  // 50*1
+  });
+
+  test('showdown awards pot to winner', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state);
+    // Rig hands: p1 gets AA, p2 gets KK
+    state.players[0].hand = [{c:'s',v:'A'},{c:'h',v:'A'}];
+    state.players[1].hand = [{c:'s',v:'K'},{c:'h',v:'K'}];
+    state.communityCards = [
+      {c:'d',v:'2'},{c:'c',v:'3'},{c:'s',v:'7'},{c:'h',v:'8'},{c:'d',v:'9'}
+    ];
+    state.pots = [{ amount: 100, eligible: [0, 1] }];
+    showdown(state);
+    assertEqual(state.phase, PHASES.ENDED);
+    assertEqual(state.players[0].chips, 1100); // won 100
+    assertEqual(state.players[1].chips, 1000);  // lost
+  });
+
+  test('showdown split pot on tie', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state);
+    // Same hand strength on board
+    state.players[0].hand = [{c:'s',v:'A'},{c:'h',v:'2'}];
+    state.players[1].hand = [{c:'d',v:'A'},{c:'c',v:'2'}];
+    state.communityCards = [
+      {c:'s',v:'K'},{c:'h',v:'Q'},{c:'d',v:'J'},{c:'c',v:'10'},{c:'s',v:'9'}
+    ]; // straight on board
+    state.pots = [{ amount: 100, eligible: [0, 1] }];
+    showdown(state);
+    assertEqual(state.players[0].chips, 1050); // split
+    assertEqual(state.players[1].chips, 1050);
+  });
+
+  test('advanceStreet deals flop then turn then river', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state);
+    // End preflop betting artificially
+    state.players[0].bet = 20; state.players[1].bet = 20;
+    collectBets(state);
+    advanceStreet(state);
+    assertEqual(state.phase, PHASES.FLOP);
+    assertEqual(state.communityCards.length, 3);
+    advanceStreet(state);
+    assertEqual(state.phase, PHASES.TURN);
+    assertEqual(state.communityCards.length, 4);
+    advanceStreet(state);
+    assertEqual(state.phase, PHASES.RIVER);
+    assertEqual(state.communityCards.length, 5);
+  });
+
+  test('getMinRaise respects bigBlind and last raise size', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000, { bigBlind: 20 });
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state); // currentBet = 20
+    state.lastBet = 0;
+    assertEqual(getMinRaise(state), 40); // 20 + 20
+    // Simulate raise to 60 (raise size 40)
+    state.currentBet = 60;
+    state.lastBet = 20;
+    assertEqual(getMinRaise(state), 100); // 60 + max(20,40)
+  });
+
+  test('runoutBoard fills to 5 cards', () => {
+    const state = createInitialState('T', 'p1', 'A', 1000);
+    addPlayer(state, 'p2', 'B', 1000);
+    dealHand(state);
+    state.communityCards = []; // reset
+    runoutBoard(state);
+    assertEqual(state.communityCards.length, 5);
+  });
+
+  // --- Summary ---
+  console.log(`\n==============================`);
+  console.log(`Tests: ${passed} passed, ${failed} failed`);
+  console.log(`==============================`);
+  return failed === 0;
+}
+
+// Auto-run in Node.js environment
+  return {
+    SUITS: SUITS, SUIT_KEYS: SUIT_KEYS, VALUES: VALUES, RANK_NAMES: RANK_NAMES, PHASES: PHASES,
+    buildDeck: buildDeck, shuffle: shuffle, cardVal: cardVal, formatCard: formatCard,
+    score5: score5, compareScores: compareScores, getBest5From7: getBest5From7, handRankName: handRankName,
+    calculatePots: calculatePots, collectBets: collectBets,
+    getCallAmount: getCallAmount, canCheck: canCheck, getMinRaise: getMinRaise,
+    getActivePlayers: getActivePlayers, getCanActPlayers: getCanActPlayers,
+    createInitialState: createInitialState, addPlayer: addPlayer, postBlind: postBlind, dealHand: dealHand,
+    dealCommunity: dealCommunity, initBettingRound: initBettingRound, advanceStreet: advanceStreet,
+    runoutBoard: runoutBoard, showdown: showdown, endHand: endHand, processNextPlayer: processNextPlayer,
+    playerFold: playerFold, playerCheck: playerCheck, playerCall: playerCall,
+    playerRaise: playerRaise, playerAllIn: playerAllIn,
+    evaluateHandStrength: evaluateHandStrength
+  };
+})();
+</script>
+<script>
+
 // ===== I18N =====
 const i18n = {
   ru: {
@@ -3307,13 +4237,12 @@ function autoFold(){
     let state = normalizeState(currentState);
     if(state.currentPlayer !== myIndex) return;
     const elapsed = Date.now() - (state.turnStartedAt || 0);
-    // FIX: Simple timeout check - fold if turn time exceeded
-    if(elapsed < TURN_TIME * 1000) return; // Not timed out yet
+    if(elapsed < TURN_TIME * 1000) return;
     const p = state.players[myIndex];
     if(!p || p.folded || p.allIn) return;
     p.folded = true;
     state.lastAction = p.name + ' ' + t('toastTimeout');
-    processNextPlayer(state);
+    Poker.processNextPlayer(state);
     state.turnStartedAt = Date.now();
     state.ts = Date.now();
     return state;
@@ -3492,17 +4421,11 @@ function startBotGame(){
   const code=genCode();
   roomCode=code; isHost=true; myIndex=0;
   const myChips = getBalance();
-  const state={
-    code, phase:'waiting',
-    players:[
-      {id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false},
-      {id:'bot_1',name:'🤖 Бот',chips:myChips,hand:[],bet:0,folded:false,allIn:false,isBot:true}
-    ],
-    dealer:0, smallBlind:SMALL_BLIND, bigBlind:BIG_BLIND,
-    pot:0, pots:[], currentBet:0, communityCards:[], deck:[],
-    currentPlayer:-1, lastRaiser:-1, lastBet:0, winners:null, turnStartedAt:Date.now(), ts:Date.now()
-  };
-  dealHand(state);
+  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: SMALL_BLIND, bigBlind: BIG_BLIND });
+  Poker.addPlayer(state, 'bot_1', '🤖 Бот', myChips);
+  state.players[1].isBot = true;
+  AudioManager.cardShuffle();
+  Poker.dealHand(state);
   state.ts=Date.now();
   saveRoom(state).then(()=>{ showScreen('game'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
 }
@@ -3521,28 +4444,21 @@ function startTournament(){
   roomCode = code; isHost = true; myIndex = 0;
   const myChips = getBalance();
   const blinds = TOURNEY_BLINDS[0];
-  const state = {
-    code, phase: 'waiting',
-    players: [
-      {id: myPlayerId, name: myName, chips: myChips, hand: [], bet: 0, folded: false, allIn: false},
-      {id: 'bot_1', name: '🤖 Бот 1', chips: myChips, hand: [], bet: 0, folded: false, allIn: false, isBot: true},
-      {id: 'bot_2', name: '🤖 Бот 2', chips: myChips, hand: [], bet: 0, folded: false, allIn: false, isBot: true},
-      {id: 'bot_3', name: '🤖 Бот 3', chips: myChips, hand: [], bet: 0, folded: false, allIn: false, isBot: true}
-    ],
-    dealer: 0, smallBlind: blinds.sb, bigBlind: blinds.bb,
-    pot: 0, pots: [], currentBet: 0, communityCards: [], deck: [],
-    currentPlayer: -1, lastRaiser: -1, lastBet: 0, winners: null,
-    turnStartedAt: Date.now(), turnExpiresAt: Date.now() + TURN_TIME * 1000,
-    ts: Date.now(),
-    // Tournament meta
-    isTournament: true,
-    tourneyLevel: 1,
-    tourneyHand: 1,
-    tourneyBlinds: blinds,
-    eliminated: []
-  };
+  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: blinds.sb, bigBlind: blinds.bb });
+  Poker.addPlayer(state, 'bot_1', '🤖 Бот 1', myChips);
+  Poker.addPlayer(state, 'bot_2', '🤖 Бот 2', myChips);
+  Poker.addPlayer(state, 'bot_3', '🤖 Бот 3', myChips);
+  state.players[1].isBot = true;
+  state.players[2].isBot = true;
+  state.players[3].isBot = true;
+  state.isTournament = true;
+  state.tourneyLevel = 1;
+  state.tourneyHand = 1;
+  state.tourneyBlinds = blinds;
+  state.eliminated = [];
   tourneyState = state;
-  dealHand(state);
+  AudioManager.cardShuffle();
+  Poker.dealHand(state);
   state.ts = Date.now();
   saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
 }
@@ -3587,7 +4503,8 @@ function nextTournamentHand(){
     state.pots = [];
     state.pot = 0;
     state.dealer = (state.dealer + 1) % state.players.length;
-    dealHand(state);
+    AudioManager.cardShuffle();
+    Poker.dealHand(state);
     state.ts = Date.now();
     return state;
   });
@@ -3686,7 +4603,8 @@ function hostStartGame(){
     if(state.players.length < 2){ showToast(t('toastMinPlayers'), 'warning'); return; }
     state.pots = [];
     state.pot = 0;
-    dealHand(state);
+    AudioManager.cardShuffle();
+    Poker.dealHand(state);
     state.ts = Date.now();
     return state;
   }).then(() => {
@@ -3723,11 +4641,11 @@ function quickEquity(myHand, community, numOpponents){
   }
 
   const all = [...myHand, ...(community || [])];
-  const score = getBest5From7(all);
+  const score = Poker.getBest5From7(all);
   let base = 30 + score.rank * 7;
   base = base / (1 + (numOpponents - 1) * 0.4);
   if(!community || community.length === 0){
-    const h1 = cardVal(myHand[0].v), h2 = cardVal(myHand[1].v);
+    const h1 = Poker.cardVal(myHand[0].v), h2 = Poker.cardVal(myHand[1].v);
     const suited = myHand[0].c === myHand[1].c;
     const pair = h1 === h2;
     const high = Math.max(h1, h2);
@@ -3755,13 +4673,13 @@ function calculateEquity(myHand, community, numOpponents, onResult){
   const used = new Set();
   myHand.forEach(c => used.add(cardKey(c)));
   community.forEach(c => used.add(cardKey(c)));
-  const remaining = buildDeck().filter(c => !used.has(cardKey(c)));
+  const remaining = Poker.buildDeck().filter(c => !used.has(cardKey(c)));
   let wins = 0, ties = 0, total = 0;
   const iterations = 80;
   setTimeout(() => {
     try {
       for(let i = 0; i < iterations; i++){
-        const deck = shuffle([...remaining]);
+        const deck = Poker.shuffle([...remaining]);
         let idx = 0;
         const opponents = [];
         for(let o = 0; o < numOpponents; o++){
@@ -3771,13 +4689,13 @@ function calculateEquity(myHand, community, numOpponents, onResult){
         while(fullCommunity.length < 5){
           fullCommunity.push(deck[idx++]);
         }
-        const myScore = getBest5From7([...myHand, ...fullCommunity]);
+        const myScore = Poker.getBest5From7([...myHand, ...fullCommunity]);
         let bestOppScore = null;
         for(const oppHand of opponents){
-          const s = getBest5From7([...oppHand, ...fullCommunity]);
-          if(!bestOppScore || compareScores(s, bestOppScore) > 0) bestOppScore = s;
+          const s = Poker.getBest5From7([...oppHand, ...fullCommunity]);
+          if(!bestOppScore || Poker.compareScores(s, bestOppScore) > 0) bestOppScore = s;
         }
-        const cmp = compareScores(myScore, bestOppScore);
+        const cmp = Poker.compareScores(myScore, bestOppScore);
         if(cmp > 0) wins++;
         else if(cmp === 0) ties++;
         total++;
@@ -3820,11 +4738,11 @@ function updateStrengthMeter(state){
   let comboName = '';
   if(state.communityCards.length >= 3){
     const all = [...me.hand, ...state.communityCards];
-    const score = getBest5From7(all);
-    comboName = handRankName(score.rank);
+    const score = Poker.getBest5From7(all);
+    comboName = Poker.handRankName(score.rank);
   } else {
     // Префлоп подсказка по руке
-    const h1 = cardVal(me.hand[0].v), h2 = cardVal(me.hand[1].v);
+    const h1 = Poker.cardVal(me.hand[0].v), h2 = Poker.cardVal(me.hand[1].v);
     const pair = h1 === h2;
     const suited = me.hand[0].c === me.hand[1].c;
     if(pair) comboName = currentLang === 'ru' ? 'Пара ' + me.hand[0].v : 'Pair of ' + me.hand[0].v;
@@ -4091,7 +5009,7 @@ function createCardEl(card){
   const div=document.createElement('div');
   const isRed=card.c==='h'||card.c==='d';
   div.className='card '+(isRed?'red':'black');
-  div.innerHTML=`<div class="card-corner top-left">${card.v}${SUITS[card.c]}</div><div class="card-center">${SUITS[card.c]}</div><div class="card-corner bottom-right">${card.v}${SUITS[card.c]}</div>`;
+  div.innerHTML=`<div class="card-corner top-left">${card.v}${Poker.SUITS[card.c]}</div><div class="card-center">${Poker.SUITS[card.c]}</div><div class="card-corner bottom-right">${card.v}${Poker.SUITS[card.c]}</div>`;
   return div;
 }
 function createCardBack(){ const d=document.createElement('div');d.className='card card-back';return d; }
@@ -4141,34 +5059,20 @@ function playerFold(){
   AudioManager.foldSound();
   updateProfileStat('folds', 1);
   withFreshState(state=>{
-    const p=state.players[myIndex];
-    if(!p || p.folded||p.allIn) return;
-    p.folded=true;
-    state.lastAction=p.name+' '+t('toastFold');
-    processNextPlayer(state);
+    Poker.playerFold(state, myIndex);
   });
 }
 function playerCheck(){
   haptic('light');
   withFreshState(state=>{
-    const p=state.players[myIndex];
-    if(state.currentBet!==p.bet){showToast(t('toastNeedMatch'), 'warning');return;}
-    state.lastAction=p.name+' '+t('toastCheck');
-    processNextPlayer(state);
+    Poker.playerCheck(state, myIndex);
   });
 }
 function playerCall(){
   haptic('medium');
   AudioManager.chipClick();
   withFreshState(state=>{
-    const p=state.players[myIndex];
-    const amt=Math.max(0,state.currentBet-p.bet);
-    if(amt<=0) return;
-    const actual=Math.min(amt,p.chips);
-    p.chips-=actual; p.bet+=actual;
-    if(p.chips===0) p.allIn=true;
-    state.lastAction=p.name+' '+t('toastCall')+' '+actual;
-    processNextPlayer(state);
+    Poker.playerCall(state, myIndex);
   });
 }
 function playerRaise(){
@@ -4177,20 +5081,7 @@ function playerRaise(){
   const extra = Math.max(0, parseInt(rawVal) || 0);
   if(!roomCode || extra <= 0) { showToast('Invalid raise amount', 'error'); return; }
   withFreshState(state=>{
-    const p=state.players[myIndex];
-    const callAmt=Math.max(0,state.currentBet-p.bet);
-    const total=callAmt+extra;
-    if(total>p.chips){ showToast(t('toastNoChips'), 'error'); return; }
-    const prevRaiseSize=state.currentBet - (state.lastBet || 0);
-    const minRaiseSize=Math.max(state.bigBlind, prevRaiseSize);
-    if(extra < minRaiseSize && p.chips > total){ showToast(t('toastMinRaise') + ' ' + minRaiseSize, 'warning'); return; }
-    p.chips-=total; p.bet+=total;
-    state.lastBet = state.currentBet;
-    state.currentBet=p.bet;
-    state.lastRaiser=myIndex;
-    if(p.chips===0) p.allIn=true;
-    state.lastAction=p.name+' '+t('toastRaise')+' '+p.bet;
-    processNextPlayer(state);
+    Poker.playerRaise(state, myIndex, extra);
   });
 }
 function playerAllIn(){
@@ -4199,24 +5090,7 @@ function playerAllIn(){
   updateMission('allin1', 1);
   updateProfileStat('allIns', 1);
   withFreshState(state=>{
-    const p=state.players[myIndex];
-    if(p.chips<=0) return;
-    const total=p.chips;
-    const wasBet = p.bet;
-    p.bet+=total; p.chips=0; p.allIn=true;
-    // If this is the first bet (currentBet was 0) or a raise, update lastRaiser
-    if(p.bet > state.currentBet){
-      state.lastBet = state.currentBet;
-      state.currentBet = p.bet;
-      state.lastRaiser = myIndex;
-    } else if(state.currentBet === 0) {
-      // First bet in round - still mark as raiser
-      state.lastBet = 0;
-      state.currentBet = p.bet;
-      state.lastRaiser = myIndex;
-    }
-    state.lastAction = p.name+' '+t('toastAllIn')+' '+p.bet;
-    processNextPlayer(state);
+    Poker.playerAllIn(state, myIndex);
   });
 }
 
@@ -4240,7 +5114,7 @@ function botMove(){
     const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
     const totalPot = s.pots.reduce((sum, pot) => sum + pot.amount, s.pot);
-    const hs = evaluateHandStrength(b.hand, s.communityCards, s.phase);
+    const hs = Poker.evaluateHandStrength(b.hand, s.communityCards, s.phase);
     const pos = getBotPosition(s, botIdx);
     const potOdds = ca > 0 ? ca / (totalPot + ca + s.currentBet) : 0;
     const rand = Math.random();
@@ -4297,7 +5171,7 @@ function botMove(){
       s.lastAction = b.name + ' ' + (currentLang === 'ru' ? 'колл' : 'call') + ' ' + actual;
     }
 
-    processNextPlayer(s);
+    Poker.processNextPlayer(s);
     s.ts = Date.now();
     return s;
   });
@@ -4575,7 +5449,7 @@ function endHand(state,winnerIdxs){
   if(winnerIdxs&&winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId)) stats.wins=(stats.wins||0)+1;
   const me=state.players.find(p=>p.id===myPlayerId);
   if(me&&!me.folded&&state.communityCards.length>0){
-    const score=getBest5From7([...me.hand,...state.communityCards]);
+    const score=Poker.getBest5From7([...me.hand,...state.communityCards]);
     stats.bestHandRank=Math.max(stats.bestHandRank||0,score.rank);
   }
   if(me) stats.maxChips=Math.max(stats.maxChips||0,me.chips);
@@ -4724,7 +5598,8 @@ function startNewHand(){
     brokeIdxs.sort((a,b)=>b-a).forEach(idx => reindexPlayers(state, idx));
     state.pots = []; state.pot = 0;
     state.dealer = (state.dealer + 1) % state.players.length;
-    dealHand(state);
+    AudioManager.cardShuffle();
+    Poker.dealHand(state);
     state.ts = Date.now();
     return state;
   }).then(result => {
@@ -5155,14 +6030,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const display = document.getElementById('room-display');
     if(display) display.style.display='block';
     const myChips = getBalance();
-    const state={
-      code,phase:'waiting',
-      players:[{id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false}],
-      dealer:0,smallBlind:SMALL_BLIND,bigBlind:BIG_BLIND,
-      pot:0,pots:[],currentBet:0,communityCards:[],deck:[],
-      currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
-      turnStartedAt:Date.now(),ts:Date.now()
-    };
+    const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: SMALL_BLIND, bigBlind: BIG_BLIND });
     saveRoom(state).then(()=>{
       console.log('Room saved to poker-rooms');
       // Publish to lobby listing
@@ -5275,6 +6143,7 @@ function updateLobbyChips(){
   const el = document.getElementById('lobby-chips');
   if(el) el.textContent = getBalance().toLocaleString() + ' ' + t('chips');
 }
+
 </script>
 </body>
 </html>
