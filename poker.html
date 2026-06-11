@@ -2770,6 +2770,16 @@ let timerInterval  = null;
 let autoLobbyTimer = null;
 let isEndShown     = false;
 let botTimer       = null;
+let toastTimer     = null;
+
+function clearAllTimers(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+  if(autoLobbyTimer){ clearTimeout(autoLobbyTimer); autoLobbyTimer=null; }
+  if(botTimer){ clearTimeout(botTimer); botTimer=null; }
+  if(renderTimeout){ clearTimeout(renderTimeout); renderTimeout=null; }
+  if(toastTimer){ clearTimeout(toastTimer); toastTimer=null; }
+  if(tourneyAutoTimer){ clearTimeout(tourneyAutoTimer); tourneyAutoTimer=null; }
+}
 const TURN_TIME = 30;
 const SMALL_BLIND = 10;
 const BIG_BLIND   = 20;
@@ -2782,8 +2792,16 @@ const AudioManager = {
   init(){
     try {
       if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      if(this.ctx && this.ctx.state === 'suspended'){
+        this.ctx.resume().catch(()=>{});
+      }
     } catch(e) { console.log('Audio not available'); }
+  },
+  ensureContext(){
+    this.init();
+    if(this.ctx && this.ctx.state === 'suspended'){
+      this.ctx.resume().catch(()=>{});
+    }
   },
   close(){
     try { if(this.ctx) { this.ctx.suspend(); } } catch(e) {}
@@ -2791,7 +2809,7 @@ const AudioManager = {
 
   // White noise for card shuffle
   cardShuffle(){
-    this.init();
+    this.ensureContext();
     const ctx = this.ctx;
     const bufferSize = ctx.sampleRate * 0.15;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -2813,7 +2831,7 @@ const AudioManager = {
 
   // Chip click - short sine
   chipClick(){
-    this.init();
+    this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -2829,7 +2847,7 @@ const AudioManager = {
 
   // All-in tension - low rising tone
   allInTension(){
-    this.init();
+    this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
@@ -2850,7 +2868,7 @@ const AudioManager = {
 
   // Win chime - pleasant arpeggio
   winChime(){
-    this.init();
+    this.ensureContext();
     const ctx = this.ctx;
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {
@@ -2869,7 +2887,7 @@ const AudioManager = {
 
   // Fold - soft dismiss
   foldSound(){
-    this.init();
+    this.ensureContext();
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -3156,11 +3174,13 @@ function showScreen(name){
 }
 function showToast(msg, type='info'){
   const t = document.getElementById('toast');
+  if(!t) return;
+  if(toastTimer){ clearTimeout(toastTimer); toastTimer=null; }
   t.textContent = msg;
   t.className = 'toast ' + (type === 'error' || type === 'warning' ? type : '');
   t.classList.add('show');
   if(type === 'error') haptic('error');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  toastTimer = setTimeout(() => { if(t) t.classList.remove('show'); }, 2800);
 }
 
 // ===== FIREBASE =====
@@ -3200,7 +3220,21 @@ function normalizeState(state){
 function createRoom(code){
   console.log('createRoom called:', code);
   if(!validateRoomCode(code)) { showToast('Invalid room code', 'error'); return; }
-  if(roomRef && roomCode === code) { console.log('Already connected to this room'); return; }
+  if(roomRef && roomCode === code) { 
+    console.log('Already connected to this room'); 
+    // Ensure we show correct screen
+    if(roomRef){
+      roomRef.once('value').then(snap => {
+        const state = normalizeState(snap.val());
+        if(state){
+          if(state.phase === 'waiting') showScreen('waiting');
+          else if(state.phase === 'ended') renderEnd(state);
+          else showScreen('game');
+        }
+      });
+    }
+    return; 
+  }
 
   const oldRef = roomRef;
   if(oldRef){
@@ -3291,12 +3325,9 @@ function autoFold(){
 
 function backToLobby(){
   clearWinnerAnim();
-  stopTimer();
-  if(botTimer) clearTimeout(botTimer);
-  if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-  autoLobbyTimer=null; isEndShown=false;
-  if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
+  clearAllTimers();
   AudioManager.close();
+  equityCache.clear();
 
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
@@ -3307,18 +3338,34 @@ function backToLobby(){
     oldRef.off();
   }
   roomRef = null; roomCode = null;
+  isEndShown = false;
 
   if(leavingRoomCode){
-    db.ref('poker-lobby/rooms/' + leavingRoomCode).remove().catch(()=>{});
+    db.ref('poker-lobby/rooms/' + leavingRoomCode + '/meta').transaction(meta => {
+      if(!meta) return null;
+      meta.playersCount = Math.max(0, (meta.playersCount || 1) - 1);
+      meta.lastActivity = Date.now();
+      if(meta.playersCount <= 0 || (wasHost && meta.playersCount <= 0)) return null;
+      return meta;
+    }).catch(()=>{});
   }
 
-  if(leavingRoomCode && wasHost){
+  if(leavingRoomCode){
     db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
       if(!cs) return;
       let s = normalizeState(cs);
       const myIdx = s.players.findIndex(p => p.id === myPlayerId);
-      if(myIdx >= 0){ s.players.splice(myIdx, 1); if(s.players.length > 0){ s.hostId = s.players[0].id; reindexPlayers(s, myIdx);} }
-      s.ts = Date.now(); return s;
+      if(myIdx >= 0){ 
+        s.players.splice(myIdx, 1); 
+        if(s.players.length > 0){ 
+          s.hostId = s.players[0].id; 
+          reindexPlayers(s, myIdx);
+        } else {
+          return null;
+        }
+      }
+      s.ts = Date.now(); 
+      return s;
     }).catch(()=>{});
   }
   myIndex=-1; isHost=false;
@@ -3878,17 +3925,28 @@ let renderTimeout = null;
 let lastRenderState = null;
 
 function debouncedRenderGame(state){
+  if(!roomCode || !roomRef) return; // Don't render if we left
   if(renderTimeout) clearTimeout(renderTimeout);
   renderTimeout = setTimeout(() => {
+    if(!roomCode || !roomRef) return;
     _renderGameImpl(state);
-  }, 50);  // 50ms debounce
+  }, 50);
 }
 
 // ===== GAME RENDER =====
 function _renderGameImpl(state){
   console.log('renderGame called, state:', state);
   lastGameState = state;
-  if(!state) { console.log('No state, returning'); return; }
+  if(!state || !state.players || state.players.length === 0) { 
+    console.log('No valid state, returning'); 
+    return; 
+  }
+  if(myIndex < 0 || myIndex >= state.players.length) {
+    console.log('Invalid myIndex:', myIndex, 'players:', state.players.length);
+    myIndex = state.players.findIndex(p => p.id === myPlayerId);
+    if(myIndex < 0) myIndex = state.players.findIndex(p => p.name === myName);
+    if(myIndex < 0) { console.log('Player not found in state'); return; }
+  }
   if(state.phase==='ended'){renderEnd(state);return;}
   showScreen('game');
 
@@ -4078,12 +4136,13 @@ function withFreshState(fn){
 }
 
 function playerFold(){
+  if(isProcessingAction) return;
   haptic('light');
   AudioManager.foldSound();
   updateProfileStat('folds', 1);
   withFreshState(state=>{
     const p=state.players[myIndex];
-    if(p.folded||p.allIn) return;
+    if(!p || p.folded||p.allIn) return;
     p.folded=true;
     state.lastAction=p.name+' '+t('toastFold');
     processNextPlayer(state);
@@ -4165,19 +4224,18 @@ function playerAllIn(){
 function botMove(){
   if(!roomCode) return;
 
-  // FIX: Do NOT use state from closure - read fresh state in transaction
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
     let s = normalizeState(currentState);
 
-    // FIX: Re-validate bot should still act using FRESH state
-    // The current player must be a bot
     const botIdx = s.currentPlayer;
     if(botIdx < 0 || botIdx >= s.players.length) return;
     const b = s.players[botIdx];
     if(!b || !b.isBot || b.folded || b.allIn || s.phase === 'ended' || s.phase === 'showdown') {
-      return;  // Abort transaction - stale bot move or not bot's turn
+      return;
     }
+    // Extra safety: check if turn is fresh (not stale)
+    if(Date.now() - (s.turnStartedAt || 0) > (TURN_TIME + 5) * 1000) return;
 
     const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
@@ -4292,14 +4350,19 @@ function processNextPlayer(state){
   const n=state.players.length;
   const active=state.players.filter(p=>!p.folded);
 
-  // FIX: If only 1 active player left, award pot and end hand immediately
-  if(active.length===1){
+  // If only 1 active player left, award pot and end hand immediately
+  if(active.length<=1){
     collectBets(state);
-    const winnerIdx = state.players.indexOf(active[0]);
-    if(state.pot > 0) state.players[winnerIdx].chips += state.pot;
+    if(active.length===1){
+      const winnerIdx = state.players.indexOf(active[0]);
+      if(state.pot > 0 || state.pots.length > 0){
+        const totalPot = state.pots.reduce((sum,p)=>sum+p.amount, state.pot);
+        state.players[winnerIdx].chips += totalPot;
+      }
+    }
     state.pot = 0;
     state.pots = [];
-    endHand(state, [winnerIdx]);
+    endHand(state, active.length===1 ? [state.players.indexOf(active[0])] : []);
     return;
   }
 
@@ -4437,13 +4500,18 @@ function runoutBoard(state){
 // ===== SHOWDOWN =====
 function showdown(state){
   const results=state.players.map((p,i)=>{
-    if(p.folded) return null;
+    if(p.folded || !p.hand || p.hand.length < 2) return null;
     const all=[...p.hand,...state.communityCards];
     const score=getBest5From7(all);
     return {idx:i,score,name:p.name,rankName:handRankName(score.rank)};
   }).filter(Boolean);
 
-  if(results.length===0){ endHand(state,[]); return; }
+  if(results.length===0){ 
+    // No one to compare - award to last active (shouldn't happen, but safety)
+    const lastActive = state.players.findIndex(p => !p.folded);
+    endHand(state, lastActive >= 0 ? [lastActive] : []); 
+    return; 
+  }
 
   // FIX: Award each pot separately, properly handle splits
   const allWinners = new Set();
@@ -4526,6 +4594,16 @@ function getBest5From7(cards7){
     const vals = (cards7 || []).map(c=>cardVal(c.v)).sort((a,b)=>b-a);
     return {rank: 1, kickers: vals};
   }
+  if(cards7.length === 5) return score5(cards7);
+  if(cards7.length === 6){
+    let best=null;
+    for(let i=0;i<6;i++){
+      const five=cards7.filter((_,idx)=>idx!==i);
+      const s=score5(five);
+      if(!best||compareScores(s,best)>0) best=s;
+    }
+    return best;
+  }
   let best=null;
   for(let i=0;i<7;i++) for(let j=i+1;j<7;j++){
     const five=cards7.filter((_,idx)=>idx!==i&&idx!==j);
@@ -4540,6 +4618,8 @@ function score5(cards){
     const vals = (cards || []).map(c=>cardVal(c.v)).sort((a,b)=>b-a);
     return {rank: 1, kickers: vals};
   }
+  // Remove any undefined/null cards
+  cards = cards.filter(c => c && c.v && c.c);
   const vals=cards.map(c=>cardVal(c.v)).sort((a,b)=>b-a);
   const suits=cards.map(c=>c.c);
   const isFlush=suits.every(s=>s===suits[0]);
@@ -4574,6 +4654,7 @@ function compareScores(a,b){
 
 // ===== END SCREEN =====
 function renderEnd(state){
+  if(!state) return;
   stopTimer();
   if(state.winners && state.winners.length > 0) AudioManager.winChime();
   if(isEndShown) return;
