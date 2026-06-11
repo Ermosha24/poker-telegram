@@ -335,6 +335,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   display: flex;
   align-items: center;
   gap: 10px;
+  position: relative;
+}
+.lobby-section-title .lobby-refresh-btn {
+  margin-left: auto;
+  margin-right: 2px;
 }
 .lobby-section-title::after {
   content: '';
@@ -1685,6 +1690,197 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .custom-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,184,0,.4);}
 @media(max-width:380px){.profile-stats{grid-template-columns:repeat(2,1fr);}.profile-achievements{grid-template-columns:repeat(3,1fr);}}
 
+/* ===== YOUR TABLE ===== */
+.lobby-your-table {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(135deg, rgba(200,168,75,.12), rgba(200,168,75,.03));
+  border: 1.5px solid var(--border-gold);
+  border-radius: 20px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn .4s ease;
+}
+.lobby-your-table::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(200,168,75,.08), transparent 65%);
+  pointer-events: none;
+}
+.lt-your-label {
+  font-size: 9px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  position: relative;
+}
+.lt-your-code {
+  font-family: 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: var(--gold-light);
+  text-shadow: 0 0 20px var(--gold-glow);
+  position: relative;
+  cursor: pointer;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.lt-your-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  position: relative;
+}
+.lt-your-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+.lt-return-btn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--gold), #b07812);
+  color: #0a0c14;
+  font-weight: 800;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 14px rgba(200,168,75,.3);
+  white-space: nowrap;
+}
+.lt-return-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,168,75,.45); }
+.lt-return-btn:active { transform: translateY(1px) scale(.97); }
+
+/* Copy code button on waiting screen */
+.copy-code-btn {
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--gold-light);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+}
+.copy-code-btn:hover { background: rgba(255,255,255,.12); border-color: var(--border-gold); transform: translateY(-2px); }
+.copy-code-btn:active { transform: translateY(1px); }
+.copy-code-btn.copied { color: var(--emerald); border-color: rgba(45,189,126,.4); }
+
+/* ===== OPEN TABLES LIST ===== */
+.lobby-tables-list {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.lobby-tables-list::-webkit-scrollbar { width: 4px; }
+.lobby-tables-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+.lobby-tables-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface-card);
+  border-radius: 16px;
+  border: 1px dashed var(--border-subtle);
+  letter-spacing: .3px;
+}
+
+.lobby-table-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.lobby-table-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  opacity: 0;
+  transition: opacity .3s;
+  background: linear-gradient(135deg, rgba(61,142,232,.08), transparent);
+  pointer-events: none;
+}
+.lobby-table-card:hover {
+  border-color: rgba(61,142,232,.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.lobby-table-card:hover::before { opacity: 1; }
+
+.lt-header { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.lt-host { font-size: 13.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
+.lt-blinds { font-size: 11px; color: var(--gold); font-weight: 700; background: rgba(200,168,75,.1); padding: 2px 8px; border-radius: 6px; width: fit-content; border: 1px solid var(--border-gold); }
+
+.lt-players { display: flex; align-items: center; gap: 8px; min-width: 80px; justify-content: flex-end; }
+.lt-bar { width: 44px; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+.lt-fill { height: 100%; background: linear-gradient(90deg, var(--emerald), #5df0a8); border-radius: 2px; transition: width .4s ease; }
+.lt-count { font-size: 11px; color: var(--text-mid); font-weight: 600; min-width: 28px; text-align: right; }
+
+.lt-join-btn {
+  padding: 9px 16px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--blue), #2a6fc0);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(61,142,232,.25);
+  letter-spacing: .2px;
+  position: relative;
+  z-index: 2;
+}
+.lt-join-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(61,142,232,.4); filter: brightness(1.1); }
+.lt-join-btn:active { transform: translateY(1px) scale(.97); }
+
+/* ===== REFRESH BUTTON ===== */
+.lobby-refresh-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--surface-card); border: 1px solid var(--border-subtle);
+  color: var(--text-mid); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all .2s; margin-left: auto;
+}
+.lobby-refresh-btn:hover { color: var(--gold); border-color: var(--border-gold); transform: rotate(180deg); }
+.lobby-refresh-btn:active { transform: scale(.9); }
+
 /* FIX: Prevent double-tap zoom on mobile */
 .action-btn, .lobby-mode-card, .lobby-quick-btn, .lobby-join-btn, 
 .lobby-create-btn, .lobby-nav-item, .lobby-lang-btn, .lobby-settings-btn,
@@ -1760,10 +1956,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
 <div class="offline-indicator" id="offline-indicator">⚠️ Offline — reconnecting...</div>
+<div id="firebase-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#c0392b,#e74c3c);color:#fff;text-align:center;font-size:12px;font-weight:700;padding:8px;letter-spacing:1px;text-transform:uppercase;">
+  <span id="firebase-error-text">Firebase error</span>
+  <button onclick="this.parentElement.style.display='none'" style="margin-left:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✕</button>
+</div>
 <div id="splash-screen" class="fallback">
   <div class="splash-logo">POK<span style="color:var(--accent-gold)">E</span>R</div>
   <div class="splash-sub">Texas Hold'em</div>
@@ -1785,6 +1986,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       </div>
     </div>
     <div class="lobby-actions">
+      <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#E83B3B;margin-right:4px;box-shadow:0 0 8px #E83B3B;transition:all .3s;" title="Firebase status"></div>
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
       <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
@@ -1836,7 +2038,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   </div>
 
   <!-- Room Code Display (hidden by default, shown after create) -->
-  <div class="lobby-room-display" id="room-display" style="display:none;">
+  
+
+  <!-- Your Table (if hosting) -->
+  <div id="lobby-your-table" style="display:none;width:100%;max-width:480px;"></div>
+  <!-- Open Tables -->
+  <div class="lobby-section-title" style="margin-top:6px;" id="open-tables-title">
+    <span id="open-tables-text">Open Tables</span>
+    <button class="lobby-refresh-btn" id="lobby-refresh-btn" onclick="refreshLobbyTables()" title="Refresh">🔄</button>
+  </div>
+  <div class="lobby-tables-list" id="lobby-tables-list">
+    <div class="lobby-tables-empty" id="lobby-tables-empty">No open tables</div>
+  </div>
+<div class="lobby-room-display" id="room-display" style="display:none;">
     <div class="lobby-room-label">Your Room Code</div>
     <div class="lobby-room-code" id="my-room-id">----</div>
     <div class="lobby-room-hint">Send code to friends</div>
@@ -1879,6 +2093,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:8px;" id="waiting-hint">Отправьте код друзьям</div>
   <div class="player-list" id="player-list"></div>
   <button class="btn btn-green" id="start-btn" style="display:none;margin-top:24px;"><span id="start-btn-text">▶ Начать игру</span></button>
+  <button class="copy-code-btn" id="copy-code-btn" onclick="copyRoomCode()">📋 Copy Code</button>
   <button class="btn btn-secondary" data-back style="margin-top:12px;">← Выйти</button>
 </div>
 
@@ -2122,6 +2337,7 @@ const i18n = {
     waiting: "⏳ Ожидание игроков",
     waitingHint: "Отправьте код друзьям",
     startGame: "▶ Начать игру",
+    copyCode: "📋 Копировать код",
     exit: "Выйти",
     bet: "Ставка",
     preflop: "Префлоп",
@@ -2201,6 +2417,7 @@ const i18n = {
     waiting: "⏳ Waiting for players",
     waitingHint: "Send code to friends",
     startGame: "▶ Start Game",
+    copyCode: "📋 Copy Code",
     exit: "Exit",
     bet: "Bet",
     preflop: "Preflop",
@@ -2293,7 +2510,11 @@ function applyTranslations(){
   }
   const codeInput = document.getElementById('join-code');
   if(codeInput) codeInput.placeholder = t('enterCode');
+  const openTablesText = document.getElementById('open-tables-text');
+  if(openTablesText) openTablesText.textContent = t('openTables');
   // Update waiting screen text
+  const copyBtn = document.getElementById('copy-code-btn');
+  if(copyBtn) copyBtn.textContent = t('copyCode');
   const waitingTitle = document.getElementById('waiting-title');
   if(waitingTitle) waitingTitle.textContent = t('waiting');
   const waitingHint = document.getElementById('waiting-hint');
@@ -2322,23 +2543,39 @@ const db = firebase.database();
 let isOnline = true;
 const connectedRef = db.ref('.info/connected');
 const offlineIndicator = document.getElementById('offline-indicator');
+const firebaseErrorBanner = document.getElementById('firebase-error-banner');
+const firebaseStatusDot = document.getElementById('firebase-status');
 let offlineTimer = null;
 let hasConnectedOnce = false;
+
+function updateFirebaseStatus(online, errorMsg){
+  if(firebaseStatusDot){
+    firebaseStatusDot.style.background = online ? '#27A55A' : '#E83B3B';
+    firebaseStatusDot.style.boxShadow = online ? '0 0 8px #27A55A' : '0 0 8px #E83B3B';
+  }
+  if(errorMsg && firebaseErrorBanner){
+    document.getElementById('firebase-error-text').textContent = errorMsg;
+    firebaseErrorBanner.style.display = 'block';
+  }
+}
+
 connectedRef.on('value', (snap) => {
   const nowOnline = snap.val() === true;
   if(nowOnline) {
     hasConnectedOnce = true;
     isOnline = true;
+    updateFirebaseStatus(true);
     if(offlineTimer) { clearTimeout(offlineTimer); offlineTimer = null; }
     if(offlineIndicator) offlineIndicator.classList.remove('show');
+    if(firebaseErrorBanner) firebaseErrorBanner.style.display = 'none';
     const bar = document.getElementById('action-bar');
     if(bar) { bar.style.pointerEvents = ''; bar.style.opacity = ''; }
   } else {
-    // Only show offline after 3 seconds (prevents flash on initial load)
     if(!offlineTimer) {
       offlineTimer = setTimeout(() => {
-        if(hasConnectedOnce) { // Only show if we were connected before
+        if(hasConnectedOnce) {
           isOnline = false;
+          updateFirebaseStatus(false);
           if(offlineIndicator) offlineIndicator.classList.add('show');
           showToast(currentLang === 'ru' ? '⚠️ Нет соединения' : '⚠️ Offline', 'warning');
           stopTimer();
@@ -2349,6 +2586,12 @@ connectedRef.on('value', (snap) => {
       }, 3000);
     }
   }
+});
+
+// Catch Firebase auth/permission errors
+db.ref().on('value', () => {}, err => {
+  console.error('Firebase root error:', err);
+  updateFirebaseStatus(false, 'Firebase: ' + (err.message || 'Permission denied'));
 });
 
 const tg = window.Telegram?.WebApp;
@@ -2820,6 +3063,14 @@ function showSettingsScreen(){
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Язык' : 'Language'}</span>
           <span style="font-size:12px;color:var(--accent-gold);font-weight:700;cursor:pointer;" onclick="toggleLanguage(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'RU' : 'EN'}</span>
         </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'ID игрока' : 'Player ID'}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.3);font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${myPlayerId.substring(0,8)}...</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Сбросить ID' : 'Reset ID'}</span>
+          <button style="font-size:12px;color:var(--accent-red);font-weight:700;background:rgba(232,59,59,.15);border:1px solid rgba(232,59,59,.3);padding:4px 10px;border-radius:6px;cursor:pointer;" onclick="resetPlayerId(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'Сброс' : 'Reset'}</button>
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
           <span style="font-size:13px;color:rgba(255,255,255,.7);">${currentLang === 'ru' ? 'Версия' : 'Version'}</span>
           <span style="font-size:12px;color:rgba(255,255,255,.3);">1.0.0</span>
@@ -2948,32 +3199,29 @@ function normalizeState(state){
   return state;
 }
 
-let isJoiningRoom = false;
+// isJoiningRoom removed — using roomRef guard instead
 
 function createRoom(code){
+  console.log('createRoom called:', code);
   if(!validateRoomCode(code)) { showToast('Invalid room code', 'error'); return; }
-  if(roomRef && roomCode === code) return;
-  if(isJoiningRoom) return; // FIX: prevent double subscription
-  isJoiningRoom = true;
+  if(roomRef && roomCode === code) { console.log('Already connected to this room'); return; }
 
-  // FIX: Guaranteed cleanup of old listeners - prevent memory leaks
   const oldRef = roomRef;
   if(oldRef){
     if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
-    oldRef.off(); // Remove ALL listeners from old room
+    oldRef.off();
   }
-  roomRef = null; roomCode = null; // Clear old room code
+  roomRef = null; roomCode = null;
 
   roomRef = db.ref('poker-rooms/'+code);
-  roomCode = code;  // FIX: Set BEFORE creating listener
+  roomCode = code;
 
   const listener = snap=>{
-    if(!roomCode) return;  // FIX: Check we haven't left
+    if(!roomCode || roomCode !== code) return;
     let state=snap.val();
+    console.log('Room listener update, phase:', state && state.phase);
     if(!state) return;
     state = normalizeState(state);
-
-    // FIX: Always recalculate myIndex from current player list
     let foundIdx = state.players.findIndex(p=>p.id===myPlayerId);
     if(foundIdx<0) foundIdx = state.players.findIndex(p=>p.name===myName);
     if(foundIdx>=0) myIndex=foundIdx;
@@ -2981,13 +3229,14 @@ function createRoom(code){
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else if(state.isTournament){
-      _renderGameImpl(state);  // FIX: Direct render for tournament (no debounce needed)
+      _renderGameImpl(state);
       renderTournament(state);
     }
-    else debouncedRenderGame(state);  // FIX: Use debounce for game render
+    else debouncedRenderGame(state);
   };
   roomRef.on('value', listener);
   unsubscribe = listener;
+  console.log('Room listener attached');
 }
 function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 
@@ -3053,17 +3302,19 @@ function backToLobby(){
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
   AudioManager.close();
 
-  // FIX: Save roomCode before nulling it
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
 
-  // FIX: Guaranteed disconnect ALL listeners — use closure to capture old ref
   const oldRef = roomRef;
   if(oldRef){
     if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
-    oldRef.off();  // All listeners
+    oldRef.off();
   }
-  roomRef = null; roomCode = null; isJoiningRoom = false;
+  roomRef = null; roomCode = null;
+
+  if(leavingRoomCode){
+    db.ref('poker-lobby/rooms/' + leavingRoomCode).remove().catch(()=>{});
+  }
 
   if(leavingRoomCode && wasHost){
     db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
@@ -3074,11 +3325,12 @@ function backToLobby(){
       s.ts = Date.now(); return s;
     }).catch(()=>{});
   }
-  roomCode=null; myIndex=-1; isHost=false;
+  myIndex=-1; isHost=false;
   updateLobbyLevel();
   updateLobbyChips();
   syncLobbyAvatar();
   showScreen('lobby');
+  setTimeout(initLobbyTables, 300);
 }
 function reindexPlayers(state, removedIdx){
   const n = state.players.length;
@@ -3114,17 +3366,19 @@ function leaveRoom(){
   if(renderTimeout) clearTimeout(renderTimeout); renderTimeout=null;
   AudioManager.close();
 
-  // FIX: Save roomCode before nulling it
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
 
-  // FIX: Full listener cleanup — use closure
   const oldRef = roomRef;
   if(oldRef){
     if(unsubscribe){ oldRef.off('value', unsubscribe); unsubscribe=null; }
-    oldRef.off();  // All listeners
+    oldRef.off();
   }
-  roomRef = null; roomCode = null; isJoiningRoom = false;
+  roomRef = null; roomCode = null;
+
+  if(leavingRoomCode){
+    db.ref('poker-lobby/rooms/' + leavingRoomCode).remove().catch(()=>{});
+  }
 
   if(leavingRoomCode && wasHost){
     db.ref('poker-rooms/'+leavingRoomCode).transaction(cs => {
@@ -3135,11 +3389,12 @@ function leaveRoom(){
       s.ts = Date.now(); return s;
     }).catch(()=>{});
   }
-  roomCode=null; myIndex=-1; isHost=false;
+  myIndex=-1; isHost=false;
   updateLobbyLevel();
   updateLobbyChips();
   syncLobbyAvatar();
   showScreen('lobby');
+  setTimeout(initLobbyTables, 300);
 }
 
 // ===== DEAL HAND =====
@@ -3391,6 +3646,8 @@ function hostStartGame(){
     dealHand(state);
     state.ts = Date.now();
     return state;
+  }).then(() => {
+    if(roomCode) db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('playing');
   });
 }
 
@@ -4325,6 +4582,10 @@ function renderEnd(state){
   if(state.winners && state.winners.length > 0) AudioManager.winChime();
   if(isEndShown) return;
   isEndShown=true;
+  // Clean up lobby entry when hand ends (room becomes invisible for new joiners)
+  if(roomCode && !state.isTournament){
+    db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('ended').catch(()=>{});
+  }
 
   // Save balance, XP, missions
   const me = state.players.find(p => p.id === myPlayerId);
@@ -4519,6 +4780,218 @@ function renderProfile(){
 // FIX: Hooks removed — stats are now inlined in the original functions above
 
 
+// ===== COPY CODE =====
+function copyRoomCode(){
+  if(!roomCode) return;
+  const btn = document.getElementById('copy-code-btn');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(roomCode).then(() => {
+      if(btn) { btn.textContent = '✅ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000); }
+      showToast('Code copied: ' + roomCode, 'success');
+    }).catch(() => fallbackCopy());
+  } else { fallbackCopy(); }
+  function fallbackCopy(){
+    const ta = document.createElement('textarea');
+    ta.value = roomCode; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); if(btn) { btn.textContent = '✅ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000); } showToast('Code copied: ' + roomCode, 'success'); }
+    catch(e) { showToast('Copy manually: ' + roomCode, 'warning'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function refreshLobbyTables(){
+  const btn = document.getElementById('lobby-refresh-btn');
+  if(btn) btn.style.transform = 'rotate(360deg)';
+  setTimeout(() => { if(btn) btn.style.transform = ''; }, 500);
+  initLobbyTables();
+}
+
+function resetPlayerId(){
+  localStorage.removeItem('poker_player_id');
+  location.reload();
+}
+
+// ===== LOBBY TABLES =====
+let lobbyTablesRef = null;
+let lobbyTablesUnsub = null;
+
+function escapeHtml(text){
+  if(!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function initLobbyTables(){
+  console.log('initLobbyTables called');
+  if(lobbyTablesUnsub && lobbyTablesRef){
+    lobbyTablesRef.off('value', lobbyTablesUnsub);
+    lobbyTablesUnsub = null;
+  }
+  lobbyTablesRef = db.ref('poker-lobby/rooms');
+  lobbyTablesUnsub = lobbyTablesRef.on('value', snap => {
+    const data = snap.val();
+    console.log('Lobby tables data:', data);
+    renderLobbyTables(data);
+  }, err => {
+    console.error('Lobby tables error (silent):', err);
+    // Silent fail - just show empty state, don't scare user with red toast
+    renderLobbyTables(null);
+  });
+}
+
+function renderLobbyTables(rooms){
+  console.log('renderLobbyTables called, rooms:', rooms);
+  const list = document.getElementById('lobby-tables-list');
+  const yourTable = document.getElementById('lobby-your-table');
+  if(!list) return;
+  if(!rooms || Object.keys(rooms).length === 0){
+    list.innerHTML = '<div class="lobby-tables-empty" id="lobby-tables-empty">' + (currentLang === 'ru' ? 'Нет открытых столов' : 'No open tables') + '</div>';
+    if(yourTable) yourTable.style.display = 'none';
+    return;
+  }
+  list.innerHTML = '';
+  let hasOwn = false;
+  const now = Date.now();
+  Object.entries(rooms).forEach(([code, data]) => {
+    const meta = data && data.meta ? data.meta : data;
+    console.log('Processing room:', code, 'meta:', meta);
+    if(!meta || meta.status !== 'waiting') return;
+    if(now - (meta.createdAt || 0) > 15 * 60 * 1000) return;
+
+    if(meta.hostId === myPlayerId){
+      hasOwn = true;
+      if(yourTable){
+        yourTable.style.display = 'block';
+        yourTable.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div class="lt-your-label">${currentLang === 'ru' ? 'Ваш стол' : 'Your Table'}</div>
+            <div class="lt-your-code" onclick="copyRoomCodeFromLobby('${code}')">${code}</div>
+            <div class="lt-your-hint">${meta.playersCount || 1}/${meta.maxPlayers || 4} ${currentLang === 'ru' ? 'игроков' : 'players'} • ${meta.smallBlind || 10}/${meta.bigBlind || 20}</div>
+          </div>
+          <div class="lt-your-actions">
+            <button class="lt-return-btn" onclick="returnToMyTable('${code}')">${currentLang === 'ru' ? 'Вернуться' : 'Return'}</button>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if((meta.playersCount || 0) >= (meta.maxPlayers || 4)) return;
+
+    const card = document.createElement('div');
+    card.className = 'lobby-table-card';
+    const pct = Math.round(((meta.playersCount || 1) / (meta.maxPlayers || 4)) * 100);
+    card.innerHTML = `
+      <div class="lt-header">
+        <div class="lt-host">${escapeHtml(meta.hostName || 'Host')}</div>
+        <div class="lt-blinds">${meta.smallBlind || 10}/${meta.bigBlind || 20}</div>
+      </div>
+      <div class="lt-players">
+        <div class="lt-bar"><div class="lt-fill" style="width:${pct}%"></div></div>
+        <span class="lt-count">${meta.playersCount || 1}/${meta.maxPlayers || 4}</span>
+      </div>
+      <button class="lt-join-btn" data-code="${code}" id="join-btn-${code}">${currentLang === 'ru' ? 'Войти' : 'Join'}</button>
+    `;
+    const btn = card.querySelector('.lt-join-btn');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Join button clicked for code:', code);
+      btn.textContent = currentLang === 'ru' ? '...' : '...';
+      btn.style.opacity = '0.6';
+      btn.disabled = true;
+      joinTableByCode(code).finally(() => {
+        btn.textContent = currentLang === 'ru' ? 'Войти' : 'Join';
+        btn.style.opacity = '';
+        btn.disabled = false;
+      });
+    });
+    list.appendChild(card);
+  });
+  if(!hasOwn && yourTable) yourTable.style.display = 'none';
+  if(list.children.length === 0){
+    list.innerHTML = '<div class="lobby-tables-empty" id="lobby-tables-empty">' + (currentLang === 'ru' ? 'Нет открытых столов' : 'No open tables') + '</div>';
+  }
+}
+
+function copyRoomCodeFromLobby(code){
+  const el = document.createElement('textarea');
+  el.value = code; el.style.position = 'fixed'; el.style.opacity = '0';
+  document.body.appendChild(el); el.select(); el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); showToast('Code copied: ' + code, 'success'); }
+  catch(e) { showToast('Code: ' + code, 'info'); }
+  document.body.removeChild(el);
+}
+
+function returnToMyTable(code){
+  if(roomCode === code && roomRef){
+    showScreen('waiting');
+    return;
+  }
+  roomCode = code; isHost = true;
+  const myChips = getBalance();
+  db.ref('poker-rooms/' + code).once('value').then(snap => {
+    const state = normalizeState(snap.val());
+    if(state){
+      myIndex = state.players.findIndex(p => p.id === myPlayerId);
+      if(myIndex < 0) myIndex = 0;
+    }
+    showScreen('waiting');
+    createRoom(code);
+  });
+}
+
+function joinTableByCode(code){
+  console.log('joinTableByCode called with:', code, 'myPlayerId:', myPlayerId);
+  if(!validateRoomCode(code)) { console.log('Invalid code'); return Promise.reject('invalid'); }
+  const myChips = getBalance();
+  const roomRefCheck = db.ref('poker-rooms/' + code);
+
+  return roomRefCheck.once('value').then(snap => {
+    console.log('Room snapshot:', snap.val());
+    const state = normalizeState(snap.val());
+    if(!state) { console.log('Room not found'); showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
+    if(state.phase !== 'waiting') { console.log('Game already started'); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
+    if(state.players.length >= 4) { console.log('Room full'); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
+    if(state.players.some(p => p.id === myPlayerId)) { console.log('Already in room'); showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
+
+    console.log('Joining room, myChips:', myChips);
+    return db.ref('poker-rooms/' + code).transaction(currentState => {
+      if(!currentState) return;
+      let s = normalizeState(currentState);
+      if(s.phase !== 'waiting' || s.players.length >= 4) return;
+      s.players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
+      s.ts = Date.now();
+      return s;
+    });
+  }).then(result => {
+    console.log('Transaction result:', result);
+    if(result && result.committed){
+      console.log('Join committed, updating lobby meta');
+      db.ref('poker-lobby/rooms/' + code + '/meta').transaction(m => {
+        if(!m) return;
+        m.playersCount = (m.playersCount || 0) + 1;
+        m.lastActivity = Date.now();
+        return m;
+      });
+      roomCode = code; isHost = false;
+      console.log('Switching to waiting screen, creating room listener');
+      showScreen('waiting');
+      createRoom(code);
+      console.log('createRoom called');
+    } else {
+      console.log('Transaction not committed:', result);
+      showToast(currentLang === 'ru' ? 'Не удалось присоединиться' : 'Failed to join', 'warning');
+    }
+  }).catch(err => {
+    if(typeof err === 'string') { console.log('Expected error:', err); return; }
+    console.error('Join table error:', err);
+    showToast(currentLang === 'ru' ? 'Ошибка подключения' : 'Connection error', 'error');
+  });
+}
+
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
   console.log('DOMContentLoaded start');
@@ -4560,6 +5033,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   document.getElementById('host-btn').addEventListener('click',()=>{
     const code=genCode();
+    console.log('Creating room:', code, 'playerId:', myPlayerId);
     roomCode=code; isHost=true; myIndex=0;
     document.getElementById('my-room-id').textContent=code;
     document.getElementById('waiting-code').textContent=code;
@@ -4574,7 +5048,24 @@ document.addEventListener('DOMContentLoaded',()=>{
       currentPlayer:-1,lastRaiser:-1,lastBet:0,winners:null,
       turnStartedAt:Date.now(),ts:Date.now()
     };
-    saveRoom(state).then(()=>{ showScreen('waiting'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to create room'), 'error'); });
+    saveRoom(state).then(()=>{
+      console.log('Room saved to poker-rooms');
+      // Publish to lobby listing
+      db.ref('poker-lobby/rooms/' + code + '/meta').set({
+        code: code,
+        hostName: myName,
+        hostId: myPlayerId,
+        playersCount: 1,
+        maxPlayers: 4,
+        status: 'waiting',
+        smallBlind: SMALL_BLIND,
+        bigBlind: BIG_BLIND,
+        createdAt: Date.now(),
+        lastActivity: Date.now()
+      }).then(() => console.log('Lobby meta saved'))
+        .catch(err => { console.error('Lobby meta failed:', err); showToast('Lobby list error: ' + (err.message || 'check rules'), 'error'); });
+      showScreen('waiting'); createRoom(code);
+    }).catch(err=>{ console.error('Create room error:', err); showToast('Error: '+(err?.message||'Failed to create room'), 'error'); });
   });
 
   // FIX: Removed broken 'join-btn' listener (element doesn't exist in HTML)
@@ -4627,6 +5118,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Показать onboarding
   setTimeout(showOnboarding, 800);
+  initLobbyTables();
   console.log('DOMContentLoaded end');
 });
 
