@@ -879,14 +879,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 /* ===== GAME — PREMIUM REDESIGN ===== */
 
 #game-screen {
-  padding: max(4px, env(safe-area-inset-top)) 4px max(60px, env(safe-area-inset-bottom) + 52px); /* Space for fixed action bar */
-  justify-content: flex-start; /* Stack from top */
+  padding: max(4px, env(safe-area-inset-top)) 4px max(60px, env(safe-area-inset-bottom) + 52px);
+  justify-content: flex-start;
   align-items: center;
   position: relative;
-  background: #080B14;
+  background: radial-gradient(ellipse at 50% 30%, #2a0a0a 0%, #0d0505 50%, #050303 100%);
   min-height: 100vh;
-  gap: 0; /* NO gap between elements */
-  overflow-y: hidden; /* No scroll, fit everything */
+  gap: 0;
+  overflow-y: hidden;
 }
 
 /* Ambient glow behind the table */
@@ -896,9 +896,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   top: 20%;
   left: 50%;
   transform: translateX(-50%);
-  width: 380px;
-  height: 280px;
-  background: radial-gradient(ellipse, rgba(14,80,40,.55) 0%, transparent 75%);
+  width: 420px;
+  height: 320px;
+  background: radial-gradient(ellipse, rgba(180,30,30,.25) 0%, rgba(100,15,15,.1) 40%, transparent 75%);
   pointer-events: none;
   z-index: 0;
 }
@@ -953,13 +953,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 }
 .timer-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--emerald), #5df0a8);
+  background: linear-gradient(90deg, #f5b800, #ffd700);
   width: 100%;
   transition: width 1s linear;
   border-radius: 2px;
 }
 .timer-bar.urgent {
-  background: linear-gradient(90deg, var(--red), #ff7070);
+  background: linear-gradient(90deg, #dc2626, #ff6b6b);
   animation: urgent-pulse .5s infinite;
 }
 @keyframes urgent-pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
@@ -969,73 +969,80 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 .table-felt {
   width: 100%;
-  max-width: min(320px, 80vw);
-  aspect-ratio: 16/14;
-  max-height: 28vh;
+  max-width: min(340px, 85vw);
+  aspect-ratio: 16/13;
+  max-height: 30vh;
   background:
-    radial-gradient(ellipse 70% 60% at 50% 52%, #1a5c34 0%, #0e3d20 55%, #081a0e 100%);
-  border-radius: 50% / 45%;
+    radial-gradient(ellipse 75% 65% at 50% 50%, #b91c1c 0%, #7f1d1d 40%, #450a0a 100%);
+  border-radius: 50% / 42%;
   box-shadow:
-    0 0 0 8px #050a07,
-    0 0 0 11px #1a2e1c,
-    0 0 0 13px rgba(200,168,75,.18),
-    inset 0 0 100px rgba(0,0,0,.55),
-    inset 0 2px 0 rgba(255,255,255,.04),
-    0 16px 48px rgba(0,0,0,.7);
+    0 0 0 6px #1a0505,
+    0 0 0 9px #2d0a0a,
+    0 0 0 11px rgba(200,168,75,.22),
+    inset 0 0 80px rgba(0,0,0,.5),
+    inset 0 2px 0 rgba(255,255,255,.06),
+    0 20px 60px rgba(0,0,0,.8);
   border: none;
   position: relative;
   margin: 0 auto;
   flex-shrink: 0;
 }
 
-/* Subtle felt texture via repeating pattern */
+/* Velvet texture overlay */
 .table-felt::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50% / 45%;
+  border-radius: 50% / 42%;
   background:
     repeating-linear-gradient(
-      45deg,
+      0deg,
       transparent,
-      transparent 3px,
-      rgba(255,255,255,.008) 3px,
-      rgba(255,255,255,.008) 6px
+      transparent 2px,
+      rgba(0,0,0,.04) 2px,
+      rgba(0,0,0,.04) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.03) 2px,
+      rgba(0,0,0,.03) 4px
     );
   pointer-events: none;
+  mix-blend-mode: multiply;
 }
 
-/* Inner glow ring on felt */
+/* Inner gold rim */
 .table-felt::after {
   content: '';
   position: absolute;
-  inset: 6%;
+  inset: 5%;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.04);
+  border: 1.5px solid rgba(200,168,75,.15);
   pointer-events: none;
+  box-shadow: inset 0 0 20px rgba(0,0,0,.3);
 }
 
 /* ── POT ── */
 .pot-display {
   position: absolute;
-  top: 10%;
+  top: 12%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: clamp(8px, 2.5vw, 11px);
+  font-size: clamp(9px, 2.5vw, 12px);
   font-weight: 800;
   color: var(--gold-light);
   letter-spacing: .5px;
   z-index: 5;
-  background: rgba(0,0,0,.6);
-  border: 1px solid rgba(200,168,75,.25);
-  padding: 2px 8px;
-  border-radius: 10px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 12px rgba(200,168,75,.12);
+  background: rgba(10,5,5,.75);
+  border: 1px solid rgba(200,168,75,.3);
+  padding: 3px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5), 0 0 12px rgba(200,168,75,.15);
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
-/* No emoji - using text only for reliability */
-.pot-display { padding-left: 14px; }
 
 /* ── COMMUNITY CARDS ── */
 .community-cards {
@@ -1053,7 +1060,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   height: 68px;
   font-size: 16px;
   animation: dealCard .4s cubic-bezier(.4,0,.2,1) both;
-  box-shadow: 0 6px 20px rgba(0,0,0,.6), 0 2px 4px rgba(0,0,0,.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.15);
 }
 .community-cards .card-placeholder {
   width: 46px;
@@ -1193,6 +1200,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   display: flex; 
   gap: 4px; 
   justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.6));
 }
 .player-pos.folded { opacity: .3; filter: grayscale(1); }
 .player-pos.folded .p-name { text-decoration: line-through; }
@@ -1338,15 +1346,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 
 /* Card back — dark navy with subtle diamond pattern */
 .card-back {
-  background: linear-gradient(145deg, #15274a 0%, #0d1a33 100%);
-  border: 1px solid rgba(200,168,75,.2);
+  background: linear-gradient(145deg, #1a0a2e 0%, #0f0618 100%);
+  border: 1px solid rgba(200,168,75,.25);
   box-shadow: 0 6px 18px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
 }
 .card-back::before {
   content: '';
   position: absolute;
   inset: 4px;
-  border: 1px solid rgba(200,168,75,.15);
+  border: 1px solid rgba(200,168,75,.18);
   border-radius: 8px;
 }
 .card-back::after {
@@ -1357,7 +1365,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: rgba(200,168,75,.18);
+  color: rgba(200,168,75,.22);
 }
 
 /* ── EXIT BUTTON ── */
@@ -1400,16 +1408,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(6,8,16,.95);
-  border-top: 1px solid rgba(255,255,255,.08);
-  border-radius: 8px 8px 0 0;
-  backdrop-filter: blur(24px);
+  background: rgba(15,5,5,.97);
+  border-top: 1px solid rgba(200,168,75,.12);
+  border-radius: 12px 12px 0 0;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   padding-bottom: max(3px, env(safe-area-inset-bottom));
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+  box-shadow: 0 -4px 24px rgba(0,0,0,.5);
 }
 
 .action-btn {
