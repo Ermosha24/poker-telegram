@@ -12,10 +12,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap');
 
 :root{
-  --bg:#0d1f0d;
-  --felt:#1a5c2e;
-  --felt-dark:#0f3d1a;
-  --felt-light:#2a7c42;
+  --bg:#1a0a0a;
+  --felt:#8B1A1A;
+  --felt-dark:#5C0A0A;
+  --felt-light:#B22222;
   --accent-gold:#F5B800;
   --accent-gold-light:#FFD700;
   --accent-red:#E83B3B;
@@ -53,7 +53,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .screen.active{display:flex;opacity:1;transform:translateY(0);}
 
 /* ===== SPLASH ===== */
-#splash-screen{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a4a2a 0%,#0a1f0a 100%);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s;}
+#splash-screen{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#4A1A1A 0%,#1A0A0A 100%);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s;}
 #splash-screen.hide{opacity:0;pointer-events:none;z-index:-1;transition:opacity .6s;}
 /* Fallback: auto-hide after 5s if JS fails */
 @keyframes splashFallback{0%,90%{opacity:1;}100%{opacity:0;pointer-events:none;z-index:-1;}}
@@ -894,7 +894,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   transform: translateX(-50%);
   width: 380px;
   height: 280px;
-  background: radial-gradient(ellipse, rgba(14,80,40,.55) 0%, transparent 75%);
+  background: radial-gradient(ellipse, rgba(139,26,42,.55) 0%, transparent 75%);
   pointer-events: none;
   z-index: 0;
 }
@@ -969,7 +969,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   aspect-ratio: 16/14;
   max-height: 28vh;
   background:
-    radial-gradient(ellipse 70% 60% at 50% 52%, #1a5c34 0%, #0e3d20 55%, #081a0e 100%);
+    radial-gradient(ellipse 70% 60% at 50% 52%, #8B1A2A 0%, #5C0A15 55%, #2A0508 100%);
   border-radius: 50% / 45%;
   box-shadow:
     0 0 0 8px #050a07,
@@ -1058,10 +1058,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   border: 1.5px dashed rgba(255,255,255,.1);
   background: rgba(0,0,0,.2);
 }
-@keyframes dealCard {
-  from { opacity: 0; transform: translateY(-24px) scale(.82) rotateX(15deg); }
-  to   { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
-}
+@keyframes dealCard{from{opacity:0;transform:translateX(60px) translateY(-30px) scale(.6) rotateY(90deg);}to{opacity:1;transform:translateX(0) translateY(0) scale(1) rotateY(0deg);}}
 
 /* ── STRENGTH METER ── */
 .strength-meter {
@@ -1099,9 +1096,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
   border-radius: 2px;
   transition: width .5s cubic-bezier(.4,0,.2,1);
 }
-.strength-bar-fill.high   { background: linear-gradient(90deg, var(--emerald), #5df0a8); }
-.strength-bar-fill.medium { background: linear-gradient(90deg, var(--gold), #ffcc40); }
-.strength-bar-fill.low    { background: linear-gradient(90deg, var(--red), #ff7070); }
+.strength-bar-fill.very-strong { background: linear-gradient(90deg, #2aff8e, #5df0a8); }
+.strength-bar-fill.strong   { background: linear-gradient(90deg, var(--emerald), #5df0a8); }
+.strength-bar-fill.medium   { background: linear-gradient(90deg, var(--gold), #ffcc40); }
+.strength-bar-fill.weak     { background: linear-gradient(90deg, #e67e22, #f39c12); }
+.strength-bar-fill.very-weak { background: linear-gradient(90deg, var(--red), #ff7070); }
 .strength-text  { font-size: 8px; font-weight: 800; color: #fff; }
 .strength-label { font-size: 8px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; display: flex; align-items: center; gap: 3px; }
 
@@ -1653,6 +1652,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
 .toggle-switch.active{background:var(--accent-gold);border-color:rgba(200,168,75,.4);}
 .toggle-knob{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:3px;transition:left .25s,box-shadow .25s;box-shadow:0 1px 4px rgba(0,0,0,.3);}
 .toggle-switch.active .toggle-knob{left:23px;box-shadow:0 1px 6px rgba(0,0,0,.3),0 0 8px rgba(200,168,75,.3);}
+
+/* ===== CHIP ANIMATION ===== */
+.chip-fly{position:fixed;width:24px;height:24px;border-radius:50%;z-index:200;pointer-events:none;animation:chipFly .5s cubic-bezier(.2,0,.2,1) forwards;}
+.chip-fly.gold{background:radial-gradient(circle at 35% 35%,#FFD700,#B8860B);border:2px solid #DAA520;box-shadow:0 2px 8px rgba(218,165,32,.5);}
+.chip-fly.red{background:radial-gradient(circle at 35% 35%,#E83B3B,#8B1A1A);border:2px solid #C0392B;box-shadow:0 2px 8px rgba(192,57,43,.5);}
+.chip-fly.blue{background:radial-gradient(circle at 35% 35%,#3498DB,#1A5276);border:2px solid #2E86C1;box-shadow:0 2px 8px rgba(46,134,193,.5);}
+@keyframes chipFly{from{opacity:1;transform:scale(1);}to{opacity:0;transform:scale(.5);}}
+.chip-win{position:fixed;width:24px;height:24px;border-radius:50%;z-index:200;pointer-events:none;animation:chipWin .6s cubic-bezier(.2,0,.2,1) forwards;}
+.chip-win.gold{background:radial-gradient(circle at 35% 35%,#FFD700,#B8860B);border:2px solid #DAA520;box-shadow:0 2px 8px rgba(218,165,32,.5);}
+@keyframes chipWin{from{opacity:1;transform:scale(1);}to{opacity:0;transform:scale(.3);}}
 @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 
 /* PARTICLES */
@@ -2035,7 +2044,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#fff;min-height:1
       <div class="lobby-mode-title" id="join-title">Join</div>
       <div class="lobby-mode-desc" id="join-desc">Enter code and join friends.</div>
     </div>
-    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="startTournament()" role="button" tabindex="0" aria-label="Start tournament">
+    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="showTournamentSelect()" role="button" tabindex="0" aria-label="Start tournament">
       <div class="lobby-mode-icon">🏆</div>
       <div class="lobby-mode-title" id="tourney-title">Tournament</div>
       <div class="lobby-mode-desc" id="tourney-desc">Sit & Go 4 players. Blinds rise!</div>
@@ -3869,6 +3878,24 @@ const AudioManager = {
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.25);
+  },
+
+  // Chip stack - multiple quick clicks simulating stacking chips
+  chipStack(){
+    if(!this.isEnabled()) return;
+    this.ensureContext();
+    const ctx=this.ctx;
+    for(let i=0;i<3;i++){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.value=800+i*200;
+      gain.gain.setValueAtTime(0.08,ctx.currentTime+i*0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.06+0.08);
+      osc.start(ctx.currentTime+i*0.06);
+      osc.stop(ctx.currentTime+i*0.06+0.08);
+    }
   }
 };
 
@@ -3882,6 +3909,54 @@ function haptic(type){
     else if(type === 'warning') tg.HapticFeedback.notificationOccurred('warning');
     else tg.HapticFeedback.impactOccurred(type === 'heavy' ? 'heavy' : 'light');
   } catch(e){}
+}
+
+// ===== CHIP ANIMATION =====
+function animateChipsToPot(fromEl){
+  if(!fromEl) return;
+  const potEl=document.getElementById('pot-display');
+  if(!potEl) return;
+  const fr=fromEl.getBoundingClientRect(),tr=potEl.getBoundingClientRect();
+  const colors=['gold','red','blue'];
+  for(let i=0;i<3;i++){
+    const chip=document.createElement('div');
+    chip.className='chip-fly '+colors[i%3];
+    chip.style.left=(fr.left+fr.width/2-12)+'px';
+    chip.style.top=(fr.top+fr.height/2-12)+'px';
+    chip.style.animation='none';
+    document.body.appendChild(chip);
+    requestAnimationFrame(()=>{
+      chip.style.transition='left .4s cubic-bezier(.2,0,.2,1),top .4s cubic-bezier(.2,0,.2,1),opacity .4s,transform .4s';
+      chip.style.left=(tr.left+tr.width/2-12)+'px';
+      chip.style.top=(tr.top+tr.height/2-12)+'px';
+      chip.style.opacity='0.3';
+      chip.style.transform='scale(.5)';
+    });
+    setTimeout(()=>chip.remove(),600);
+  }
+}
+function animateChipsToWinner(toEl){
+  if(!toEl) return;
+  const potEl=document.getElementById('pot-display');
+  if(!potEl) return;
+  const fr=potEl.getBoundingClientRect(),tr=toEl.getBoundingClientRect();
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{
+      const chip=document.createElement('div');
+      chip.className='chip-win gold';
+      chip.style.left=(fr.left+fr.width/2-12)+'px';
+      chip.style.top=(fr.top+fr.height/2-12)+'px';
+      document.body.appendChild(chip);
+      requestAnimationFrame(()=>{
+        chip.style.transition='left .5s cubic-bezier(.2,0,.2,1),top .5s cubic-bezier(.2,0,.2,1),opacity .5s,transform .5s';
+        chip.style.left=(tr.left+tr.width/2-12+Math.random()*20-10)+'px';
+        chip.style.top=(tr.top+tr.height/2-12+Math.random()*20-10)+'px';
+        chip.style.opacity='0';
+        chip.style.transform='scale(.3)';
+      });
+      setTimeout(()=>chip.remove(),700);
+    },i*100);
+  }
 }
 
 // ===== BETTING SLIDER =====
@@ -4032,6 +4107,110 @@ let settingsSound = localStorage.getItem('poker_sound') !== 'false';
 let settingsNotif = localStorage.getItem('poker_notif') !== 'false';
 let settingsVibro = localStorage.getItem('poker_vibro') !== 'false';
 
+// ===== PLAYER STATS =====
+let playerStats = JSON.parse(localStorage.getItem('poker_stats') || '{}');
+if(!playerStats.hands) playerStats = {hands:0,wins:0,vpipHands:0,aggressiveActions:0,folds:0,showdowns:0,showdownWins:0,biggestPot:0,bestHand:'',royalFlushes:0,straightFlushes:0,fourOfAKinds:0,fullHouses:0,flushes:0,straightes:0,threeOfAKinds:0,twoPairs:0,pairs:0,achievements:[]};
+function saveStats(){localStorage.setItem('poker_stats',JSON.stringify(playerStats));}
+function recordHandResult(won,pot,handName,isVPIP,isAggressive,wentToShowdown){
+  playerStats.hands++;
+  if(won) playerStats.wins++;
+  if(isVPIP) playerStats.vpipHands++;
+  if(isAggressive) playerStats.aggressiveActions++;
+  if(wentToShowdown){playerStats.showdowns++;if(won)playerStats.showdownWins++;}
+  if(won && pot>playerStats.biggestPot) playerStats.biggestPot=pot;
+  if(handName){
+    const h=handName.toLowerCase();
+    if(h.includes('royal'))playerStats.royalFlushes++;
+    else if(h.includes('straight flush'))playerStats.straightFlushes++;
+    else if(h.includes('four'))playerStats.fourOfAKinds++;
+    else if(h.includes('full house'))playerStats.fullHouses++;
+    else if(h.includes('flush'))playerStats.flushes++;
+    else if(h.includes('straight'))playerStats.straightes++;
+    else if(h.includes('three'))playerStats.threeOfAKinds++;
+    else if(h.includes('two pair'))playerStats.twoPairs++;
+    else if(h.includes('pair'))playerStats.pairs++;
+  }
+  checkNewAchievements();
+  saveStats();
+}
+
+// ===== ACHIEVEMENT SYSTEM =====
+const NEW_ACHIEVEMENTS=[
+  {id:'first_win',name:currentLang==='ru'?'Первая победа':'First Win',desc:currentLang==='ru'?'Выиграй свою первую руку':'Win your first hand',icon:'🏆'},
+  {id:'royal_flush',name:currentLang==='ru'?'Роял-флеш':'Royal Flush',desc:currentLang==='ru'?'Собери роял-флеш':'Get a royal flush',icon:'👑'},
+  {id:'bluff_master',name:currentLang==='ru'?'Блеф-мастер':'Bluff Master',desc:currentLang==='ru'?'Выиграй 10 рук с слабой рукой':'Win 10 hands with weak hand',icon:'🎭'},
+  {id:'tournament_king',name:currentLang==='ru'?'Король турниров':'Tournament King',desc:currentLang==='ru'?'Выиграй 5 турниров':'Win 5 tournaments',icon:'👑'},
+  {id:'high_roller',name:currentLang==='ru'?'Хайроллер':'High Roller',desc:currentLang==='ru'?'Выиграй банк больше 10000':'Win a pot over 10,000',icon:'💰'},
+  {id:'marathon',name:currentLang==='ru'?'Марафонец':'Marathon',desc:currentLang==='ru'?'Сыграй 100 рук':'Play 100 hands',icon:'🏃'},
+  {id:'shark',name:currentLang==='ru'?'Акула':'Shark',desc:currentLang==='ru'?'VPIP больше 60%':'VPIP over 60%',icon:'🦈'},
+  {id:'rock',name:currentLang==='ru'?'Скала':'The Rock',desc:currentLang==='ru'?'VPIP меньше 20% за 50+ рук':'VPIP under 20% over 50+ hands',icon:'🪨'},
+];
+let unlockedAchievements=JSON.parse(localStorage.getItem('poker_achievements')||'[]');
+function checkNewAchievements(){
+  const s=playerStats;
+  const tryUnlock=(id)=>{if(!unlockedAchievements.includes(id)){unlockedAchievements.push(id);localStorage.setItem('poker_achievements',JSON.stringify(unlockedAchievements));showAchievementPopup(id);}};
+  if(s.wins>=1)tryUnlock('first_win');
+  if(s.royalFlushes>=1)tryUnlock('royal_flush');
+  if(s.biggestPot>=10000)tryUnlock('high_roller');
+  if(s.hands>=100)tryUnlock('marathon');
+  if(s.hands>=50){const vpip=s.vpipHands/s.hands*100;if(vpip>60)tryUnlock('shark');if(vpip<20)tryUnlock('rock');}
+}
+function showAchievementPopup(id){
+  const a=NEW_ACHIEVEMENTS.find(x=>x.id===id);if(!a)return;
+  const popup=document.createElement('div');
+  popup.style.cssText='position:fixed;top:20%;left:50%;transform:translateX(-50%);z-index:500;background:linear-gradient(135deg,rgba(200,168,75,.95),rgba(139,26,42,.95));border:2px solid #FFD700;border-radius:20px;padding:20px 30px;text-align:center;animation:fadeIn .5s;backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,0,0,.6);';
+  popup.innerHTML=`<div style="font-size:40px;margin-bottom:8px">${a.icon}</div><div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">${currentLang==='ru'?'Достижение!':'Achievement!'}</div><div style="font-size:16px;font-weight:800;color:#fff">${a.name}</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:4px">${a.desc}</div>`;
+  document.body.appendChild(popup);
+  AudioManager.winChime();
+  haptic('win');
+  setTimeout(()=>{popup.style.opacity='0';popup.style.transition='opacity .5s';setTimeout(()=>popup.remove(),500);},3000);
+}
+
+// ===== SIT & GO FORMAT =====
+let tournamentBlindLevel=1;
+let tournamentHandsPlayed=0;
+const HANDS_PER_LEVEL=10;
+const BLIND_LEVELS=[10,15,25,50,75,100,150,200,300,500,750,1000,1500,2000,3000];
+function getCurrentTournamentBlinds(){
+  const idx=Math.min(tournamentBlindLevel-1,BLIND_LEVELS.length-1);
+  const bb=BLIND_LEVELS[idx];
+  return{small:Math.floor(bb/2),big:bb};
+}
+
+// ===== LOBBY MUSIC =====
+const LobbyMusic={
+  ctx:null,playing:false,nodes:[],
+  start(){
+    if(this.playing) return;
+    try{
+      if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const ctx=this.ctx;
+      const freqs=[261.6,329.6,392,523.3];
+      freqs.forEach(f=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        const filter=ctx.createBiquadFilter();
+        osc.type='sine';osc.frequency.value=f;
+        filter.type='lowpass';filter.frequency.value=800;
+        gain.gain.value=0.015;
+        osc.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
+        osc.start();
+        this.nodes.push({osc,gain});
+      });
+      this.playing=true;
+    }catch(e){}
+  },
+  stop(){
+    this.nodes.forEach(n=>{try{n.osc.stop();}catch(e){}});
+    this.nodes=[];
+    this.playing=false;
+  },
+  toggle(){
+    if(this.playing)this.stop();else this.start();
+    return this.playing;
+  }
+};
+
 function toggleSetting(key, callback){
   if(key === 'sound'){
     settingsSound = !settingsSound;
@@ -4065,6 +4244,10 @@ function showSettingsScreen(){
           <div id="toggle-sound" class="toggle-switch ${settingsSound ? 'active' : ''}" onclick="toggleSetting('sound',()=>{const el=document.getElementById('toggle-sound');el.classList.toggle('active');haptic('light')})"><div class="toggle-knob"></div></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.08);">
+          <span style="font-size:14px;color:rgba(255,255,255,.85);">🎵 ${currentLang === 'ru' ? 'Музыка' : 'Music'}</span>
+          <div id="toggle-music" class="toggle-switch ${LobbyMusic.playing ? 'active' : ''}" onclick="LobbyMusic.toggle();document.getElementById('toggle-music').classList.toggle('active');haptic('light')"><div class="toggle-knob"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.08);">
           <span style="font-size:14px;color:rgba(255,255,255,.85);">🔔 ${currentLang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
           <div id="toggle-notif" class="toggle-switch ${settingsNotif ? 'active' : ''}" onclick="toggleSetting('notif',()=>{const el=document.getElementById('toggle-notif');el.classList.toggle('active');haptic('light')})"><div class="toggle-knob"></div></div>
         </div>
@@ -4076,9 +4259,13 @@ function showSettingsScreen(){
           <span style="font-size:14px;color:rgba(255,255,255,.85);">🌐 ${currentLang === 'ru' ? 'Язык' : 'Language'}</span>
           <span style="font-size:13px;color:var(--accent-gold);font-weight:700;cursor:pointer;padding:4px 10px;border-radius:6px;background:rgba(200,168,75,.12);border:1px solid var(--border-gold);" onclick="toggleLanguage(); document.getElementById('settings-modal').remove(); showSettingsScreen();">${currentLang === 'ru' ? 'RU' : 'EN'}</span>
         </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;" onclick="document.getElementById('settings-modal').remove();showStatsScreen();">
+          <span style="font-size:14px;color:rgba(255,255,255,.85);">📊 ${currentLang === 'ru' ? 'Статистика' : 'Statistics'}</span>
+          <span style="font-size:18px;color:var(--accent-gold);">›</span>
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px;">
           <span style="font-size:14px;color:rgba(255,255,255,.85);">📋 ${currentLang === 'ru' ? 'Версия' : 'Version'}</span>
-          <span style="font-size:13px;color:rgba(255,255,255,.3);">1.1.0</span>
+          <span style="font-size:13px;color:rgba(255,255,255,.3);">2.0.0</span>
         </div>
       </div>
       <button class="daily-modal-btn" onclick="document.getElementById('settings-modal').remove()">${currentLang === 'ru' ? 'Закрыть' : 'Close'}</button>
@@ -4088,6 +4275,69 @@ function showSettingsScreen(){
 }
 function showToastProfile(){ showToast(t('navProfile') + ' soon'); }
 function showToastShop(){ showToast(t('navShop') + ' soon'); }
+
+// ===== STATS SCREEN =====
+function showStatsScreen(){
+  const existing = document.getElementById('stats-modal');
+  if(existing) existing.remove();
+  const s = playerStats;
+  const vpip = s.hands > 0 ? Math.round(s.vpipHands/s.hands*100) : 0;
+  const winRate = s.hands > 0 ? Math.round(s.wins/s.hands*100) : 0;
+  const sdWin = s.showdowns > 0 ? Math.round(s.showdownWins/s.showdowns*100) : 0;
+  const statsModal = document.createElement('div');
+  statsModal.className = 'daily-modal';
+  statsModal.id = 'stats-modal';
+  statsModal.innerHTML = `
+    <div class="daily-modal-content" style="max-width:380px;max-height:80vh;overflow-y:auto;">
+      <div class="daily-modal-icon">📊</div>
+      <div class="daily-modal-title">${currentLang==='ru'?'Статистика':'Statistics'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--gold)">${s.hands}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${currentLang==='ru'?'Рук сыграно':'Hands'}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--emerald)">${s.wins}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${currentLang==='ru'?'Побед':'Wins'}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--accent-blue)">${winRate}%</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${currentLang==='ru'?'Винрейт':'Win Rate'}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:#e67e22">${vpip}%</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">VPIP</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:#9b59b6">${sdWin}%</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${currentLang==='ru'?'SD Винрейт':'SD Win%'}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--gold)">${s.biggestPot}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${currentLang==='ru'?'Макс. банк':'Max Pot'}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:700;">${currentLang==='ru'?'Комбинации':'Hand Types'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;">
+        <span style="background:rgba(139,26,42,.3);border:1px solid rgba(139,26,42,.5);border-radius:8px;padding:4px 8px;font-size:10px;">👑 Royal: ${s.royalFlushes}</span>
+        <span style="background:rgba(139,26,42,.3);border:1px solid rgba(139,26,42,.5);border-radius:8px;padding:4px 8px;font-size:10px;">🌈 SF: ${s.straightFlushes}</span>
+        <span style="background:rgba(200,168,75,.15);border:1px solid rgba(200,168,75,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🎰 4K: ${s.fourOfAKinds}</span>
+        <span style="background:rgba(200,168,75,.15);border:1px solid rgba(200,168,75,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🏠 FH: ${s.fullHouses}</span>
+        <span style="background:rgba(61,142,232,.15);border:1px solid rgba(61,142,232,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🌊 Flush: ${s.flushes}</span>
+        <span style="background:rgba(39,165,90,.15);border:1px solid rgba(39,165,90,.3);border-radius:8px;padding:4px 8px;font-size:10px;">📐 Str: ${s.straightes}</span>
+        <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;font-size:10px;">3K: ${s.threeOfAKinds}</span>
+        <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;font-size:10px;">2P: ${s.twoPairs}</span>
+        <span style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:4px 8px;font-size:10px;">P: ${s.pairs}</span>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:700;">${currentLang==='ru'?'Достижения':'Achievements'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+        ${NEW_ACHIEVEMENTS.map(a => `<div style="background:${unlockedAchievements.includes(a.id)?'rgba(200,168,75,.2)':'rgba(255,255,255,.04)'};border:1px solid ${unlockedAchievements.includes(a.id)?'rgba(200,168,75,.4)':'rgba(255,255,255,.08)'};border-radius:10px;padding:8px;text-align:center;width:70px;${unlockedAchievements.includes(a.id)?'':'opacity:.4;'}"><div style="font-size:20px">${a.icon}</div><div style="font-size:8px;margin-top:2px;color:rgba(255,255,255,.6)">${a.name}</div></div>`).join('')}
+      </div>
+      <button class="daily-modal-btn" onclick="document.getElementById('stats-modal').remove()">${currentLang==='ru'?'Закрыть':'Close'}</button>
+    </div>
+  `;
+  document.body.appendChild(statsModal);
+}
 function showShopScreen(){
   // Placeholder shop screen
   const shopModal = document.createElement('div');
@@ -4506,28 +4756,61 @@ const TOURNEY_BLINDS = [
   {sb:60, bb:120}, {sb:100, bb:200}, {sb:150, bb:300}, {sb:250, bb:500}
 ];
 
-function startTournament(){
+function startTournament(numPlayers){
+  const playerCount = numPlayers || 4;
   const code = genCode();
   roomCode = code; isHost = true; myIndex = 0;
   const myChips = getBalance();
-  const blinds = TOURNEY_BLINDS[0];
-  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: blinds.sb, bigBlind: blinds.bb });
-  Poker.addPlayer(state, 'bot_1', '🤖 Бот 1', myChips);
-  Poker.addPlayer(state, 'bot_2', '🤖 Бот 2', myChips);
-  Poker.addPlayer(state, 'bot_3', '🤖 Бот 3', myChips);
-  state.players[1].isBot = true;
-  state.players[2].isBot = true;
-  state.players[3].isBot = true;
+  const blinds = getCurrentTournamentBlinds();
+  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: blinds.small, bigBlind: blinds.big });
+  const botCount = playerCount - 1;
+  for(let i = 1; i <= botCount; i++){
+    Poker.addPlayer(state, 'bot_'+i, '🤖 Бот '+i, myChips);
+    state.players[i].isBot = true;
+  }
   state.isTournament = true;
   state.tourneyLevel = 1;
   state.tourneyHand = 1;
   state.tourneyBlinds = blinds;
   state.eliminated = [];
+  state.tourneyPlayerCount = playerCount;
   tourneyState = state;
+  tournamentBlindLevel = 1;
+  tournamentHandsPlayed = 0;
   AudioManager.cardShuffle();
   Poker.dealHand(state);
   state.ts = Date.now();
   saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
+}
+
+function showTournamentSelect(){
+  const existing = document.getElementById('tourney-select-modal');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.className = 'daily-modal';
+  modal.id = 'tourney-select-modal';
+  modal.innerHTML = `
+    <div class="daily-modal-content" style="max-width:340px;">
+      <div class="daily-modal-icon">🏆</div>
+      <div class="daily-modal-title">${currentLang==='ru'?'Выбери формат':'Choose Format'}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin:16px 0;">
+        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(200,168,75,.2),rgba(200,168,75,.05));border:1px solid rgba(200,168,75,.3);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div>🥉 ${currentLang==='ru'?'3 игрока':'3 Players'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Быстрый турнир':'Quick game'}</div>
+        </button>
+        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(200,168,75,.3),rgba(200,168,75,.08));border:1px solid rgba(200,168,75,.4);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(6);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div>🥇 ${currentLang==='ru'?'6 игроков':'6 Players'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Классический Sit & Go':'Classic Sit & Go'}</div>
+        </button>
+        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(139,26,42,.3),rgba(139,26,42,.08));border:1px solid rgba(139,26,42,.4);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(9);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div>👑 ${currentLang==='ru'?'9 игроков':'9 Players'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Марафон турнир':'Marathon tournament'}</div>
+        </button>
+      </div>
+      <button class="daily-modal-btn" onclick="document.getElementById('tourney-select-modal').remove()">${currentLang==='ru'?'Отмена':'Cancel'}</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
 
 function nextTournamentHand(){
@@ -4571,11 +4854,17 @@ function nextTournamentHand(){
 
     // Advance hand count & blinds
     state.tourneyHand++;
+    tournamentHandsPlayed++;
+    if(tournamentHandsPlayed >= HANDS_PER_LEVEL * tournamentBlindLevel){
+      tournamentBlindLevel++;
+      const newBlinds = getCurrentTournamentBlinds();
+      state.smallBlind = newBlinds.small;
+      state.bigBlind = newBlinds.big;
+      state.tourneyBlinds = {sb: newBlinds.small, bb: newBlinds.big};
+      showToast((currentLang==='ru'?'Блайнды повышены: ':'Blinds up: ')+newBlinds.small+'/'+newBlinds.big);
+    }
     const levelIdx = Math.min(Math.floor((state.tourneyHand - 1) / 5), TOURNEY_BLINDS.length - 1);
     state.tourneyLevel = levelIdx + 1;
-    state.tourneyBlinds = TOURNEY_BLINDS[levelIdx];
-    state.smallBlind = state.tourneyBlinds.sb;
-    state.bigBlind = state.tourneyBlinds.bb;
 
     // Reset for next hand
     state.pots = [];
@@ -4833,14 +5122,26 @@ function updateStrengthMeter(state){
   const pct = Math.round(quick);
   barFill.style.width = pct + '%';
   text.textContent = pct + '%';
-  barFill.className = 'strength-bar-fill ' + (pct >= 65 ? 'high' : pct >= 40 ? 'medium' : 'low');
+  const strengthClass = pct >= 80 ? 'very-strong' : pct >= 65 ? 'strong' : pct >= 40 ? 'medium' : pct >= 20 ? 'weak' : 'very-weak';
+  barFill.className = 'strength-bar-fill ' + strengthClass;
+
+  // 5-level label
+  const strengthLabels = {
+    'very-strong': currentLang==='ru'?'Очень сильная':'Very Strong',
+    'strong': currentLang==='ru'?'Сильная':'Strong',
+    'medium': currentLang==='ru'?'Средняя':'Medium',
+    'weak': currentLang==='ru'?'Слабая':'Weak',
+    'very-weak': currentLang==='ru'?'Очень слабая':'Very Weak'
+  };
+  if(label) label.innerHTML = `<span style="color:var(--gold);font-weight:800">${comboName}</span> <span style="opacity:.4;margin:0 4px">|</span> <span style="font-size:7px;opacity:.6">${strengthLabels[strengthClass]}</span> ⚡`;
 
   calculateEquity(me.hand, state.communityCards, activeOpponents.length, (equity) => {
     if(!barFill || !text) return;
     const finalPct = Math.round(equity);
     barFill.style.width = finalPct + '%';
     text.textContent = finalPct + '%';
-    barFill.className = 'strength-bar-fill ' + (finalPct >= 65 ? 'high' : finalPct >= 40 ? 'medium' : 'low');
+    const finalClass = finalPct >= 80 ? 'very-strong' : finalPct >= 65 ? 'strong' : finalPct >= 40 ? 'medium' : finalPct >= 20 ? 'weak' : 'very-weak';
+    barFill.className = 'strength-bar-fill ' + finalClass;
   });
 }
 
@@ -4999,6 +5300,7 @@ function _renderGameImpl(state){
         p.hand.forEach((c,ci)=>{ 
           if(c) {
             const card = createCardEl(c);
+            card.style.animationDelay = (ci*0.15)+'s';
             if(state.phase==='preflop' && !showAllCards){
           card.classList.add('animate-deal');
           // FIX: Use animationend instead of setTimeout
@@ -5026,7 +5328,9 @@ function _renderGameImpl(state){
   const comm=document.getElementById('community-cards');
   comm.innerHTML='';
   for(let i=0;i<5;i++){
-    comm.appendChild(i<state.communityCards.length ? createCardEl(state.communityCards[i]) : createCardPlaceholder());
+    const cardEl = i<state.communityCards.length ? createCardEl(state.communityCards[i]) : createCardPlaceholder();
+    cardEl.style.animationDelay = (i*0.1)+'s';
+    comm.appendChild(cardEl);
   }
 
   // FIX: Don't double-count — state.pot already includes collected bets
@@ -5037,6 +5341,16 @@ function _renderGameImpl(state){
   if(totalPot > oldPot){
     potEl.classList.add('animate-pot');
     setTimeout(()=>potEl.classList.remove('animate-pot'), 400);
+    // Animate chips from active bettor to pot
+    const activePlayerIdx = state.currentPlayer;
+    if(activePlayerIdx >= 0){
+      const n=state.players.length;
+      let rel=0;
+      if(n===2) rel=(activePlayerIdx===myIndex)?0:2;
+      else rel=(activePlayerIdx-myIndex+n)%n;
+      const activePosEl=document.getElementById('pos-'+rel);
+      if(activePosEl) animateChipsToPot(activePosEl);
+    }
   }
   document.getElementById('game-info').textContent=''+state.currentBet;
   const phases={preflop:t('preflop'),flop:t('flop'),turn:t('turn'),river:t('river'),showdown:t('showdown')};
@@ -5150,12 +5464,18 @@ function playerCheck(){
 function playerCall(){
   haptic('medium');
   AudioManager.chipClick();
+  AudioManager.chipStack();
+  const myPosEl=document.getElementById('pos-0');
+  if(myPosEl) animateChipsToPot(myPosEl);
   withFreshState(state=>{
     Poker.playerCall(state, myIndex);
   });
 }
 function playerRaise(){
   AudioManager.chipClick();
+  AudioManager.chipStack();
+  const myPosEl=document.getElementById('pos-0');
+  if(myPosEl) animateChipsToPot(myPosEl);
   const rawVal = document.getElementById('raise-amount').value;
   const extra = Math.max(0, parseInt(rawVal) || 0);
   if(!roomCode || extra <= 0) { showToast('Invalid raise amount', 'error'); return; }
@@ -5523,13 +5843,26 @@ function endHand(state,winnerIdxs){
   stats.hands=(stats.hands||0)+1;
   if(winnerIdxs&&winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId)) stats.wins=(stats.wins||0)+1;
   const me=state.players.find(p=>p.id===myPlayerId);
-  if(me&&!me.folded&&state.communityCards.length>0){
+  if(me && !me.folded && state.communityCards.length>0){
     const score=Poker.getBest5From7([...me.hand,...state.communityCards]);
     stats.bestHandRank=Math.max(stats.bestHandRank||0,score.rank);
   }
   if(me) stats.maxChips=Math.max(stats.maxChips||0,me.chips);
   if(state.isTournament&&state.phase==='ended'&&winnerIdxs&&winnerIdxs.length===1&&state.players[winnerIdxs[0]]&&state.players[winnerIdxs[0]].id===myPlayerId) stats.tournamentWins=(stats.tournamentWins||0)+1;
   saveProfileStats(stats); checkAchievements();
+
+  // Record hand result to new stats system
+  const totalPot = state.pots ? state.pots.reduce((s,p)=>s+p.amount,0) : 0;
+  const iWon = winnerIdxs && winnerIdxs.some(i=>state.players[i]&&state.players[i].id===myPlayerId);
+  let handName = '';
+  if(me && !me.folded && state.communityCards.length>=3){
+    const score=Poker.getBest5From7([...me.hand,...state.communityCards]);
+    handName = Poker.handRankName(score.rank);
+  }
+  const isVPIP = me && !me.folded;
+  const isAggressive = state.lastAction && state.lastAction.includes('raised');
+  const wentToShowdown = me && !me.folded && state.communityCards.length >= 5;
+  recordHandResult(iWon, totalPot, handName, isVPIP, isAggressive, wentToShowdown);
 }
 
 // ===== HAND EVALUATION =====
@@ -5643,7 +5976,16 @@ function renderEnd(state){
   }
 
   // Animate winner
-  if(state.winners) state.winners.forEach(w => animateWinner(w.idx));
+  if(state.winners) state.winners.forEach(w => {
+    animateWinner(w.idx);
+    // Chip animation to winner
+    const n = state.players ? state.players.length : 2;
+    let rel;
+    if(n === 2){ rel = (w.idx === myIndex) ? 0 : 2; }
+    else { rel = (w.idx - myIndex + n) % n; }
+    const winEl = document.getElementById('pos-'+rel);
+    if(winEl) animateChipsToWinner(winEl);
+  });
 
   // Auto-continue after short delay
   if(state.isTournament){
@@ -6154,7 +6496,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('bot-card').addEventListener('click',()=>{ startBotGame(); });
   document.getElementById('host-card').addEventListener('click',()=>document.getElementById('host-btn').click());
   document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
-  document.getElementById('tourney-btn').addEventListener('click',()=>{ startTournament(); });
+  document.getElementById('tourney-btn').addEventListener('click',()=>{ showTournamentSelect(); });
   document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
   // FIX: Handle orientation change for mobile
