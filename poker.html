@@ -70,10 +70,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .splash-bar-inner{height:100%;background:linear-gradient(90deg,#D4AF37,#A88B2D);width:0%;animation:load 1.5s ease-out forwards;}
 @keyframes load{to{width:100%;}}
 
-/* ===== LOBBY — PREMIUM REDESIGN ===== */
-/* Combined import moved to end with display=swap */
-
-
+/* ===== LOBBY — CLEAN ELITE REDESIGN ===== */
 #lobby-screen {
   background: #0A0A0F;
   position: relative;
@@ -81,525 +78,336 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   padding-bottom: max(0px, env(safe-area-inset-bottom));
 }
 
-/* Ambient background layers */
+/* Subtle ambient glow */
 #lobby-screen::before {
   content: '';
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(ellipse 80% 30% at 50% -5%, rgba(212,175,55,.06) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 85% 80%, rgba(74,144,217,.04) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Subtle grid texture overlay */
-#lobby-screen::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background: radial-gradient(ellipse 60% 30% at 50% 0%, rgba(212,175,55,.06) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
 #lobby-screen > * { position: relative; z-index: 1; }
 
-/* ── HEADER ── */
+/* ── HEADER — Compact one-liner ── */
 .lobby-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   max-width: 480px;
-  padding: 20px 4px 12px;
-  position: relative;
-  z-index: 2;
+  padding: 16px 4px 8px;
 }
 
-.lobby-profile { display: flex; align-items: center; gap: 13px; }
+.lobby-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
 
 .lobby-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #181825, #101018);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #1a1a28, #12121e);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  border: 1.5px solid rgba(212,175,55,.2);
-  box-shadow: 0 0 16px rgba(212,175,55,.15), inset 0 1px 0 rgba(255,255,255,.06);
-  cursor: pointer;
+  font-size: 20px;
+  border: 2px solid rgba(212,175,55,.35);
+  box-shadow: 0 0 12px rgba(212,175,55,.15);
   transition: all .25s;
 }
-.lobby-avatar:hover {
-  transform: scale(1.07);
-  box-shadow: 0 0 28px rgba(212,175,55,.25);
-  border-color: rgba(212,175,55,.4);
-}
+.lobby-avatar:hover { border-color: rgba(212,175,55,.6); box-shadow: 0 0 20px rgba(212,175,55,.25); }
 
-.lobby-user-info { display: flex; flex-direction: column; gap: 3px; }
+.lobby-user-info { display: flex; flex-direction: column; gap: 2px; }
 
 .lobby-username {
-  font-size: clamp(13px, 3.5vw, 15px);
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
-  letter-spacing: -.3px;
-  cursor: pointer;
-  transition: color .2s;
-}
-.lobby-username:hover { color: var(--gold-light); }
-
-.lobby-meta { display: flex; align-items: center; gap: 8px; margin-top: 1px; }
-
-.lobby-level {
-  font-size: max(10px, 2.2vw);
-  color: var(--gold);
-  font-weight: 700;
-  background: rgba(212,175,55,.08);
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(212,175,55,.15);
-  letter-spacing: .3px;
-  white-space: nowrap;
-}
-
-.lobby-xp-track {
-  width: 44px;
-  height: 3px;
-  background: rgba(255,255,255,.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.lobby-xp-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--gold), var(--gold-light));
-  border-radius: 2px;
-  transition: width .4s ease;
+  letter-spacing: -.2px;
 }
 
 .lobby-chips {
-  font-size: max(11px, 2.4vw);
+  font-size: 12px;
   color: var(--gold);
   font-weight: 600;
-  white-space: nowrap;
 }
 
-.lobby-actions { display: flex; align-items: center; gap: 8px; }
+.lobby-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .lobby-lang-btn,
 .lobby-settings-btn {
-  width: 52px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all .2s;
-  backdrop-filter: blur(12px);
-  white-space: nowrap;
-  letter-spacing: 0.5px;
+  color: rgba(255,255,255,.5);
 }
 .lobby-lang-btn:hover,
 .lobby-settings-btn:hover {
   background: rgba(255,255,255,.08);
-  border-color: rgba(255,255,255,.15);
-  transform: scale(1.05);
-}
-.lobby-lang-btn:hover {
   border-color: rgba(212,175,55,.2);
-}
-.lobby-settings-btn:hover { transform: rotate(30deg) scale(1.05); }
-
-/* ── HERO BANNER ── */
-.lobby-banner {
-  width: 100%;
-  max-width: 480px;
-  height: 158px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #0D0D15 0%, #141420 50%, #101018 100%);
-  border: 1px solid var(--border-gold);
-  position: relative;
-  overflow: hidden;
-  margin: 10px 0 22px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(212,175,55,.06) inset;
-}
-
-/* Geometric lines decoration */
-.lobby-banner::before {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 50%;
-  background:
-    linear-gradient(135deg, transparent 40%, rgba(212,175,55,.04) 40.5%, rgba(212,175,55,.04) 41%, transparent 41.5%),
-    linear-gradient(135deg, transparent 60%, rgba(212,175,55,.03) 60.5%, rgba(212,175,55,.03) 61%, transparent 61.5%);
-  pointer-events: none;
-  z-index: 1;
-}
-.lobby-banner::after {
-  content: '♦';
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 80px;
-  color: rgba(212,175,55,.06);
-  line-height: 1;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Shimmer line */
-.lobby-banner-shine {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212,175,55,.4), transparent);
-  z-index: 3;
-}
-
-.lobby-banner-content {
-  position: relative;
-  z-index: 4;
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100%;
-}
-
-.lobby-banner-eyebrow {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 6px;
-  opacity: .8;
-}
-
-.lobby-banner-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 26px;
-  font-weight: 900;
   color: #fff;
-  line-height: 1.1;
-  letter-spacing: -.5px;
-}
-.lobby-banner-title span { color: var(--gold-light); }
-
-.lobby-banner-sub {
-  font-size: 11.5px;
-  color: var(--text-mid);
-  margin-top: 6px;
-  line-height: 1.4;
 }
 
-.lobby-banner-btn {
-  align-self: flex-start;
-  margin-top: 14px;
-  padding: 8px 18px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #D4AF37, #A88B2D);
-  color: #0A0A0F;
-  font-size: 11.5px;
-  font-weight: 800;
-  border: none;
-  cursor: pointer;
-  transition: all .2s;
-  box-shadow: 0 4px 20px rgba(212,175,55,.25);
-  letter-spacing: .3px;
-}
-.lobby-banner-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(212,175,55,.4);
-}
-.lobby-banner-btn:active { transform: translateY(0); }
-
-/* ── SECTION TITLES ── */
-.lobby-section-title {
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 2.5px;
-  font-weight: 700;
-  margin: 18px 0 12px;
-  width: 100%;
-  max-width: 480px;
-  padding-left: 2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: relative;
-}
-.lobby-section-title .lobby-refresh-btn {
-  margin-left: auto;
-  margin-right: 2px;
-}
-.lobby-section-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-subtle);
-}
-
-/* ── QUICK PLAY ── */
-.lobby-quick-play { width: 100%; max-width: 480px; margin: 4px 0 18px; }
-
+/* ── QUICK PLAY BUTTON ── */
 .lobby-quick-btn {
   width: 100%;
-  padding: 17px 24px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #D4AF37 0%, #A88B2D 100%);
+  max-width: 480px;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #D4AF37, #A88B2D);
   color: #0A0A0F;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   border: none;
   cursor: pointer;
   transition: all .22s;
-  box-shadow: 0 4px 20px rgba(212,175,55,.25), inset 0 1px 0 rgba(255,255,255,.2);
+  box-shadow: 0 4px 24px rgba(212,175,55,.25);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  position: relative;
-  overflow: hidden;
-  letter-spacing: .2px;
-}
-.lobby-quick-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.15) 0%, transparent 60%);
+  letter-spacing: .3px;
+  margin-top: 4px;
 }
 .lobby-quick-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(212,175,55,.35);
+  box-shadow: 0 8px 32px rgba(212,175,55,.4);
 }
-.lobby-quick-btn:active { transform: translateY(1px) scale(.99); }
+.lobby-quick-btn:active {
+  transform: translateY(1px) scale(.99);
+}
+.lobby-quick-icon { font-size: 20px; }
 
-/* ── GAME MODE CARDS ── */
-.lobby-modes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
+/* ── SECTION LABEL ── */
+.lobby-section-label {
+  font-size: 11px;
+  color: rgba(255,255,255,.3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin: 20px 0 10px;
   width: 100%;
   max-width: 480px;
-  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+.lobby-refresh-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: .5;
+  transition: opacity .2s;
+  padding: 4px;
+}
+.lobby-refresh-btn:hover { opacity: 1; }
 
-.lobby-mode-card {
-  position: relative;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  padding: 20px 18px;
+/* ── GAME MODES — Vertical List Rows ── */
+.lobby-modes-list {
+  width: 100%;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 7px;
+  gap: 8px;
+}
+
+.lobby-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.05);
   cursor: pointer;
-  transition: all .25s cubic-bezier(.4,0,.2,1);
-  overflow: hidden;
-  min-height: 130px;
+  transition: all .2s;
+  position: relative;
+}
+.lobby-mode-row:hover {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(212,175,55,.15);
+  transform: translateX(4px);
+}
+.lobby-mode-row:active {
+  transform: translateX(2px) scale(.99);
 }
 
-/* Subtle gold border glow on hover for all cards */
-.lobby-mode-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  opacity: 0;
-  transition: opacity .3s;
-  background: linear-gradient(135deg, rgba(212,175,55,.08), transparent);
-}
-
-.lobby-mode-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0,0,0,.4);
-  border-color: rgba(212,175,55,.25);
-}
-.lobby-mode-card:hover::after { opacity: 1; }
-
-.lobby-mode-card.bot:hover    { border-color: rgba(212,175,55,.3); }
-.lobby-mode-card.host:hover   { border-color: rgba(212,175,55,.3); }
-.lobby-mode-card.join:hover   { border-color: rgba(212,175,55,.3); }
-.lobby-mode-card.tourney:hover { border-color: rgba(212,175,55,.35); }
-
-.lobby-mode-card:active { transform: translateY(0) scale(.98); }
-
-.lobby-mode-icon {
+.lobby-mode-row-icon {
   width: 44px;
   height: 44px;
-  border-radius: 13px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 2px;
-  position: relative;
-  z-index: 1;
+  font-size: 22px;
+  flex-shrink: 0;
 }
-.lobby-mode-card.bot .lobby-mode-icon   { background: rgba(139,111,212,.12); }
-.lobby-mode-card.host .lobby-mode-icon  { background: rgba(212,175,55,.1); }
-.lobby-mode-card.join .lobby-mode-icon  { background: rgba(74,144,217,.1); }
-.lobby-mode-card.tourney .lobby-mode-icon { background: rgba(212,175,55,.1); }
+.lobby-mode-row.bot .lobby-mode-row-icon   { background: rgba(139,107,212,.12); }
+.lobby-mode-row.host .lobby-mode-row-icon  { background: rgba(212,175,55,.12); }
+.lobby-mode-row.join .lobby-mode-row-icon  { background: rgba(74,144,217,.12); }
+.lobby-mode-row.tourney .lobby-mode-row-icon { background: rgba(212,175,55,.12); }
 
-.lobby-mode-title { font-size: 14px; font-weight: 700; color: #fff; position: relative; z-index: 1; }
-.lobby-mode-desc  { font-size: 11px; color: var(--text-dim); line-height: 1.45; position: relative; z-index: 1; }
+.lobby-mode-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lobby-mode-row-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.lobby-mode-row-desc {
+  font-size: 11px;
+  color: rgba(255,255,255,.35);
+  line-height: 1.3;
+}
 
-.lobby-mode-badge {
+.lobby-mode-row-arrow {
+  font-size: 20px;
+  color: rgba(255,255,255,.15);
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.lobby-mode-row-badge {
   position: absolute;
-  top: 13px;
-  right: 13px;
-  padding: 3px 7px;
-  border-radius: 7px;
+  top: 8px;
+  right: 40px;
+  padding: 2px 7px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #D4AF37, #A88B2D);
   color: #0A0A0F;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
-  z-index: 2;
 }
 
-/* ── JOIN BY CODE ── */
-.lobby-join-section {
+/* ── JOIN BY CODE — Compact inline ── */
+.lobby-join-compact {
   width: 100%;
   max-width: 480px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 18px;
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
 }
-.lobby-join-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-mid);
-  margin-bottom: 13px;
-  text-align: center;
-  letter-spacing: .2px;
-}
-.lobby-input-row { display: flex; gap: 10px; }
-.lobby-input-row input[type=text] {
+.lobby-join-compact input[type=text] {
   flex: 1;
-  padding: 14px 16px;
-  border-radius: 13px;
+  padding: 12px 16px;
+  border-radius: 12px;
   background: rgba(255,255,255,.04);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255,255,255,.06);
   color: #fff;
   font-size: 18px;
   font-family: 'Courier New', monospace;
-  letter-spacing: 9px;
+  letter-spacing: 8px;
   outline: none;
   text-transform: uppercase;
-  transition: all .22s;
   text-align: center;
   font-weight: 700;
+  transition: border-color .2s;
 }
-.lobby-input-row input[type=text]:focus {
-  border-color: rgba(212,175,55,.2);
-  background: rgba(212,175,55,.04);
-  box-shadow: 0 0 0 3px rgba(212,175,55,.08);
+.lobby-join-compact input:focus {
+  border-color: rgba(212,175,55,.3);
 }
-.lobby-input-row input::placeholder {
-  color: rgba(255,255,255,.18);
+.lobby-join-compact input::placeholder {
+  color: rgba(255,255,255,.15);
   font-family: 'Inter', sans-serif;
-  letter-spacing: 5px;
+  letter-spacing: 3px;
   font-size: 13px;
 }
-.lobby-join-btn {
-  padding: 14px 20px;
-  border-radius: 13px;
+.lobby-join-go {
+  padding: 12px 20px;
+  border-radius: 12px;
   border: none;
   background: linear-gradient(135deg, #4A90D9, #2A6FC0);
   color: #fff;
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   transition: all .2s;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(74,144,217,.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.lobby-join-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(74,144,217,.35); }
-.lobby-join-btn:active { transform: translateY(1px); }
+.lobby-join-go:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(74,144,217,.25); }
+.lobby-join-go:active { transform: translateY(1px); }
 
-/* ── ROOM ID DISPLAY ── */
-.lobby-room-display {
+/* ── ROOM DISPLAY — Compact ── */
+.lobby-room-compact {
   width: 100%;
   max-width: 480px;
-  background: linear-gradient(135deg, rgba(212,175,55,.08), rgba(212,175,55,.02));
-  border: 1px solid var(--border-gold);
-  border-radius: 20px;
-  padding: 22px;
+  background: rgba(212,175,55,.06);
+  border: 1px solid rgba(212,175,55,.15);
+  border-radius: 14px;
+  padding: 16px;
   text-align: center;
-  margin-bottom: 18px;
-  position: relative;
-  overflow: hidden;
+  margin-top: 12px;
 }
-.lobby-room-display::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 40%, rgba(212,175,55,.06), transparent 65%);
-}
-.lobby-room-label {
-  font-size: 10px;
-  color: var(--text-dim);
+.lobby-room-compact .lobby-room-label {
+  font-size: 9px;
+  color: rgba(255,255,255,.3);
   text-transform: uppercase;
-  letter-spacing: 2.5px;
+  letter-spacing: 2px;
   font-weight: 700;
-  margin-bottom: 10px;
-  position: relative;
 }
-.lobby-room-code {
+.lobby-room-compact .lobby-room-code {
   font-family: 'Courier New', monospace;
-  font-size: 38px;
+  font-size: 32px;
   font-weight: 800;
-  letter-spacing: 11px;
+  letter-spacing: 10px;
   color: var(--gold-light);
-  text-shadow: 0 0 30px var(--gold-glow);
-  position: relative;
+  margin: 6px 0;
 }
-.lobby-room-hint {
+.lobby-room-compact .lobby-room-hint {
   font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 8px;
-  position: relative;
+  color: rgba(255,255,255,.25);
 }
-.lobby-create-btn {
+
+/* ── TABLES LIST ── */
+.lobby-tables-list {
   width: 100%;
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 13px;
-  background: linear-gradient(135deg, #D64545, #A83030);
-  color: #fff;
-  font-weight: 700;
-  font-size: 14.5px;
-  border: none;
-  cursor: pointer;
-  transition: all .2s;
-  box-shadow: 0 4px 18px rgba(214,69,69,.25);
-  position: relative;
+  max-width: 480px;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
-.lobby-create-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(214,69,69,.35); }
+.lobby-tables-list::-webkit-scrollbar { width: 4px; }
+.lobby-tables-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+.lobby-tables-empty {
+  font-size: 12px;
+  color: rgba(255,255,255,.2);
+  text-align: center;
+  padding: 16px;
+  background: var(--surface-card);
+  border-radius: 16px;
+  border: 1px dashed var(--border-subtle);
+}
 
 /* ── BOTTOM NAV ── */
 .lobby-nav {
@@ -608,51 +416,31 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 12px 4px max(14px, env(safe-area-inset-bottom));
+  padding: 10px 4px max(12px, env(safe-area-inset-bottom));
   background: rgba(10,10,15,.96);
   backdrop-filter: blur(24px);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(255,255,255,.04);
   z-index: 100;
   max-width: 480px;
   width: 100%;
   margin-top: auto;
 }
 
-.lobby-nav::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 20%; right: 20%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212,175,55,.3), transparent);
-}
-
 .lobby-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
+  gap: 3px;
+  padding: 6px 12px;
   cursor: pointer;
   transition: all .2s;
-  border-radius: 12px;
-  position: relative;
+  border-radius: 10px;
 }
-.lobby-nav-item:hover { background: rgba(255,255,255,.04); }
+.lobby-nav-item:hover { background: rgba(255,255,255,.03); }
 .lobby-nav-item.active { color: var(--gold); }
-.lobby-nav-item.active::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: 50%; transform: translateX(-50%);
-  width: 28px; height: 2px;
-  background: var(--gold);
-  border-radius: 0 0 2px 2px;
-  box-shadow: 0 0 8px var(--gold-glow);
-}
-.lobby-nav-item.active .lobby-nav-icon { filter: drop-shadow(0 0 6px var(--gold-glow)); }
-.lobby-nav-icon { font-size: 22px; transition: transform .2s; }
-.lobby-nav-item:hover .lobby-nav-icon { transform: translateY(-2px); }
-.lobby-nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.lobby-nav-icon { font-size: 20px; transition: transform .2s; }
+.lobby-nav-item:hover .lobby-nav-icon { transform: translateY(-1px); }
+.lobby-nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: rgba(255,255,255,.3); }
 .lobby-nav-item.active .lobby-nav-label { color: var(--gold); }
 
 /* Name Modal */
@@ -734,32 +522,24 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .btn-save:hover { box-shadow: 0 6px 24px rgba(212,175,55,.4); }
 
 /* RESPONSIVE LOBBY */
-/* ===== RESPONSIVE BREAKPOINTS ===== */
-
-/* Small phones: iPhone SE, old Android (320-360px) */
+/* Small phones */
 @media(max-width:360px){
   :root{--card-w:38px;--card-h:56px;}
-  .lobby-banner { height: 120px; border-radius: 18px; }
-  .lobby-banner-title { font-size: clamp(18px, 5vw, 22px); }
-  .lobby-banner-sub { font-size: 10px; }
-  .lobby-banner-btn { padding: 6px 14px; font-size: 10px; }
-  .lobby-quick-btn { padding: 14px 20px; font-size: 13px; }
-  .lobby-mode-card { padding: 16px 14px; min-height: 110px; }
-  .lobby-mode-icon { width: 38px; height: 38px; font-size: 20px; }
-  .lobby-mode-title { font-size: 12px; }
-  .lobby-mode-desc { font-size: 10px; }
-  .lobby-join-section { padding: 16px; }
-  .lobby-input-row input[type=text] { font-size: 16px; letter-spacing: 6px; padding: 12px 14px; }
-  .lobby-join-btn { padding: 12px 16px; font-size: 12px; }
-  .lobby-room-code { font-size: 32px; letter-spacing: 8px; }
+  .lobby-quick-btn { padding: 14px; font-size: 14px; }
+  .lobby-mode-row { padding: 12px 14px; gap: 10px; }
+  .lobby-mode-row-icon { width: 38px; height: 38px; font-size: 18px; }
+  .lobby-mode-row-title { font-size: 13px; }
+  .lobby-mode-row-desc { font-size: 10px; }
+  .lobby-join-compact input[type=text] { font-size: 16px; letter-spacing: 6px; padding: 10px 14px; }
+  .lobby-join-go { padding: 10px 16px; font-size: 12px; }
+  .lobby-room-compact .lobby-room-code { font-size: 28px; letter-spacing: 8px; }
   .lobby-nav-item { padding: 4px 10px; }
-  .lobby-nav-icon { font-size: 20px; }
+  .lobby-nav-icon { font-size: 18px; }
   .lobby-nav-label { font-size: 8px; }
-  .lobby-header { padding: 16px 4px 10px; }
-  .lobby-avatar { width: 40px; height: 40px; font-size: 20px; }
+  .lobby-header { padding: 12px 4px 6px; }
+  .lobby-avatar { width: 36px; height: 36px; font-size: 18px; }
   .lobby-username { font-size: 13px; }
-  .lobby-level { font-size: 9px; padding: 2px 6px; }
-  .lobby-chips { font-size: 10px; }
+  .lobby-chips { font-size: 11px; }
   .action-btn { padding: 6px 8px; font-size: 11px; min-width: 52px; min-height: 34px; flex: 1; max-width: 80px; border-radius: 8px; }
   .raise-wrap input { width: 56px; padding: 8px 6px; font-size: 12px; }
   .player-pos .p-avatar { width: 38px; height: 38px; font-size: 18px; }
@@ -776,32 +556,28 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   .table-felt { aspect-ratio: 16/11; }
 }
 
-/* Medium phones: iPhone 12/13/14 (390px) */
+/* Medium phones */
 @media(min-width:361px) and (max-width:430px){
-  .lobby-banner { height: 145px; }
-  .lobby-banner-title { font-size: clamp(20px, 5.5vw, 24px); }
+  .lobby-mode-row { padding: 14px 16px; }
 }
 
-/* Large phones: iPhone 14 Pro Max, Samsung Ultra (430px+) */
+/* Large phones */
 @media(min-width:431px) and (max-width:599px){
-  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 520px; }
-  .lobby-banner { height: 170px; }
-  .lobby-banner-title { font-size: clamp(22px, 5vw, 28px); }
+  .lobby-header, .lobby-modes-list, .lobby-join-compact, .lobby-room-compact, .lobby-tables-list { max-width: 520px; }
+  .lobby-quick-btn { max-width: 520px; }
+  .lobby-section-label { max-width: 520px; }
 }
 
-/* Tablets: iPad, Android tablets (600px+) */
+/* Tablets */
 @media(min-width:600px){
-  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 560px; }
-  .lobby-banner { height: 180px; margin: 14px 0 26px; }
-  .lobby-banner-title { font-size: clamp(24px, 4vw, 32px); }
-  .lobby-banner-sub { font-size: 13px; }
-  .lobby-quick-btn { padding: 20px 28px; font-size: 16px; }
-  .lobby-mode-card { padding: 24px 22px; min-height: 150px; }
-  .lobby-mode-icon { width: 48px; height: 48px; font-size: 26px; }
-  .lobby-mode-title { font-size: 15px; }
-  .lobby-join-section { padding: 24px; }
-  .lobby-input-row input[type=text] { font-size: 20px; letter-spacing: 10px; }
-  .lobby-join-btn { padding: 16px 24px; font-size: 15px; }
+  .lobby-header, .lobby-modes-list, .lobby-join-compact, .lobby-room-compact, .lobby-tables-list { max-width: 560px; }
+  .lobby-quick-btn { max-width: 560px; }
+  .lobby-section-label { max-width: 560px; }
+  .lobby-mode-row { padding: 16px 20px; }
+  .lobby-mode-row-icon { width: 48px; height: 48px; font-size: 24px; }
+  .lobby-mode-row-title { font-size: 15px; }
+  .lobby-join-compact input[type=text] { font-size: 20px; letter-spacing: 10px; }
+  .lobby-join-go { padding: 14px 24px; font-size: 15px; }
   .action-btn { padding: 14px 20px; font-size: 15px; min-width: 90px; }
   .raise-wrap input { width: 80px; padding: 12px 10px; font-size: 15px; }
   .player-pos .p-avatar { width: 48px; height: 48px; font-size: 24px; }
@@ -812,7 +588,9 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 
 /* Desktop / large tablets */
 @media(min-width:768px){
-  .lobby-header, .lobby-banner, .lobby-modes, .lobby-join-section, .lobby-room-display { max-width: 600px; }
+  .lobby-header, .lobby-modes-list, .lobby-join-compact, .lobby-room-compact, .lobby-tables-list { max-width: 600px; }
+  .lobby-quick-btn { max-width: 600px; }
+  .lobby-section-label { max-width: 600px; }
   .table-felt { max-width: 560px; }
   .action-bar { max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 22px; }
 }
@@ -1852,31 +1630,9 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .copy-code-btn.copied { color: var(--emerald); border-color: rgba(46,204,113,.4); }
 
 /* ===== OPEN TABLES LIST ===== */
-.lobby-tables-list {
-  width: 100%;
-  max-width: 480px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 18px;
-  max-height: 340px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.lobby-tables-list::-webkit-scrollbar { width: 4px; }
-.lobby-tables-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
 
-.lobby-tables-empty {
-  text-align: center;
-  padding: 28px 16px;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--surface-card);
-  border-radius: 16px;
-  border: 1px dashed var(--border-subtle);
-  letter-spacing: .3px;
-}
+
+
 
 .lobby-table-card {
   background: var(--surface-2);
@@ -1937,19 +1693,11 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .lt-join-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74,144,217,.35); filter: brightness(1.1); }
 .lt-join-btn:active { transform: translateY(1px) scale(.97); }
 
-/* ===== REFRESH BUTTON ===== */
-.lobby-refresh-btn {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: var(--surface-card); border: 1px solid var(--border-subtle);
-  color: var(--text-mid); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 16px; transition: all .2s; margin-left: auto;
-}
-.lobby-refresh-btn:hover { color: var(--gold); border-color: rgba(212,175,55,.2); transform: rotate(180deg); }
-.lobby-refresh-btn:active { transform: scale(.9); }
+/* Refresh button styles now in .lobby-section-label .lobby-refresh-btn */
 
 /* FIX: Prevent double-tap zoom on mobile */
-.action-btn, .lobby-mode-card, .lobby-quick-btn, .lobby-join-btn, 
-.lobby-create-btn, .lobby-nav-item, .lobby-lang-btn, .lobby-settings-btn,
+.action-btn, .lobby-mode-row, .lobby-quick-btn, .lobby-join-go,
+.lobby-nav-item, .lobby-lang-btn, .lobby-settings-btn,
 .lobby-avatar, .exit-btn, .name-modal-btn, .daily-modal-btn,
 .custom-avatar-btn, .custom-color-btn {
   touch-action: manipulation;
@@ -2021,11 +1769,6 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .onboarding-btn { width: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #D4AF37, #A88B2D); color: #0A0A0F; font-weight: 900; font-size: 16px; border: none; cursor: pointer; }
 </style>
 <base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -2039,99 +1782,90 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 </div>
 
 <div id="lobby-screen" class="screen active">
-  <!-- Header -->
+  <!-- Compact Header -->
   <div class="lobby-header">
-    <div class="lobby-profile">
-      <div class="lobby-avatar" id="lobby-avatar" onclick="editName()">👤</div>
+    <div class="lobby-profile" onclick="editName()">
+      <div class="lobby-avatar" id="lobby-avatar">👤</div>
       <div class="lobby-user-info">
-        <div class="lobby-username" id="lobby-username" onclick="editName()">Player</div>
-        <div class="lobby-meta">
-          <div class="lobby-level" id="lobby-level">Lv. 1</div>
-          <div class="lobby-xp-track"><div class="lobby-xp-bar" id="lobby-xp-bar"></div></div>
-          <div class="lobby-chips" id="lobby-chips">💰 1,000</div>
-        </div>
+        <div class="lobby-username" id="lobby-username">Player</div>
+        <div class="lobby-chips" id="lobby-chips">💰 1,000</div>
       </div>
     </div>
-    <div class="lobby-actions">
-      <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#D64545;margin-right:4px;box-shadow:0 0 8px #D64545;transition:all .3s;" title="Firebase status"></div>
+    <div class="lobby-header-right">
+      <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#D64545;box-shadow:0 0 8px #D64545;transition:all .3s;" title="Firebase status"></div>
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
       <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
   </div>
 
-  
-  <!-- Banner -->
-  <div class="lobby-banner">
-    <div class="lobby-banner-shine"></div>
-    <div class="lobby-banner-content">
-      <div class="lobby-banner-eyebrow">Texas Hold'em</div>
-      <div class="lobby-banner-title">Poker <span>Table</span></div>
-      <div class="lobby-banner-sub" id="banner-sub">Play with friends or train with bot</div>
-      <button class="lobby-banner-btn" id="bot-btn" onclick="startBotGame()"><span id="bot-btn-text">🤖 Play with Bot</span></button>
+  <!-- Quick Play -->
+  <button class="lobby-quick-btn" id="bot-btn" onclick="startBotGame()">
+    <span class="lobby-quick-icon">⚡</span>
+    <span id="bot-btn-text">Quick Play</span>
+  </button>
+
+  <!-- Game Modes — Vertical List -->
+  <div class="lobby-section-label" id="modes-title">Game Modes</div>
+  <div class="lobby-modes-list">
+    <div class="lobby-mode-row bot" id="bot-card" onclick="startBotGame()">
+      <div class="lobby-mode-row-icon">🤖</div>
+      <div class="lobby-mode-row-text">
+        <div class="lobby-mode-row-title" id="training-title">Training</div>
+        <div class="lobby-mode-row-desc" id="training-desc">Practice 1v1 against AI</div>
+      </div>
+      <div class="lobby-mode-row-arrow">›</div>
+    </div>
+    <div class="lobby-mode-row host" id="host-card">
+      <div class="lobby-mode-row-icon">🎰</div>
+      <div class="lobby-mode-row-text">
+        <div class="lobby-mode-row-title" id="create-room-title">Create Table</div>
+        <div class="lobby-mode-row-desc" id="create-room-desc">Host a game for friends</div>
+      </div>
+      <div class="lobby-mode-row-arrow">›</div>
+    </div>
+    <div class="lobby-mode-row join" id="join-card">
+      <div class="lobby-mode-row-icon">🔑</div>
+      <div class="lobby-mode-row-text">
+        <div class="lobby-mode-row-title" id="join-title">Join Game</div>
+        <div class="lobby-mode-row-desc" id="join-desc">Enter room code</div>
+      </div>
+      <div class="lobby-mode-row-arrow">›</div>
+    </div>
+    <div class="lobby-mode-row tourney" id="tourney-btn" onclick="showTournamentSelect()">
+      <div class="lobby-mode-row-icon">🏆</div>
+      <div class="lobby-mode-row-text">
+        <div class="lobby-mode-row-title" id="tourney-title">Tournament</div>
+        <div class="lobby-mode-row-desc" id="tourney-desc">Sit & Go, blinds rise!</div>
+      </div>
+      <div class="lobby-mode-row-badge">NEW</div>
+      <div class="lobby-mode-row-arrow">›</div>
     </div>
   </div>
 
-  <!-- Section: Quick Play -->
-  <div class="lobby-section-title" id="quick-start-title">Quick Start</div>
-  <div class="lobby-quick-play">
-    <button class="lobby-quick-btn" id="host-btn"><span>⚡</span> <span id="create-table-btn">Create Table</span> <span>⚡</span></button>
+  <!-- Join by Code — Compact inline -->
+  <div class="lobby-join-compact">
+    <input type="text" id="join-code" maxlength="4" placeholder="CODE" />
+    <button class="lobby-join-go" id="join-submit-btn">Join</button>
   </div>
 
-  <!-- Section: Game Modes -->
-  <div class="lobby-section-title" id="modes-title">Modes</div>
-  <div class="lobby-modes">
-    <div class="lobby-mode-card bot" id="bot-card" onclick="startBotGame()" role="button" tabindex="0" aria-label="Play training game with bot">
-      <div class="lobby-mode-icon">🤖</div>
-      <div class="lobby-mode-title" id="training-title">Training</div>
-      <div class="lobby-mode-desc" id="training-desc">1v1 with bot. Perfect for beginners.</div>
-    </div>
-    <div class="lobby-mode-card host" id="host-card" role="button" tabindex="0" aria-label="Create new table">
-      <div class="lobby-mode-icon">🎰</div>
-      <div class="lobby-mode-title" id="create-room-title">Create Table</div>
-      <div class="lobby-mode-desc" id="create-room-desc">Invite friends with room code.</div>
-      <div class="lobby-mode-badge">NEW</div>
-    </div>
-    <div class="lobby-mode-card join" id="join-card" role="button" tabindex="0" aria-label="Join existing table">
-      <div class="lobby-mode-icon">🔑</div>
-      <div class="lobby-mode-title" id="join-title">Join</div>
-      <div class="lobby-mode-desc" id="join-desc">Enter code and join friends.</div>
-    </div>
-    <div class="lobby-mode-card tourney" id="tourney-btn" onclick="showTournamentSelect()" role="button" tabindex="0" aria-label="Start tournament">
-      <div class="lobby-mode-icon">🏆</div>
-      <div class="lobby-mode-title" id="tourney-title">Tournament</div>
-      <div class="lobby-mode-desc" id="tourney-desc">Sit & Go 4 players. Blinds rise!</div>
-      <div class="lobby-mode-badge">NEW</div>
-    </div>
+  <!-- Your Room (hidden by default) -->
+  <div class="lobby-room-compact" id="room-display" style="display:none;">
+    <div class="lobby-room-label">Your Room</div>
+    <div class="lobby-room-code" id="my-room-id">----</div>
+    <div class="lobby-room-hint">Share this code with friends</div>
   </div>
 
-  <!-- Room Code Display (hidden by default, shown after create) -->
-  
-
-  <!-- Your Table (if hosting) -->
-  <div id="lobby-your-table" style="display:none;width:100%;max-width:480px;"></div>
   <!-- Open Tables -->
-  <div class="lobby-section-title" style="margin-top:6px;" id="open-tables-title">
+  <div class="lobby-section-label">
     <span id="open-tables-text">Open Tables</span>
-    <button class="lobby-refresh-btn" id="lobby-refresh-btn" onclick="refreshLobbyTables()" title="Refresh">🔄</button>
+    <button class="lobby-refresh-btn" id="lobby-refresh-btn" onclick="refreshLobbyTables()">🔄</button>
   </div>
   <div class="lobby-tables-list" id="lobby-tables-list">
     <div class="lobby-tables-empty" id="lobby-tables-empty">No open tables</div>
   </div>
-<div class="lobby-room-display" id="room-display" style="display:none;">
-    <div class="lobby-room-label">Your Room Code</div>
-    <div class="lobby-room-code" id="my-room-id">----</div>
-    <div class="lobby-room-hint">Send code to friends</div>
-    <button class="lobby-create-btn" id="create-room-btn">Create Table</button>
-  </div>
 
-  <!-- Join Section -->
-  <div class="lobby-join-section">
-    <div class="lobby-join-title" id="join-section-title">Join by Code</div>
-    <div class="lobby-input-row">
-      <input type="text" id="join-code" maxlength="4" placeholder="КОД" />
-      <button class="lobby-join-btn" id="join-submit-btn">Войти</button>
-    </div>
-  </div>
+  <!-- Your Table (if hosting) -->
+  <div id="lobby-your-table" style="display:none;width:100%;max-width:480px;"></div>
 
   <!-- Bottom Nav -->
   <div class="lobby-nav">
@@ -3510,10 +3244,7 @@ function applyTranslations(){
   // Lobby
   const els = {
     'lobby-subtitle': 'subtitle',
-    'banner-sub': 'bannerSub',
     'bot-btn-text': 'playBot',
-    'quick-start-title': 'quickStart',
-    'create-table-btn': 'createTable',
     'modes-title': 'modes',
     'training-title': 'training',
     'training-desc': 'trainingDesc',
@@ -3523,7 +3254,6 @@ function applyTranslations(){
     'join-desc': 'joinDesc',
     'tourney-title': 'tournament',
     'tourney-desc': 'tournamentDesc',
-    'join-section-title': 'joinByCode',
     'join-btn': 'enterBtn',
     'nav-play': 'navPlay',
     'nav-profile': 'navProfile',
@@ -6521,7 +6251,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // FIX: Attach all event listeners after DOM is ready
   // FIX: Keyboard accessibility for lobby cards
-  document.querySelectorAll('.lobby-mode-card').forEach(card => {
+  document.querySelectorAll('.lobby-mode-row').forEach(card => {
     card.addEventListener('keydown', (e) => {
       if(e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -6530,7 +6260,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  document.getElementById('host-btn').addEventListener('click',()=>{
+  document.getElementById('host-card').addEventListener('click',()=>{
     const code=genCode();
     console.log('Creating room:', code, 'playerId:', myPlayerId);
     roomCode=code; isHost=true; myIndex=0;
@@ -6563,6 +6293,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   // FIX: Removed broken 'join-btn' listener (element doesn't exist in HTML)
   // The join card click is handled by the join-card element below
 
+  document.getElementById('join-card').addEventListener('click',()=>{
+    const input = document.getElementById('join-code');
+    if(input) input.focus();
+  });
   document.getElementById('join-submit-btn').addEventListener('click',()=>{
     const code=document.getElementById('join-code').value.trim().toUpperCase();
     if(!validateRoomCode(code)){showToast(t('toastEnter4'), 'error');return;}
@@ -6584,10 +6318,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  document.getElementById('bot-btn').addEventListener('click',()=>{ startBotGame(); });
-  document.getElementById('bot-card').addEventListener('click',()=>{ startBotGame(); });
-  document.getElementById('host-card').addEventListener('click',()=>document.getElementById('host-btn').click());
-  document.getElementById('create-room-btn').addEventListener('click',()=>document.getElementById('host-btn').click());
+    document.getElementById('bot-card').addEventListener('click',()=>{ startBotGame(); });
+  // host-card listener is defined above (room creation logic)
+  // create-room-btn removed in lobby redesign
   document.getElementById('tourney-btn').addEventListener('click',()=>{ showTournamentSelect(); });
   document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backToLobby));
 
