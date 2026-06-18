@@ -2626,7 +2626,7 @@ function createInitialState(code, hostId, hostName, hostChips, config = {}) {
 }
 
 function addPlayer(state, id, name, chips) {
-  if (state.players.length >= 6) return false; // max 6
+  if (state.players.length >= 9) return false; // max 9 for tournaments
   if (state.players.some(p => p.id === id)) return false;
   state.players.push({ id, name, chips, hand: [], bet: 0, folded: false, allIn: false });
   return true;
@@ -4373,7 +4373,7 @@ function showShopScreen(){
   `;
   document.body.appendChild(shopModal);
 }
-function showToastTourney(){ showToast(t('tournament') + ' soon!'); }
+function showToastTourney(){ showTournamentSelect(); }
 
 // ===== DECK =====
 const SUITS  = {s:'♠',h:'♥',d:'♦',c:'♣'};
@@ -4757,15 +4757,19 @@ const TOURNEY_BLINDS = [
 ];
 
 function startTournament(numPlayers){
+  if(isProcessingAction) return;
+  isProcessingAction = true;
   const playerCount = numPlayers || 4;
   const code = genCode();
   roomCode = code; isHost = true; myIndex = 0;
   const myChips = getBalance();
+  tournamentBlindLevel = 1;
+  tournamentHandsPlayed = 0;
   const blinds = getCurrentTournamentBlinds();
   const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: blinds.small, bigBlind: blinds.big });
   const botCount = playerCount - 1;
   for(let i = 1; i <= botCount; i++){
-    Poker.addPlayer(state, 'bot_'+i, '🤖 Бот '+i, myChips);
+    Poker.addPlayer(state, 'bot_'+i, '\u{1F916} \u0411\u043E\u0442 '+i, myChips);
     state.players[i].isBot = true;
   }
   state.isTournament = true;
@@ -4775,12 +4779,10 @@ function startTournament(numPlayers){
   state.eliminated = [];
   state.tourneyPlayerCount = playerCount;
   tourneyState = state;
-  tournamentBlindLevel = 1;
-  tournamentHandsPlayed = 0;
   AudioManager.cardShuffle();
   Poker.dealHand(state);
   state.ts = Date.now();
-  saveRoom(state).then(() => { showScreen('tournament'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction=false; });
+  saveRoom(state).then(() => { isProcessingAction = false; showScreen('tournament'); createRoom(code); }).catch(err=>{ showToast('Error: '+(err?.message||'Failed to start'), 'error'); isProcessingAction = false; tourneyState = null; roomCode = null; });
 }
 
 function showTournamentSelect(){
