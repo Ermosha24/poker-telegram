@@ -2833,7 +2833,7 @@ function playerFold(state, idx) {
 }
 
 function playerCheck(state, idx) {
-  // FIX #15: Validate player state before allowing check
+  // FIX: Validate player state before allowing check
   const p = state.players[idx];
   if(!p || p.folded || p.allIn) return false;
   if (state.currentBet !== p.bet) return false;
@@ -3466,10 +3466,9 @@ function applyTranslations(){
 
 
 // ===== CONFIG =====
-// FIX #9: SECURITY WARNING — Firebase credentials are exposed in client-side code.
+// FIX: SECURITY WARNING — Firebase credentials are exposed in client-side code.
 // TODO: Move to backend/server-side. Add Firebase Security Rules to restrict read/write.
 // For now, at minimum, configure rules in Firebase Console:
-//   { "rules": { "poker-rooms": { "$roomId": { ".read": true, ".write": "auth != null" } } } }
 const firebaseConfig = {
   apiKey:"AIzaSyDEskQ-i9kKqkdYglXQuRFhKktseq3kDNQ",
   authDomain:"poker-game-17450.firebaseapp.com",
@@ -3650,7 +3649,7 @@ function showDailyBonus(){
 }
 
 function getBalance(){
-  // FIX #10: Verify hash integrity before returning balance
+  // FIX: Verify hash integrity before returning balance
   if(!verifyBalanceHash()){
     localStorage.setItem(BALANCE_KEY, '1000');
     setBalance(1000);
@@ -3668,9 +3667,7 @@ function getBalance(){
 function setBalance(val){
   const safeVal = Math.max(0, Math.min(999999999, parseInt(val) || 0));
   localStorage.setItem(BALANCE_KEY, safeVal);
-  // FIX #10: Better tamper detection — use HMAC-like hash instead of trivial base64
-  // Note: client-side hashing can NEVER be truly secure. Balance should be validated server-side.
-  // This at least prevents casual cheating via DevTools.
+  // FIX: Better tamper detection — use HMAC-like hash instead of trivial base64
   let hash = 0;
   const str = 'poker_salt_' + String(safeVal);
   for(let i = 0; i < str.length; i++){ hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
@@ -3894,7 +3891,7 @@ function openBettingSlider(){
   if(!me) return;
   
   const callAmt = Math.max(0, lastGameState.currentBet - me.bet);
-  // FIX #4: Min raise = currentBet + max(bigBlind, previous raise size)
+  // FIX: Min raise = currentBet + max(bigBlind, previous raise size)
   const prevRaise = lastGameState.currentBet - (lastGameState.lastBet || 0);
   const minRaise = lastGameState.currentBet + Math.max(lastGameState.bigBlind, prevRaise);
   const maxTotal = me.chips + me.bet;
@@ -4051,7 +4048,6 @@ function toggleSetting(key, callback){
     if(callback) callback();
   }
 }
-
 function showSettingsScreen(){
   const existing = document.getElementById('settings-modal');
   if(existing) existing.remove();
@@ -4284,7 +4280,7 @@ function startTimer(turnStartedAt){
   };
   update();
   timerInterval=setInterval(update, 1000);
-  // FIX #16: Also update on visibility change for instant sync — removed {once:true} so it works on every tab switch
+  // FIX: Also update on visibility change for instant sync
   document.addEventListener('visibilitychange', () => {
     if(!document.hidden && timerInterval) update();
   });
@@ -4414,7 +4410,7 @@ function leaveRoom(){
   roomRef = null; roomCode = null;
 
   if(leavingRoomCode){
-    // FIX #12: Non-host should only decrement count, not delete the entire lobby entry
+    // FIX: Non-host should only decrement count, not delete the entire lobby entry
     if(wasHost){
       db.ref('poker-lobby/rooms/' + leavingRoomCode).remove().catch(()=>{});
     } else {
@@ -4452,7 +4448,6 @@ function dealHand(state){
   state.players.forEach(p=>{ p.hand=[state.deck.pop(),state.deck.pop()]; p.folded=false; p.allIn=false; p.bet=0; });
 
   let sbIdx, bbIdx, firstToActPreflop;
-  // FIX #5: Removed dead variable lastRaiserPreflop (was computed but never used)
   if(n===2){
     sbIdx = state.dealer;
     bbIdx = (state.dealer+1)%n;
@@ -4547,20 +4542,19 @@ function nextTournamentHand(){
 
     // Eliminate broke players
     const broke = state.players.filter(p => p.chips <= 0);
-    // FIX #17: Track eliminated player IDs before filtering, then reindex
+    // FIX: Track eliminated player IDs before filtering, then reindex
     const brokeIds = broke.map(p => p.id);
     broke.forEach(p => {
       if(!state.eliminated.includes(p.id)) state.eliminated.push(p.id);
     });
 
-    // FIX #17/#18: Reindex properly after removal — find dealer by ID, not index
+    // FIX: Reindex properly after removal — find dealer by ID, not index
     const currentDealerId = state.players[state.dealer]?.id;
-    // Sort broke indices in descending order so removal doesn't shift subsequent indices
     const brokeIdxs = broke.map(p => state.players.indexOf(p)).sort((a,b) => b - a);
     state.players = state.players.filter(p => p.chips > 0);
     brokeIdxs.forEach(idx => reindexPlayers(state, idx));
 
-    // FIX #18: Find new dealer position by player ID, not just incrementing index
+    // FIX: Find new dealer position by player ID
     const newDealerIdx = state.players.findIndex(p => p.id === currentDealerId);
     if(newDealerIdx >= 0) state.dealer = newDealerIdx;
 
@@ -4586,7 +4580,6 @@ function nextTournamentHand(){
     // Reset for next hand
     state.pots = [];
     state.pot = 0;
-    // FIX #18: Advance dealer to next active player by position
     state.dealer = (state.dealer + 1) % state.players.length;
     AudioManager.cardShuffle();
     Poker.dealHand(state);
@@ -5036,7 +5029,7 @@ function _renderGameImpl(state){
     comm.appendChild(i<state.communityCards.length ? createCardEl(state.communityCards[i]) : createCardPlaceholder());
   }
 
-  // FIX #2: Don't double-count — state.pot already includes collected bets, current bets are in player.bet
+  // FIX: Don't double-count — state.pot already includes collected bets
   const totalPot = state.pot + state.players.reduce((s, p) => s + (p.bet || 0), 0);
   const potEl = document.getElementById('pot-display');
   const oldPot = parseInt(potEl.textContent.replace('POT: ','')) || 0;
@@ -5181,10 +5174,10 @@ function playerAllIn(){
 }
 
 // ===== BOT AI =====
-let botIsActing = false; // FIX #11: Guard flag to prevent overlapping bot moves
+let botIsActing = false; // FIX: Guard flag to prevent overlapping bot moves
 
 function botMove(){
-  // FIX #11: Prevent overlapping bot moves
+  // FIX: Prevent overlapping bot moves
   if(botIsActing) return;
   if(!roomCode) return;
   if(botTimer){ clearTimeout(botTimer); botTimer=null; }
@@ -5195,41 +5188,37 @@ function botMove(){
     let s = normalizeState(currentState);
 
     const botIdx = s.currentPlayer;
-    if(botIdx < 0 || botIdx >= s.players.length) return;
     const b = s.players[botIdx];
-    if(!b || !b.isBot || b.folded || b.allIn || s.phase === 'ended' || s.phase === 'showdown') {
-      return;
+    if(!b || b.folded || b.allIn){
+      Poker.processNextPlayer(s);
+      s.ts = Date.now();
+      botIsActing = false;
+      return s;
     }
-    // Extra safety: check if turn is fresh (not stale)
-    if(Date.now() - (s.turnStartedAt || 0) > (TURN_TIME + 5) * 1000) return;
 
     const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
-    // FIX #2: Correct pot calculation
+    // FIX: Correct pot calculation
     const totalPot = s.pot + s.players.reduce((sum, p) => sum + (p.bet || 0), 0);
     const hs = Poker.evaluateHandStrength(b.hand, s.communityCards, s.phase);
     const pos = getBotPosition(s, botIdx);
     const potOdds = ca > 0 ? ca / (totalPot + ca) : 0;
     const rand = Math.random();
 
-    // FIX #7: In position = acts last postflop (Dealer/Button), NOT BB
+    // FIX: In position = acts last postflop (Dealer/Button), NOT BB
     const isIP = pos === 'Dealer' || pos === 'MP';
     const raiseThreshold = isIP ? 0.65 : 0.75;
     const callThreshold = potOdds > 0.3 ? 0.25 : (potOdds > 0.15 ? 0.35 : 0.45);
     const bluffChance = pos === 'SB' && s.phase === 'preflop' ? 0.25 : 0.15;
 
-    // FIX #6: Use engine functions instead of direct state manipulation
-    // This ensures minimum raise enforcement, validation, and consistency
+    // FIX: Use engine functions instead of direct state manipulation
     if(ca === 0){
       if(hs > raiseThreshold && rand > 0.3){
-        // Bet (first action when no bet to match)
         const betSize = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.6)), b.chips);
         if(!Poker.playerRaise(s, botIdx, betSize)){
-          // Fallback: if raise validation fails, just check
           Poker.playerCheck(s, botIdx);
         }
       } else if(hs > 0.4 && rand < bluffChance) {
-        // Bluff bet
         const betSize = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.5)), b.chips);
         if(!Poker.playerRaise(s, botIdx, betSize)){
           Poker.playerCheck(s, botIdx);
