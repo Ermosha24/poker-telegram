@@ -1711,13 +1711,15 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 /* FIX: Font display swap for fast rendering */
 
 
-/* Tournament 3 players: top row layout */
+/* Tournament 3 & 6 players: top row layout */
 #top-players-row {
   z-index: 15;
   margin-bottom: -2px;
   flex-shrink: 0;
   gap: 0 !important;
   justify-content: center !important;
+  align-items: flex-end;
+  position: relative;
 }
 #top-players-row .player-pos {
   margin: 0 6px;
@@ -1753,7 +1755,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 #top-players-row .card-center {
   font-size: 18px;
 }
-#pos-4 {
+#pos-4, #pos-5, #pos-6 {
   position: relative;
   flex-direction: column;
   align-items: center;
@@ -1761,10 +1763,36 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   padding-top: 0;
   width: auto;
   display: none;
-  margin: 0 8px;
+  margin: 0 6px;
 }
-#pos-4[style*="display: flex"] {
+#pos-4[style*="display: flex"],
+#pos-5[style*="display: flex"],
+#pos-6[style*="display: flex"] {
   display: flex !important;
+}
+/* Классический овал: боковые верхние чуть ниже центра */
+#top-players-row .pos-top-side {
+  margin-bottom: 16px;
+}
+/* Short screens: less offset for oval */
+@media(max-height:700px){
+  #top-players-row .pos-top-side {
+    margin-bottom: 8px;
+  }
+  #top-players-row .p-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+  #top-players-row .p-name {
+    font-size: 9px;
+    max-width: 60px;
+  }
+  #top-players-row .p-cards .card,
+  #top-players-row .p-cards .card-back {
+    width: 28px;
+    height: 42px;
+  }
 }
 
 /* RESPONSIVE */
@@ -1978,8 +2006,26 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   <div class="table-area" style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:0;">
 
   <!-- Top players — ABOVE the table -->
-  <div id="top-players-row" style="display:flex;flex-direction:row;gap:0;justify-content:center;width:100%;">
+  <div id="top-players-row" style="display:flex;flex-direction:row;gap:0;justify-content:center;width:100%;align-items:flex-end;">
+    <div class="player-pos pos-top pos-top-side" id="pos-5" style="display:none;">
+      <div class="p-info">
+        <div class="p-avatar">👤</div>
+        <div class="p-name">...</div>
+        <div class="p-chips">0</div>
+        <div class="p-bet"></div>
+      </div>
+      <div class="p-cards"></div>
+    </div>
     <div class="player-pos pos-top" id="pos-2">
+      <div class="p-info">
+        <div class="p-avatar">👤</div>
+        <div class="p-name">...</div>
+        <div class="p-chips">0</div>
+        <div class="p-bet"></div>
+      </div>
+      <div class="p-cards"></div>
+    </div>
+    <div class="player-pos pos-top pos-top-side" id="pos-6" style="display:none;">
       <div class="p-info">
         <div class="p-avatar">👤</div>
         <div class="p-name">...</div>
@@ -4718,6 +4764,10 @@ function showTournamentSelect(){
           <div>🥇 ${currentLang==='ru'?'4 игрока':'4 Players'}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Классический Sit & Go':'Classic Sit & Go'}</div>
         </button>
+        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(212,175,55,.4),rgba(212,175,55,.12));border:1px solid rgba(212,175,55,.5);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(6);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div>👑 ${currentLang==='ru'?'6 игроков':'6 Players'}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Классический овал':'Classic Oval'}</div>
+        </button>
       </div>
       <button class="daily-modal-btn" onclick="document.getElementById('tourney-select-modal').remove()">${currentLang==='ru'?'Отмена':'Cancel'}</button>
     </div>
@@ -5190,6 +5240,14 @@ function animateWinner(playerIdx){
       const oppPos = opponents.findIndex(o => o.origIdx === playerIdx);
       relIdx = oppPos === 0 ? 2 : 4;
     }
+  } else if(n === 6){
+    // Классический овал
+    if(playerIdx === myIndex) relIdx = 0;
+    else {
+      const offset = (playerIdx - myIndex + n) % n;
+      const map6 = [0, 1, 5, 2, 6, 3];
+      relIdx = map6[offset];
+    }
   } else {
     relIdx = (playerIdx - myIndex + n) % n;
   }
@@ -5247,8 +5305,11 @@ function _renderGameImpl(state){
     const posEl = document.getElementById('pos-'+i);
     if(posEl) posEl.style.display='none';
   }
-  const pos4El = document.getElementById('pos-4');
-  if(pos4El) pos4El.style.display='none';
+  const extraPos = ['pos-4', 'pos-5', 'pos-6'];
+  extraPos.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display='none';
+  });
 
   for(let i=0;i<n;i++){
     let rel;
@@ -5259,6 +5320,12 @@ function _renderGameImpl(state){
       if(i === myIdx) rel = 0; // bottom (you)
       else if(i === (myIdx + 1) % n) rel = 2; // top-left
       else rel = 4; // top-right
+    } else if(n===6){
+      // Классический овал: 6 игроков
+      const offset = (i - myIdx + n) % n;
+      // offset: 0=bottom(you), 1=left, 2=top-left, 3=top, 4=top-right, 5=right
+      const map6 = [0, 1, 5, 2, 6, 3];
+      rel = map6[offset];
     } else {
       rel=(i-myIdx+n)%n; // 4 players: all positions
     }
@@ -5982,6 +6049,14 @@ function renderEnd(state){
         rel = oppPos === 0 ? 2 : 4;
       }
     }
+    else if(n === 6){
+      if(w.idx === myIndex) rel = 0;
+      else {
+        const offset = (w.idx - myIndex + n) % n;
+        const map6 = [0, 1, 5, 2, 6, 3];
+        rel = map6[offset];
+      }
+    }
     else { rel = (w.idx - myIndex + n) % n; }
     const winEl = document.getElementById('pos-'+rel);
     if(winEl) animateChipsToWinner(winEl);
@@ -6364,7 +6439,7 @@ function joinTableByCode(code){
     console.log('Normalized state:', state ? {phase: state.phase, playersCount: state.players ? state.players.length : 0, playerIds: state.players ? state.players.map(p=>p.id) : []} : null);
     if(!state) { console.log('Room not found'); showToast(t('toastRoomNotFound'), 'error'); throw 'not_found'; }
     if(state.phase !== 'waiting') { console.log('Game already started, phase:', state.phase); showToast(t('toastGameStarted'), 'warning'); throw 'started'; }
-    if(state.players.length >= 4) { console.log('Room full:', state.players.length); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
+    if(state.players.length >= 6) { console.log('Room full:', state.players.length); showToast(t('toastRoomFull'), 'warning'); throw 'full'; }
     if(state.players.some(p => p.id === myPlayerId)) { console.log('Already in room'); showToast(t('toastAlreadyIn'), 'warning'); throw 'already_in'; }
 
     console.log('Joining room, myChips:', myChips, 'attempting transaction...');
@@ -6378,7 +6453,7 @@ function joinTableByCode(code){
       console.log('TX players count:', players.length, 'ids:', players.map(p=>p.id));
 
       if(s.phase !== 'waiting') { console.log('TX abort: phase is', s.phase); return; }
-      if(players.length >= 4) { console.log('TX abort: full'); return; }
+      if(players.length >= 6) { console.log('TX abort: full'); return; }
       if(players.some(p => p.id === myPlayerId)) { console.log('TX abort: already in'); return; }
 
       players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
@@ -6496,7 +6571,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         hostName: myName,
         hostId: myPlayerId,
         playersCount: 1,
-        maxPlayers: 4,
+        maxPlayers: 6,
         status: 'waiting',
         smallBlind: SMALL_BLIND,
         bigBlind: BIG_BLIND,
@@ -6523,7 +6598,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(!currentState) return;
       let state = normalizeState(currentState);
       if(state.phase !== 'waiting'){ showToast(t('toastGameStarted'), 'warning'); return; }
-      if(state.players.length >= 4){ showToast(t('toastRoomFull'), 'warning'); return; }
+      if(state.players.length >= 6){ showToast(t('toastRoomFull'), 'warning'); return; }
       if(state.players.some(p => p.id === myPlayerId)){ showToast(t('toastAlreadyIn'), 'warning'); return; }
       state.players.push({id:myPlayerId,name:myName,chips:myChips,hand:[],bet:0,folded:false,allIn:false});
       state.ts = Date.now();
