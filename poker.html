@@ -1770,6 +1770,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 </style>
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -4313,8 +4314,14 @@ function createRoom(code){
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else if(state.isTournament){
-      _renderGameImpl(state);
-      renderTournament(state);
+      // Tournament: show game screen during active play, tournament screen only when ended
+      if(state.phase === 'ended'){
+        renderTournament(state);
+      } else {
+        _renderGameImpl(state);
+        // Show tournament info overlay on game screen
+        showTournamentOverlay(state);
+      }
     }
     else debouncedRenderGame(state);
   };
@@ -4390,6 +4397,7 @@ function autoFold(){
 
 
 function backToLobby(){
+  hideTournamentOverlay();
   clearWinnerAnim();
   clearAllTimers();
   AudioManager.close();
@@ -4476,6 +4484,7 @@ function reindexPlayers(state, removedIdx){
 }
 
 function leaveRoom(){
+  hideTournamentOverlay();
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
@@ -4633,13 +4642,9 @@ function showTournamentSelect(){
           <div>🥉 ${currentLang==='ru'?'3 игрока':'3 Players'}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Быстрый турнир':'Quick game'}</div>
         </button>
-        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(212,175,55,.3),rgba(212,175,55,.08));border:1px solid rgba(212,175,55,.4);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(6);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-          <div>🥇 ${currentLang==='ru'?'6 игроков':'6 Players'}</div>
+        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(212,175,55,.3),rgba(212,175,55,.08));border:1px solid rgba(212,175,55,.4);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(4);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+          <div>🥇 ${currentLang==='ru'?'4 игрока':'4 Players'}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Классический Sit & Go':'Classic Sit & Go'}</div>
-        </button>
-        <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(139,26,42,.3),rgba(139,26,42,.08));border:1px solid rgba(139,26,42,.4);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(9);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-          <div>👑 ${currentLang==='ru'?'9 игроков':'9 Players'}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400;margin-top:2px;">${currentLang==='ru'?'Марафон турнир':'Marathon tournament'}</div>
         </button>
       </div>
       <button class="daily-modal-btn" onclick="document.getElementById('tourney-select-modal').remove()">${currentLang==='ru'?'Отмена':'Cancel'}</button>
@@ -4652,6 +4657,9 @@ function nextTournamentHand(){
   if(!roomCode || !tourneyState) return;
   stopTimer();
   if(tourneyAutoTimer) clearTimeout(tourneyAutoTimer);
+
+  let blindsUp = false;
+  let newBlindsText = '';
 
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
     if(!currentState) return;
@@ -4697,7 +4705,8 @@ function nextTournamentHand(){
       state.smallBlind = newBlinds.small;
       state.bigBlind = newBlinds.big;
       state.tourneyBlinds = {sb: newBlinds.small, bb: newBlinds.big};
-      showToast((currentLang==='ru'?'Блайнды повышены: ':'Blinds up: ')+newBlinds.small+'/'+newBlinds.big);
+      blindsUp = true;
+      newBlindsText = newBlinds.small + '/' + newBlinds.big;
     }
     const levelIdx = Math.min(Math.floor((state.tourneyHand - 1) / 5), TOURNEY_BLINDS.length - 1);
     state.tourneyLevel = levelIdx + 1;
@@ -4706,16 +4715,54 @@ function nextTournamentHand(){
     state.pots = [];
     state.pot = 0;
     state.dealer = (state.dealer + 1) % state.players.length;
-    AudioManager.cardShuffle();
     Poker.dealHand(state);
     state.ts = Date.now();
     return state;
+  }).then(() => {
+    // Side effects AFTER transaction completes
+    if(blindsUp){
+      showToast((currentLang==='ru'?'Блайнды повышены: ':'Blinds up: ')+newBlindsText);
+    }
+    showScreen('game');
   });
+}
+
+
+// ===== TOURNAMENT OVERLAY (shown on game screen during active play) =====
+function showTournamentOverlay(state){
+  // Remove existing overlay if any
+  let existing = document.getElementById('tourney-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tourney-overlay';
+  overlay.style.cssText = 'position:fixed;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:50;background:rgba(10,10,15,.92);border:1px solid rgba(212,175,55,.2);border-radius:12px;padding:8px 16px;display:flex;gap:16px;align-items:center;backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,.5);font-size:11px;';
+
+  const levelText = currentLang === 'ru' ? 'Ур.' : 'Lv.';
+  const handText = currentLang === 'ru' ? 'Рука' : 'Hand';
+
+  overlay.innerHTML = `
+    <div style="color:rgba(255,255,255,.5);font-weight:600;"><span style="color:var(--gold);">🏆</span> ${levelText} <span style="color:#fff;font-weight:700;">${state.tourneyLevel}</span></div>
+    <div style="color:rgba(255,255,255,.5);font-weight:600;">Blinds <span style="color:#fff;font-weight:700;">${state.smallBlind}/${state.bigBlind}</span></div>
+    <div style="color:rgba(255,255,255,.5);font-weight:600;">${handText} <span style="color:#fff;font-weight:700;">${state.tourneyHand}</span></div>
+    <div style="color:rgba(255,255,255,.5);font-weight:600;">Players <span style="color:#fff;font-weight:700;">${state.players.length}</span></div>
+  `;
+
+  document.body.appendChild(overlay);
+}
+
+function hideTournamentOverlay(){
+  const el = document.getElementById('tourney-overlay');
+  if(el) el.remove();
 }
 
 function renderTournament(state){
   if(!state || !state.isTournament) return;
-  showScreen('tournament');
+  // Only show full tournament screen when game is ended
+  // During active play, game screen is shown with overlay
+  if(state.phase === 'ended'){
+    showScreen('tournament');
+  }
 
   document.getElementById('tourney-level').textContent = state.tourneyLevel;
   document.getElementById('tourney-blinds').textContent = state.smallBlind + '/' + state.bigBlind;
@@ -4809,6 +4856,8 @@ function hostStartGame(){
     AudioManager.cardShuffle();
     Poker.dealHand(state);
     state.ts = Date.now();
+    // Switch to game screen for the new hand
+    showScreen('game');
     return state;
   }).then(() => {
     if(roomCode) db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('playing');
@@ -5083,6 +5132,8 @@ function debouncedRenderGame(state){
 // ===== GAME RENDER =====
 function _renderGameImpl(state){
   console.log('renderGame called, state:', state);
+  // Clean up tournament overlay if not in tournament
+  if(!state || !state.isTournament) hideTournamentOverlay();
   lastGameState = state;
   if(!state || !state.players || state.players.length === 0) { 
     console.log('No valid state, returning'); 
@@ -5840,8 +5891,16 @@ function renderEnd(state){
 
   // Auto-continue after short delay
   if(state.isTournament){
+    // Show tournament screen with results instead of auto-continuing
+    hideTournamentOverlay();
     if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
-    autoLobbyTimer = setTimeout(() => { isEndShown = false; nextTournamentHand(); }, 3000);
+    autoLobbyTimer = setTimeout(() => { 
+      isEndShown = false; 
+      // Switch to tournament screen to show leaderboard before next hand
+      renderTournament(state);
+      // Then auto-continue after showing results
+      setTimeout(() => nextTournamentHand(), 3000);
+    }, 2000);
   } else {
     const delay = state.players.some(p => p.isBot) ? 3000 : 5000;
     if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
@@ -5866,13 +5925,15 @@ function startNewHand(){
     brokeIdxs.sort((a,b)=>b-a).forEach(idx => reindexPlayers(state, idx));
     state.pots = []; state.pot = 0;
     state.dealer = (state.dealer + 1) % state.players.length;
-    AudioManager.cardShuffle();
     Poker.dealHand(state);
     state.ts = Date.now();
     return state;
   }).then(result => {
     if(!result.committed || !result.snapshot.val()){
       showToast(t('toastNotEnough'), 'warning'); backToLobby();
+    } else {
+      AudioManager.cardShuffle();
+      showScreen('game');
     }
   });
 }
