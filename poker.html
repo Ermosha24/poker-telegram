@@ -1034,6 +1034,10 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   justify-content: center;
   flex-shrink: 0;
 }
+#top-players-row .pos-top {
+  width: auto;
+  margin-bottom: 0;
+}
 .pos-top .p-info {
   flex-direction: column;
   align-items: center;
@@ -1707,6 +1711,62 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 /* FIX: Font display swap for fast rendering */
 
 
+/* Tournament 3 players: top row layout */
+#top-players-row {
+  z-index: 15;
+  margin-bottom: -2px;
+  flex-shrink: 0;
+  gap: 0 !important;
+  justify-content: center !important;
+}
+#top-players-row .player-pos {
+  margin: 0 6px;
+}
+#top-players-row .p-avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  border-radius: 10px;
+}
+#top-players-row .p-name {
+  font-size: 10px;
+  max-width: 70px;
+}
+#top-players-row .p-chips {
+  font-size: 9px;
+  padding: 1px 6px;
+}
+#top-players-row .p-bet {
+  font-size: 9px;
+  padding: 1px 5px;
+  min-height: 16px;
+}
+#top-players-row .p-cards .card,
+#top-players-row .p-cards .card-back {
+  width: 34px;
+  height: 50px;
+  border-radius: 8px;
+}
+#top-players-row .card-corner {
+  font-size: 8px;
+}
+#top-players-row .card-center {
+  font-size: 18px;
+}
+#pos-4 {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-top: 0;
+  width: auto;
+  display: none;
+  margin: 0 8px;
+}
+#pos-4[style*="display: flex"] {
+  display: flex !important;
+}
+
 /* RESPONSIVE */
 @media(max-width:380px){
   :root{--card-w:46px;--card-h:68px;}
@@ -1768,6 +1828,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .onboarding-dot.active { background: var(--gold); width: 24px; border-radius: 4px; }
 .onboarding-btn { width: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #D4AF37, #A88B2D); color: #0A0A0F; font-weight: 900; font-size: 16px; border: none; cursor: pointer; }
 </style>
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -1916,15 +1977,26 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 
   <div class="table-area" style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:0;">
 
-  <!-- Top player (bot) — ABOVE the table -->
-  <div class="player-pos pos-top" id="pos-2">
-    <div class="p-info">
-      <div class="p-avatar">👤</div>
-      <div class="p-name">...</div>
-      <div class="p-chips">0</div>
-      <div class="p-bet"></div>
+  <!-- Top players — ABOVE the table -->
+  <div id="top-players-row" style="display:flex;flex-direction:row;gap:0;justify-content:center;width:100%;">
+    <div class="player-pos pos-top" id="pos-2">
+      <div class="p-info">
+        <div class="p-avatar">👤</div>
+        <div class="p-name">...</div>
+        <div class="p-chips">0</div>
+        <div class="p-bet"></div>
+      </div>
+      <div class="p-cards"></div>
     </div>
-    <div class="p-cards"></div>
+    <div class="player-pos pos-top" id="pos-4" style="display:none;">
+      <div class="p-info">
+        <div class="p-avatar">👤</div>
+        <div class="p-name">...</div>
+        <div class="p-chips">0</div>
+        <div class="p-bet"></div>
+      </div>
+      <div class="p-cards"></div>
+    </div>
   </div>
 
   <!-- Middle row: left player + table + right player -->
@@ -5104,10 +5176,23 @@ function animateBet(playerEl){
 }
 
 function animateWinner(playerIdx){
-  const n = document.querySelectorAll('.player-pos').length;
+  const state = lastGameState;
+  if(!state || !state.players) return;
+  const n = state.players.length;
   let relIdx;
-  if(n === 2){ relIdx = (playerIdx === myIndex) ? 0 : 2; }
-  else { relIdx = (playerIdx - myIndex + n) % n; }
+  if(n === 2){
+    relIdx = (playerIdx === myIndex) ? 0 : 2;
+  } else if(n === 3){
+    // Турнир на 3: 0=bottom, 2=top1, 4=top2
+    if(playerIdx === myIndex) relIdx = 0;
+    else {
+      const opponents = state.players.map((p, idx) => ({...p, origIdx: idx})).filter((p, idx) => idx !== myIndex);
+      const oppPos = opponents.findIndex(o => o.origIdx === playerIdx);
+      relIdx = oppPos === 0 ? 2 : 4;
+    }
+  } else {
+    relIdx = (playerIdx - myIndex + n) % n;
+  }
   const el = document.getElementById('pos-'+relIdx);
   if(el) el.classList.add('winner-anim');
 }
@@ -5157,18 +5242,23 @@ function _renderGameImpl(state){
   const canAct=me&&state.currentPlayer===myIdx&&!me.folded&&!me.allIn
                &&state.phase!=='showdown'&&state.phase!=='ended';
 
+  // Скрываем все позиции
   for(let i=0;i<4;i++){
     const posEl = document.getElementById('pos-'+i);
     if(posEl) posEl.style.display='none';
   }
+  const pos4El = document.getElementById('pos-4');
+  if(pos4El) pos4El.style.display='none';
+
   for(let i=0;i<n;i++){
     let rel;
     if(n===2){
       rel = (i===myIdx) ? 0 : 2; // Bottom vs Top
     } else if(n===3){
-      // FIX #16: 3 players: bottom(0), left(1), right(2)
-      rel = (i - myIdx + n) % n;
-      // rel: 0=you(bottom), 1=left, 2=right
+      // Турнир на 3: вы внизу, оба оппонента сверху рядом
+      if(i === myIdx) rel = 0; // bottom (you)
+      else if(i === (myIdx + 1) % n) rel = 2; // top-left
+      else rel = 4; // top-right
     } else {
       rel=(i-myIdx+n)%n; // 4 players: all positions
     }
@@ -5884,6 +5974,14 @@ function renderEnd(state){
     const n = state.players ? state.players.length : 2;
     let rel;
     if(n === 2){ rel = (w.idx === myIndex) ? 0 : 2; }
+    else if(n === 3){
+      if(w.idx === myIndex) rel = 0;
+      else {
+        const opponents = state.players.map((p, idx) => ({...p, origIdx: idx})).filter((p, idx) => idx !== myIndex);
+        const oppPos = opponents.findIndex(o => o.origIdx === w.idx);
+        rel = oppPos === 0 ? 2 : 4;
+      }
+    }
     else { rel = (w.idx - myIndex + n) % n; }
     const winEl = document.getElementById('pos-'+rel);
     if(winEl) animateChipsToWinner(winEl);
