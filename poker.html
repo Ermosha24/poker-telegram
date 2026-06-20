@@ -2132,7 +2132,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
       <span class="btn-text" id="check-text">Check</span>
     </button>
     <button class="action-btn btn-call"  id="btn-call" onclick="playerCall()" aria-label="Call bet">
-      <span class="btn-icon">🪙</span>
+      <span class="btn-icon">$</span>
       <span class="btn-text" id="call-text">Call</span>
       <span class="btn-amount" id="call-amount"></span>
     </button>
@@ -5211,7 +5211,7 @@ function updateStrengthMeter(state){
 let activeParticles = 0;
 const MAX_PARTICLES = 50;
 function spawnWinParticles(){
-  const emojis = ['💰','🪙','💎','⭐','🃏'];
+  const emojis = ['💰','$','💎','⭐','🃏'];
   const colors = ['#F5B800','#FFD700','#FFA500','#FF6B6B','#4ade80'];
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight / 2;
@@ -6769,7 +6769,7 @@ function showStakesModal(){
   modal.id = 'stakes-modal';
   modal.innerHTML = `
     <div class="daily-modal-content" style="max-width:340px;">
-      <div class="daily-modal-icon">🪙</div>
+      <div class="daily-modal-icon" style="font-size:28px;font-weight:800;color:var(--gold);letter-spacing:1px;">$</div>
       <div class="daily-modal-title">${currentLang === 'ru' ? 'Выбор ставок' : 'Select Stakes'}</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin:16px 0;">
         ${STAKES_LEVELS.map(s => {
