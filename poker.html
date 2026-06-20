@@ -1860,6 +1860,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -1885,9 +1886,13 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
     <div class="lobby-header-right">
       <div id="firebase-status" style="width:8px;height:8px;border-radius:50%;background:#D64545;box-shadow:0 0 8px #D64545;transition:all .3s;" title="Firebase status"></div>
       <div class="lobby-lang-btn" id="lang-btn" onclick="toggleLanguage()">EN</div>
+      <div class="lobby-lang-btn" id="stake-btn" onclick="showStakesModal()" title="Select stakes" style="font-size:16px;">🪙</div>
       <div class="lobby-settings-btn" onclick="showSettingsScreen()">⚙️</div>
     </div>
   </div>
+
+  <!-- Stakes display -->
+  <div id="current-stake-display" style="width:100%;max-width:480px;text-align:center;font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;margin-bottom:4px;font-weight:600;letter-spacing:.5px;"></div>
 
   <!-- Quick Play -->
   <button class="lobby-quick-btn" id="bot-btn" onclick="startBotGame()">
@@ -1983,6 +1988,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   <div class="waiting-title" id="waiting-title">⏳ Ожидание игроков</div>
   <div class="big-room-id" id="waiting-code">----</div>
   <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:8px;" id="waiting-hint">Отправьте код друзьям</div>
+  <div id="waiting-stake-info" style="font-size:11px;color:var(--gold);margin-top:4px;font-weight:600;"></div>
   <div class="player-list" id="player-list"></div>
   <button class="btn btn-green" id="start-btn" style="display:none;margin-top:24px;"><span id="start-btn-text">▶ Начать игру</span></button>
   <button class="copy-code-btn" id="copy-code-btn" onclick="copyRoomCode()">📋 Copy Code</button>
@@ -2177,6 +2183,12 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   <div class="profile-section">
     <div class="profile-section-title">🏆 Достижения</div>
     <div class="profile-achievements" id="profile-achievements"></div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">📜 История рук</div>
+    <div id="hand-history-list" style="max-height:300px;overflow-y:auto;padding-right:4px;">
+      <div style="text-align:center;color:rgba(255,255,255,.3);padding:20px;font-size:13px;">Loading...</div>
+    </div>
   </div>
   <div class="profile-section">
     <div class="profile-section-title">🎨 Кастомизация</div>
@@ -3492,6 +3504,8 @@ const LEVEL_KEY = 'poker_level';
 const DAILY_KEY = 'poker_daily';
 const MISSIONS_KEY = 'poker_missions';
 const LAST_LOGIN_KEY = 'poker_last_login';
+const RECONNECT_KEY = 'poker_reconnect';
+const HAND_HISTORY_KEY = 'poker_hand_history';
 
 // Daily Bonus
 function getDailyBonus(){
@@ -4429,6 +4443,13 @@ function createRoom(code){
     if(foundIdx<0) foundIdx = state.players.findIndex(p=>p.name===myName);
     if(foundIdx>=0) myIndex=foundIdx;
 
+    // Save reconnect state for active games
+    if(state.phase !== 'waiting' && state.phase !== 'ended'){
+      saveReconnectState(code, myIndex, isHost, state.isTournament);
+    } else if(state.phase === 'ended'){
+      clearReconnectState();
+    }
+
     if(state.phase==='waiting') renderWaiting(state);
     else if(state.phase==='ended') renderEnd(state);
     else if(state.isTournament){
@@ -4439,9 +4460,13 @@ function createRoom(code){
         _renderGameImpl(state);
         // Show tournament info overlay on game screen
         showTournamentOverlay(state);
+        saveReconnectState(code, myIndex, isHost, true);
       }
     }
-    else debouncedRenderGame(state);
+    else {
+      debouncedRenderGame(state);
+      saveReconnectState(code, myIndex, isHost, false);
+    }
   };
   roomRef.on('value', listener);
   unsubscribe = listener;
@@ -4516,6 +4541,7 @@ function autoFold(){
 
 function backToLobby(){
   hideTournamentOverlay();
+  clearReconnectState();
   clearWinnerAnim();
   clearAllTimers();
   AudioManager.close();
@@ -4603,6 +4629,7 @@ function reindexPlayers(state, removedIdx){
 
 function leaveRoom(){
   hideTournamentOverlay();
+  clearReconnectState();
   if(!roomCode) return;
   stopTimer();
   if(autoLobbyTimer) clearTimeout(autoLobbyTimer);
@@ -4697,8 +4724,9 @@ function postBlind(state, idx, amount){
 function startBotGame(){
   const code=genCode();
   roomCode=code; isHost=true; myIndex=0;
-  const myChips = getBalance();
-  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: SMALL_BLIND, bigBlind: BIG_BLIND });
+  const myChips = Math.min(getBalance(), currentStake.maxBuyin);
+  setBalance(getBalance() - myChips + myChips); // Ensure balance is set
+  const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: currentStake.sb, bigBlind: currentStake.bb });
   Poker.addPlayer(state, 'bot_1', '🤖 Бот', myChips);
   state.players[1].isBot = true;
   AudioManager.cardShuffle();
@@ -4722,7 +4750,7 @@ function startTournament(numPlayers){
   const playerCount = numPlayers || 4;
   const code = genCode();
   roomCode = code; isHost = true; myIndex = 0;
-  const myChips = getBalance();
+  const myChips = Math.min(getBalance(), currentStake.maxBuyin);
   tournamentBlindLevel = 1;
   tournamentHandsPlayed = 0;
   const blinds = getCurrentTournamentBlinds();
@@ -4755,6 +4783,7 @@ function showTournamentSelect(){
     <div class="daily-modal-content" style="max-width:340px;">
       <div class="daily-modal-icon">🏆</div>
       <div class="daily-modal-title">${currentLang==='ru'?'Выбери формат':'Choose Format'}</div>
+      <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px;margin-top:-8px;">${currentLang === 'ru' ? currentStake.nameRu : currentStake.name} • ${currentStake.sb}/${currentStake.bb}</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin:16px 0;">
         <button style="padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.05));border:1px solid rgba(212,175,55,.3);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;" onclick="document.getElementById('tourney-select-modal').remove();startTournament(3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
           <div>🥉 ${currentLang==='ru'?'3 игрока':'3 Players'}</div>
@@ -4965,6 +4994,11 @@ function renderWaiting(state){
     btn.style.display='block';
     btn.onclick=hostStartGame;
   } else { btn.style.display='none'; }
+  const stakeInfo = document.getElementById('waiting-stake-info');
+  if(stakeInfo){
+    const name = currentLang === 'ru' ? currentStake.nameRu : currentStake.name;
+    stakeInfo.textContent = name + ' • ' + currentStake.sb + '/' + currentStake.bb;
+  }
 }
 
 function hostStartGame(){
@@ -4982,7 +5016,10 @@ function hostStartGame(){
     showScreen('game');
     return state;
   }).then(() => {
-    if(roomCode) db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('playing');
+    if(roomCode) {
+      db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('playing');
+      saveReconnectState(roomCode, myIndex, isHost, false);
+    }
   });
 }
 
@@ -6000,6 +6037,13 @@ function renderEnd(state){
   if(state.winners && state.winners.length > 0) AudioManager.winChime();
   if(isEndShown) return;
   isEndShown=true;
+
+  // Save hand history
+  const winnerIdxs = state.winners ? state.winners.map(w => w.idx) : [];
+  saveHandHistory(state, winnerIdxs);
+
+  // Clear reconnect state since hand ended
+  clearReconnectState();
   // Clean up lobby entry when hand ends (room becomes invisible for new joiners)
   if(roomCode && !state.isTournament){
     db.ref('poker-lobby/rooms/' + roomCode + '/meta/status').set('ended').catch(()=>{});
@@ -6189,6 +6233,7 @@ function syncLobbyAvatar(){
 }
 
 function renderProfile(){
+  renderHandHistory();
   const stats=getProfileStats(), winrate=stats.hands>0?Math.round((stats.wins/stats.hands)*100):0;
   const bestHandNames=['—',t('highCard'),t('pair'),t('twoPair'),t('threeKind'),t('straight'),t('flush'),t('fullHouse'),t('fourKind'),t('straightFlush')];
   const pa=document.getElementById('profile-avatar');
@@ -6370,7 +6415,7 @@ function renderLobbyTables(rooms){
     card.innerHTML = `
       <div class="lt-header">
         <div class="lt-host">${escapeHtml(meta.hostName || 'Host')}</div>
-        <div class="lt-blinds">${meta.smallBlind || 10}/${meta.bigBlind || 20}</div>
+        <div class="lt-blinds">${meta.stakeName || (meta.smallBlind || 10) + '/' + (meta.bigBlind || 20)}</div>
       </div>
       <div class="lt-players">
         <div class="lt-bar"><div class="lt-fill" style="width:${pct}%"></div></div>
@@ -6514,6 +6559,227 @@ function joinTableByCode(code){
 }
 
 
+
+// ===== RECONNECT SYSTEM =====
+function saveReconnectState(code, myIdx, isHostFlag, isTourney){
+  try {
+    const data = {
+      code: code,
+      myIndex: myIdx,
+      isHost: isHostFlag,
+      isTournament: isTourney || false,
+      timestamp: Date.now(),
+      playerId: myPlayerId
+    };
+    sessionStorage.setItem(RECONNECT_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function clearReconnectState(){
+  try { sessionStorage.removeItem(RECONNECT_KEY); } catch(e) {}
+}
+
+function tryReconnect(){
+  try {
+    const raw = sessionStorage.getItem(RECONNECT_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    // Validate: must be recent (< 30 min) and same player
+    if(!data || data.playerId !== myPlayerId) return false;
+    if(Date.now() - data.timestamp > 30 * 60 * 1000) {
+      clearReconnectState();
+      return false;
+    }
+    if(!data.code) return false;
+
+    // Check if room still exists
+    db.ref('poker-rooms/' + data.code).once('value').then(snap => {
+      const state = normalizeState(snap.val());
+      if(!state) {
+        clearReconnectState();
+        return;
+      }
+      // Find my index in the room
+      let foundIdx = state.players.findIndex(p => p.id === myPlayerId);
+      if(foundIdx < 0) {
+        // I was kicked or left
+        clearReconnectState();
+        return;
+      }
+
+      roomCode = data.code;
+      myIndex = foundIdx;
+      isHost = state.players[0]?.id === myPlayerId;
+
+      showToast(currentLang === 'ru' ? '♻️ Восстановление...' : '♻️ Reconnecting...', 'info');
+
+      if(state.phase === 'waiting') {
+        showScreen('waiting');
+      } else if(state.phase === 'ended') {
+        showScreen('game');
+        renderEnd(state);
+      } else {
+        showScreen('game');
+      }
+      createRoom(data.code);
+    }).catch(() => {
+      clearReconnectState();
+    });
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ===== HAND HISTORY =====
+function saveHandHistory(state, winnerIdxs){
+  try {
+    let history = JSON.parse(localStorage.getItem(HAND_HISTORY_KEY) || '[]');
+    const me = state.players.find(p => p.id === myPlayerId);
+    if(!me) return;
+
+    const myHand = me.hand || [];
+    const community = state.communityCards || [];
+    const totalPot = state.pots ? state.pots.reduce((s,p) => s + p.amount, 0) : (state.pot || 0);
+    const iWon = winnerIdxs && winnerIdxs.some(i => state.players[i] && state.players[i].id === myPlayerId);
+    const profit = iWon ? Math.floor(totalPot / (winnerIdxs.length || 1)) : -(me.bet || 0);
+
+    let handName = '';
+    if(myHand.length === 2 && community.length >= 3){
+      const score = Poker.getBest5From7([...myHand, ...community]);
+      handName = Poker.handRankName(score.rank);
+    }
+
+    const entry = {
+      date: new Date().toISOString(),
+      hand: myHand.map(c => c.v + Poker.SUITS[c.c]),
+      community: community.map(c => c.v + Poker.SUITS[c.c]),
+      pot: totalPot,
+      profit: profit,
+      won: iWon,
+      handName: handName,
+      blinds: (state.smallBlind || 10) + '/' + (state.bigBlind || 20),
+      players: state.players.length
+    };
+
+    history.unshift(entry);
+    if(history.length > 20) history = history.slice(0, 20);
+    localStorage.setItem(HAND_HISTORY_KEY, JSON.stringify(history));
+  } catch(e) {}
+}
+
+function getHandHistory(){
+  try {
+    return JSON.parse(localStorage.getItem(HAND_HISTORY_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function renderHandHistory(){
+  const history = getHandHistory();
+  const container = document.getElementById('hand-history-list');
+  if(!container) return;
+
+  if(history.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.3);padding:20px;font-size:13px;">' + (currentLang === 'ru' ? 'История пуста' : 'No history yet') + '</div>';
+    return;
+  }
+
+  container.innerHTML = history.map((h, i) => {
+    const date = new Date(h.date);
+    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const profitClass = h.profit >= 0 ? 'color:#2ECC71;' : 'color:#D64545;';
+    const profitSign = h.profit >= 0 ? '+' : '';
+    const handCards = h.hand.map(c => '<span style="display:inline-block;background:rgba(255,255,255,.08);border-radius:4px;padding:2px 5px;margin:0 2px;font-size:11px;font-family:monospace;">' + c + '</span>').join('');
+    const boardCards = h.community.map(c => '<span style="display:inline-block;background:rgba(255,255,255,.05);border-radius:4px;padding:2px 5px;margin:0 2px;font-size:10px;font-family:monospace;color:rgba(255,255,255,.5);">' + c + '</span>').join('');
+
+    return `
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:10px;color:rgba(255,255,255,.4);">#${history.length - i} • ${dateStr}</span>
+          <span style="font-size:11px;font-weight:700;${profitClass}">${profitSign}${h.profit}</span>
+        </div>
+        <div style="margin-bottom:6px;">${handCards}</div>
+        <div style="margin-bottom:6px;">${boardCards}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:rgba(255,255,255,.4);">
+          <span>${h.handName || ''}</span>
+          <span>Pot: ${h.pot} • ${h.blinds} • ${h.players}P</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== STAKES SYSTEM =====
+const STAKES_LEVELS = [
+  { id: 'micro', name: 'Micro', nameRu: 'Микро', sb: 5, bb: 10, minBuyin: 500, maxBuyin: 2000, color: '#2ECC71' },
+  { id: 'low', name: 'Low', nameRu: 'Низкий', sb: 10, bb: 20, minBuyin: 1000, maxBuyin: 5000, color: '#4A90D9' },
+  { id: 'medium', name: 'Medium', nameRu: 'Средний', sb: 25, bb: 50, minBuyin: 2500, maxBuyin: 10000, color: '#D4AF37' },
+  { id: 'high', name: 'High', nameRu: 'Высокий', sb: 50, bb: 100, minBuyin: 5000, maxBuyin: 25000, color: '#E67E22' },
+  { id: 'pro', name: 'Pro', nameRu: 'Про', sb: 100, bb: 200, minBuyin: 10000, maxBuyin: 50000, color: '#D64545' }
+];
+
+let currentStake = JSON.parse(localStorage.getItem('poker_stake') || 'null') || STAKES_LEVELS[1]; // Default Low
+
+function getStakeById(id){
+  return STAKES_LEVELS.find(s => s.id === id) || STAKES_LEVELS[1];
+}
+
+function setStake(id){
+  const stake = getStakeById(id);
+  currentStake = stake;
+  localStorage.setItem('poker_stake', JSON.stringify(stake));
+  updateStakeDisplay();
+}
+
+function updateStakeDisplay(){
+  const el = document.getElementById('current-stake-display');
+  if(el){
+    const name = currentLang === 'ru' ? currentStake.nameRu : currentStake.name;
+    el.innerHTML = `<span style="color:${currentStake.color};font-weight:800;">${name}</span> <span style="opacity:.5;font-size:10px;">${currentStake.sb}/${currentStake.bb}</span>`;
+  }
+}
+
+function canJoinStake(stake){
+  return getBalance() >= stake.minBuyin;
+}
+
+function showStakesModal(){
+  const existing = document.getElementById('stakes-modal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'daily-modal';
+  modal.id = 'stakes-modal';
+  modal.innerHTML = `
+    <div class="daily-modal-content" style="max-width:340px;">
+      <div class="daily-modal-icon">🪙</div>
+      <div class="daily-modal-title">${currentLang === 'ru' ? 'Выбор ставок' : 'Select Stakes'}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin:16px 0;">
+        ${STAKES_LEVELS.map(s => {
+          const name = currentLang === 'ru' ? s.nameRu : s.name;
+          const locked = !canJoinStake(s);
+          const isCurrent = currentStake.id === s.id;
+          return `
+            <button onclick="${locked ? '' : `setStake('${s.id}'); document.getElementById('stakes-modal').remove();`}" 
+              style="padding:14px 16px;border-radius:14px;border:1.5px solid ${isCurrent ? s.color : 'rgba(255,255,255,.08)'};background:${isCurrent ? s.color + '15' : 'rgba(255,255,255,.03)'};color:#fff;text-align:left;cursor:${locked ? 'not-allowed' : 'pointer'};opacity:${locked ? '.5' : '1'};transition:all .2s;display:flex;align-items:center;gap:12px;"
+              ${locked ? 'disabled' : ''}>
+              <span style="width:12px;height:12px;border-radius:50%;background:${s.color};flex-shrink:0;"></span>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:14px;">${name}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.4);">${s.sb}/${s.bb} • ${s.minBuyin}-${s.maxBuyin} ${t('chips')}</div>
+              </div>
+              ${locked ? '<span style="font-size:11px;color:rgba(255,255,255,.3);">🔒</span>' : ''}
+              ${isCurrent ? '<span style="color:' + s.color + ';font-weight:800;">✓</span>' : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+      <button class="daily-modal-btn" onclick="document.getElementById('stakes-modal').remove()">${currentLang === 'ru' ? 'Закрыть' : 'Close'}</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
   console.log('DOMContentLoaded start');
@@ -6523,6 +6789,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(usernameEl) usernameEl.textContent = myName;
   updateLobbyLevel();
   updateLobbyChips();
+  updateStakeDisplay();
   const langBtn = document.getElementById('lang-btn');
   if(langBtn) {
     langBtn.textContent = currentLang === 'ru' ? 'RU' : 'EN';
@@ -6561,8 +6828,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('waiting-code').textContent=code;
     const display = document.getElementById('room-display');
     if(display) display.style.display='block';
-    const myChips = getBalance();
-    const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: SMALL_BLIND, bigBlind: BIG_BLIND });
+    const myChips = Math.min(getBalance(), currentStake.maxBuyin);
+    const state = Poker.createInitialState(code, myPlayerId, myName, myChips, { smallBlind: currentStake.sb, bigBlind: currentStake.bb });
     saveRoom(state).then(()=>{
       console.log('Room saved to poker-rooms');
       // Publish to lobby listing
@@ -6573,8 +6840,10 @@ document.addEventListener('DOMContentLoaded',()=>{
         playersCount: 1,
         maxPlayers: 6,
         status: 'waiting',
-        smallBlind: SMALL_BLIND,
-        bigBlind: BIG_BLIND,
+        smallBlind: currentStake.sb,
+        bigBlind: currentStake.bb,
+        stakeId: currentStake.id,
+        stakeName: currentLang === 'ru' ? currentStake.nameRu : currentStake.name,
         createdAt: Date.now(),
         lastActivity: Date.now()
       }).then(() => console.log('Lobby meta saved'))
@@ -6637,6 +6906,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Показать onboarding
   setTimeout(showOnboarding, 800);
   initLobbyTables();
+
+  // Try reconnect to active game
+  setTimeout(() => {
+    if(!roomCode) tryReconnect();
+  }, 500);
+
   console.log('DOMContentLoaded end');
 });
 
