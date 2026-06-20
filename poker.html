@@ -1175,7 +1175,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
   width: 100%;
   margin-top: 0;
   flex-wrap: nowrap;
-  padding: 2px 3px 4px;
+  padding: 2px 3px calc(4px + env(safe-area-inset-bottom));
   position: fixed;
   bottom: 0;
   left: 0;
@@ -1768,6 +1768,7 @@ body{font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff;min-height:100
 .onboarding-dot.active { background: var(--gold); width: 24px; border-radius: 4px; }
 .onboarding-btn { width: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #D4AF37, #A88B2D); color: #0A0A0F; font-weight: 900; font-size: 16px; border: none; cursor: pointer; }
 </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -3485,19 +3486,26 @@ function setBalance(val){
   const safeVal = Math.max(0, Math.min(999999999, parseInt(val) || 0));
   localStorage.setItem(BALANCE_KEY, safeVal);
   // FIX: Better tamper detection — use HMAC-like hash instead of trivial base64
-  let hash = 0;
-  const str = 'poker_salt_' + String(safeVal);
-  for(let i = 0; i < str.length; i++){ hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
-  localStorage.setItem(BALANCE_KEY + '_hash', hash.toString(36));
+  // FIX #18: Улучшенный hash (FNV-1a)
+  let hash = 0x811c9dc5;
+  const str = 'poker_v2_salt_' + String(safeVal) + '_pepper_' + String(safeVal * 7);
+  for(let i = 0; i < str.length; i++){ 
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  localStorage.setItem(BALANCE_KEY + '_hash', (hash >>> 0).toString(16));
 }
 function verifyBalanceHash(){
   const bal = parseInt(localStorage.getItem(BALANCE_KEY));
   const storedHash = localStorage.getItem(BALANCE_KEY + '_hash');
   if(isNaN(bal)) return false;
-  let hash = 0;
-  const str = 'poker_salt_' + String(bal);
-  for(let i = 0; i < str.length; i++){ hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
-  return storedHash === hash.toString(36);
+  let hash = 0x811c9dc5;
+  const str = 'poker_v2_salt_' + String(bal) + '_pepper_' + String(bal * 7);
+  for(let i = 0; i < str.length; i++){ 
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return storedHash === (hash >>> 0).toString(16);
 }
 function syncBalanceFromState(state){
   // Save balance after every hand to prevent data loss on refresh
@@ -3911,13 +3919,14 @@ function closeOnboarding(){
 }
 
 // ===== SETTINGS STATE =====
+// FIX #8: Глобальное объявление настроек (доступно до определения toggleSetting)
 let settingsSound = localStorage.getItem('poker_sound') !== 'false';
 let settingsNotif = localStorage.getItem('poker_notif') !== 'false';
 let settingsVibro = localStorage.getItem('poker_vibro') !== 'false';
 
 // ===== PLAYER STATS =====
 let playerStats = JSON.parse(localStorage.getItem('poker_stats') || '{}');
-if(!playerStats.hands) playerStats = {hands:0,wins:0,vpipHands:0,aggressiveActions:0,folds:0,showdowns:0,showdownWins:0,biggestPot:0,bestHand:'',royalFlushes:0,straightFlushes:0,fourOfAKinds:0,fullHouses:0,flushes:0,straightes:0,threeOfAKinds:0,twoPairs:0,pairs:0,achievements:[]};
+if(!playerStats.hands) playerStats = {hands:0,wins:0,vpipHands:0,aggressiveActions:0,folds:0,showdowns:0,showdownWins:0,biggestPot:0,bestHand:'',royalFlushes:0,straightFlushes:0,fourOfAKinds:0,fullHouses:0,flushes:0,straights:0,threeOfAKinds:0,twoPairs:0,pairs:0,achievements:[]};
 function saveStats(){localStorage.setItem('poker_stats',JSON.stringify(playerStats));}
 function recordHandResult(won,pot,handName,isVPIP,isAggressive,wentToShowdown){
   playerStats.hands++;
@@ -3933,7 +3942,7 @@ function recordHandResult(won,pot,handName,isVPIP,isAggressive,wentToShowdown){
     else if(h.includes('four'))playerStats.fourOfAKinds++;
     else if(h.includes('full house'))playerStats.fullHouses++;
     else if(h.includes('flush'))playerStats.flushes++;
-    else if(h.includes('straight'))playerStats.straightes++;
+    else if(h.includes('straight'))playerStats.straights++;
     else if(h.includes('three'))playerStats.threeOfAKinds++;
     else if(h.includes('two pair'))playerStats.twoPairs++;
     else if(h.includes('pair'))playerStats.pairs++;
@@ -4128,7 +4137,7 @@ function showStatsScreen(){
         <span style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🎰 4K: ${s.fourOfAKinds}</span>
         <span style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🏠 FH: ${s.fullHouses}</span>
         <span style="background:rgba(61,142,232,.15);border:1px solid rgba(61,142,232,.3);border-radius:8px;padding:4px 8px;font-size:10px;">🌊 Flush: ${s.flushes}</span>
-        <span style="background:rgba(39,165,90,.15);border:1px solid rgba(39,165,90,.3);border-radius:8px;padding:4px 8px;font-size:10px;">📐 Str: ${s.straightes}</span>
+        <span style="background:rgba(39,165,90,.15);border:1px solid rgba(39,165,90,.3);border-radius:8px;padding:4px 8px;font-size:10px;">📐 Str: ${s.straights}</span>
         <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;font-size:10px;">3K: ${s.threeOfAKinds}</span>
         <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;font-size:10px;">2P: ${s.twoPairs}</span>
         <span style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:4px 8px;font-size:10px;">P: ${s.pairs}</span>
@@ -4318,33 +4327,46 @@ function saveRoom(state){ return db.ref('poker-rooms/'+state.code).set(state); }
 // ===== TIMER =====
 let timerPausedAt = 0;
 let timerPausedElapsed = 0;
+// FIX #15: Timer с корректной обработкой background
 function startTimer(turnStartedAt){
   stopTimer();
   const bar=document.getElementById('timer-bar');
   if(!bar) return;
-  let lastFrame = performance.now();
+
+  const startTime = turnStartedAt || Date.now();
+
   const update=()=>{
-    if(document.hidden) return; // Skip when tab hidden
+    if(document.hidden) return; // Пауза в фоне
     const now = Date.now();
-    const elapsed = now - turnStartedAt;
+    const elapsed = now - startTime;
     const remaining = Math.max(0, TURN_TIME - Math.floor(elapsed / 1000));
     bar.style.width=(remaining/TURN_TIME)*100+'%';
     remaining<=10 ? bar.classList.add('urgent') : bar.classList.remove('urgent');
     if(remaining<=0){ stopTimer(); autoFold(); }
   };
+
   update();
   timerInterval=setInterval(update, 1000);
-  // FIX: Also update on visibility change for instant sync
-  document.addEventListener('visibilitychange', () => {
+
+  const visibilityHandler = () => {
     if(!document.hidden && timerInterval) update();
-  });
+  };
+  document.addEventListener('visibilitychange', visibilityHandler);
+  timerInterval._visibilityHandler = visibilityHandler;
 }
+
 function stopTimer(){
-  if(timerInterval) clearInterval(timerInterval);
+  if(timerInterval) {
+    if(timerInterval._visibilityHandler) {
+      document.removeEventListener('visibilitychange', timerInterval._visibilityHandler);
+    }
+    clearInterval(timerInterval);
+  }
   timerInterval=null;
   const bar=document.getElementById('timer-bar');
   if(bar){bar.style.width='100%';bar.classList.remove('urgent');}
 }
+
 function autoFold(){
   if(!roomCode) return;
   db.ref('poker-rooms/'+roomCode).transaction(currentState => {
@@ -4372,6 +4394,13 @@ function backToLobby(){
   clearAllTimers();
   AudioManager.close();
   equityCache.clear();
+
+  // FIX #12: Очищаем lobby слушатели
+  if(lobbyTablesUnsub && lobbyTablesRef){
+    lobbyTablesRef.off('value', lobbyTablesUnsub);
+    lobbyTablesRef = null;
+    lobbyTablesUnsub = null;
+  }
 
   const leavingRoomCode = roomCode;
   const wasHost = isHost;
@@ -4629,27 +4658,28 @@ function nextTournamentHand(){
     let state = normalizeState(currentState);
     if(!state.isTournament) return;
 
-    // Eliminate broke players
-    const broke = state.players.filter(p => p.chips <= 0);
-    // FIX: Track eliminated player IDs before filtering, then reindex
-    const brokeIds = broke.map(p => p.id);
-    broke.forEach(p => {
-      if(!state.eliminated.includes(p.id)) state.eliminated.push(p.id);
+    // FIX #6: Правильная обработка elimination
+    const currentDealerId = state.players[state.dealer]?.id;
+
+    const brokeIds = state.players.filter(p => p.chips <= 0).map(p => p.id);
+    brokeIds.forEach(id => {
+      if(!state.eliminated.includes(id)) state.eliminated.push(id);
     });
 
-    // FIX: Reindex properly after removal — find dealer by ID, not index
-    const currentDealerId = state.players[state.dealer]?.id;
-    const brokeIdxs = broke.map(p => state.players.indexOf(p)).sort((a,b) => b - a);
+    const playersBefore = state.players.length;
     state.players = state.players.filter(p => p.chips > 0);
-    brokeIdxs.forEach(idx => reindexPlayers(state, idx));
+    const removedCount = playersBefore - state.players.length;
 
-    // FIX: Find new dealer position by player ID
-    const newDealerIdx = state.players.findIndex(p => p.id === currentDealerId);
-    if(newDealerIdx >= 0) state.dealer = newDealerIdx;
+    if(removedCount > 0) {
+      const newDealerIdx = state.players.findIndex(p => p.id === currentDealerId);
+      state.dealer = newDealerIdx >= 0 ? newDealerIdx : 0;
 
-    // FIX: Recalculate myIndex after elimination
-    const newMyIndex = state.players.findIndex(p => p.id === myPlayerId);
-    if(newMyIndex >= 0) myIndex = newMyIndex;
+      const newMyIndex = state.players.findIndex(p => p.id === myPlayerId);
+      if(newMyIndex >= 0) myIndex = newMyIndex;
+
+      state.pots = [];
+      state.pot = 0;
+    }
 
     if(state.players.length < 2){
       // Tournament over
@@ -4962,7 +4992,7 @@ function spawnWinParticles(){
   const centerY = window.innerHeight / 2;
 
   for(let i = 0; i < 30; i++){
-    if(activeParticles >= MAX_PARTICLES) break; // Prevent DOM overload
+    if(activeParticles >= MAX_PARTICLES) break;
     activeParticles++;
     const p = document.createElement('div');
     p.className = 'particle';
@@ -4982,7 +5012,21 @@ function spawnWinParticles(){
     p.style.fontSize = (16 + Math.random() * 24) + 'px';
 
     document.body.appendChild(p);
-    setTimeout(() => { p.remove(); activeParticles = Math.max(0, activeParticles - 1); }, 2000);
+
+    // FIX #4: Удаляем по animationend + fallback cleanup
+    p.addEventListener('animationend', () => {
+      if(p.parentNode) {
+        p.remove();
+        activeParticles = Math.max(0, activeParticles - 1);
+      }
+    }, { once: true });
+
+    setTimeout(() => {
+      if(p.parentNode) {
+        p.remove();
+        activeParticles = Math.max(0, activeParticles - 1);
+      }
+    }, 2500);
   }
 }
 
@@ -5071,9 +5115,9 @@ function _renderGameImpl(state){
     if(n===2){
       rel = (i===myIdx) ? 0 : 2; // Bottom vs Top
     } else if(n===3){
-      // 3 players: bottom (0), left (1), top (2) - hide right (3)
-      rel = (i-myIdx+n)%n;
-      if(rel === 3) rel = 2; // Map right to top for 3 players
+      // FIX #16: 3 players: bottom(0), left(1), right(2)
+      rel = (i - myIdx + n) % n;
+      // rel: 0=you(bottom), 1=left, 2=right
     } else {
       rel=(i-myIdx+n)%n; // 4 players: all positions
     }
@@ -5168,7 +5212,7 @@ function _renderGameImpl(state){
   const bar=document.getElementById('action-bar');
   if(canAct){
     bar.style.display='flex';
-    const callAmt=Math.max(0,state.currentBet-me.bet);
+    const callAmt=Math.max(0,state.currentBet-(me.bet||0));
     
     document.getElementById('btn-fold').style.display='flex';
     
@@ -5197,7 +5241,7 @@ function _renderGameImpl(state){
     startTimer(state.turnStartedAt || Date.now());
   } else { stopTimer(); }
 
-  const cur=state.players[state.currentPlayer];
+  const cur=state.currentPlayer >= 0 && state.currentPlayer < state.players.length ? state.players[state.currentPlayer] : null;
   if(cur&&cur.isBot&&state.phase!=='ended'&&state.phase!=='showdown'){
     if(botTimer) clearTimeout(botTimer);
     botTimer=setTimeout(()=>botMove(),1500);
@@ -5221,6 +5265,7 @@ const MAX_RETRIES = 3;
 function withFreshState(fn){
   if(!roomCode || isProcessingAction) return;
   isProcessingAction = true;
+  closeBettingSlider(); // FIX #19: Закрываем slider при любом действии
   stopTimer();
   const attempt = () => {
     db.ref('poker-rooms/'+roomCode).transaction(currentState => {
@@ -5253,6 +5298,7 @@ function withFreshState(fn){
 }
 
 function playerFold(){
+  closeBettingSlider(); // FIX #19
   if(isProcessingAction) return;
   haptic('light');
   AudioManager.foldSound();
@@ -5262,12 +5308,14 @@ function playerFold(){
   });
 }
 function playerCheck(){
+  closeBettingSlider(); // FIX #19
   haptic('light');
   withFreshState(state=>{
     Poker.playerCheck(state, myIndex);
   });
 }
 function playerCall(){
+  closeBettingSlider(); // FIX #19
   haptic('medium');
   AudioManager.chipClick();
   AudioManager.chipStack();
@@ -5303,7 +5351,6 @@ function playerAllIn(){
 let botIsActing = false; // FIX: Guard flag to prevent overlapping bot moves
 
 function botMove(){
-  // FIX: Prevent overlapping bot moves
   if(botIsActing) return;
   if(!roomCode) return;
   if(botTimer){ clearTimeout(botTimer); botTimer=null; }
@@ -5313,40 +5360,38 @@ function botMove(){
     if(!currentState){ botIsActing = false; return; }
     let s = normalizeState(currentState);
 
+    // FIX #2: Проверяем что бот действительно должен ходить
     const botIdx = s.currentPlayer;
+    if(botIdx < 0 || botIdx >= s.players.length) { botIsActing = false; return; }
+
     const b = s.players[botIdx];
-    if(!b || b.folded || b.allIn){
-      Poker.processNextPlayer(s);
-      s.ts = Date.now();
+    if(!b || !b.isBot || b.folded || b.allIn || s.currentPlayer !== botIdx){
       botIsActing = false;
-      return s;
+      return;
     }
 
     const bbIdx = s.players.length === 2 ? s.dealer : (s.dealer + 2) % s.players.length;
     const ca = Math.max(0, s.currentBet - b.bet);
-    // FIX: Correct pot calculation
     const totalPot = s.pot + s.players.reduce((sum, p) => sum + (p.bet || 0), 0);
     const hs = Poker.evaluateHandStrength(b.hand, s.communityCards, s.phase);
     const pos = getBotPosition(s, botIdx);
     const potOdds = ca > 0 ? ca / (totalPot + ca) : 0;
     const rand = Math.random();
 
-    // FIX: In position = acts last postflop (Dealer/Button), NOT BB
     const isIP = pos === 'Dealer' || pos === 'MP';
     const raiseThreshold = isIP ? 0.65 : 0.75;
     const callThreshold = potOdds > 0.3 ? 0.25 : (potOdds > 0.15 ? 0.35 : 0.45);
     const bluffChance = pos === 'SB' && s.phase === 'preflop' ? 0.25 : 0.15;
 
-    // FIX: Use engine functions instead of direct state manipulation
     if(ca === 0){
       if(hs > raiseThreshold && rand > 0.3){
         const betSize = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.6)), b.chips);
-        if(!Poker.playerRaise(s, botIdx, betSize)){
+        if(!Poker.playerRaise(s, botIdx, betSize - ca)){
           Poker.playerCheck(s, botIdx);
         }
       } else if(hs > 0.4 && rand < bluffChance) {
         const betSize = Math.min(Math.max(s.bigBlind, Math.floor(totalPot * 0.5)), b.chips);
-        if(!Poker.playerRaise(s, botIdx, betSize)){
+        if(!Poker.playerRaise(s, botIdx, betSize - ca)){
           Poker.playerCheck(s, botIdx);
         }
       } else {
@@ -5371,11 +5416,13 @@ function botMove(){
       Poker.playerCall(s, botIdx);
     }
 
-    Poker.processNextPlayer(s);
     s.ts = Date.now();
     botIsActing = false;
     return s;
-  }, ()=>{ botIsActing = false; });
+  }, (err) => { 
+    botIsActing = false; 
+    if(err) console.error('Bot transaction error:', err);
+  });
 }
 
 function getBotPosition(state, botIdx){
@@ -5422,6 +5469,8 @@ function evaluateHandStrength(hand,community,phase){
 
 // ===== CORE GAME LOGIC =====
 function processNextPlayer(state){
+  // FIX: Проверка валидности state
+  if(!state.players || state.players.length === 0) return;
   const n=state.players.length;
   const active=state.players.filter(p=>!p.folded);
 
@@ -5486,39 +5535,35 @@ function processNextPlayer(state){
 }
 
 function collectBets(state){
-  // FIX: Classic side pot algorithm - sort bets, create pots for each unique level
-  const bets = state.players.map((p, idx) => ({ idx, bet: p.bet, folded: p.folded })).filter(x => x.bet > 0);
+  // FIX #3: Classic side pot algorithm - НЕ добавляем к state.pot, только создаем pots
+  const bets = state.players.map((p, idx) => ({ idx, bet: p.bet || 0, folded: p.folded })).filter(x => x.bet > 0);
   if (bets.length === 0) {
     state.players.forEach(p => p.bet = 0);
     state.currentBet = 0;
     state.lastBet = 0;
+    state.pot = state.pots.reduce((sum, p) => sum + p.amount, 0);
     return;
   }
-
-  // Add all current bets to the main pot
-  const totalBets = bets.reduce((sum, b) => sum + b.bet, 0);
-  state.pot += totalBets;
 
   // Sort unique bet levels (ascending)
   const uniqueBets = [...new Set(bets.map(b => b.bet))].sort((a, b) => a - b);
   let prevBet = 0;
-  state.pots = [];
+  state.pots = []; // Очищаем старые pots
 
   for (const betLevel of uniqueBets) {
     if (betLevel <= prevBet) continue;
     const diff = betLevel - prevBet;
-    // All players who contributed at least this amount (including folded - they forfeit)
     const contributors = bets.filter(b => b.bet >= betLevel);
-    // Only non-folded players are eligible to win this pot
-    const eligible = contributors
-      .filter(b => !b.folded)
-      .map(b => b.idx);
+    const eligible = contributors.filter(b => !b.folded).map(b => b.idx);
     const potAmount = diff * contributors.length;
     if (potAmount > 0) {
       state.pots.push({ amount: potAmount, eligible });
     }
     prevBet = betLevel;
   }
+
+  // Обновляем state.pot как сумму всех pots
+  state.pot = state.pots.reduce((sum, p) => sum + p.amount, 0);
 
   // Reset individual bets
   state.players.forEach(p => p.bet = 0);
@@ -5975,20 +6020,27 @@ function renderProfile(){
 function copyRoomCode(){
   if(!roomCode) return;
   const btn = document.getElementById('copy-code-btn');
+
+  // FIX #17: Fallback function определена ДО использования
+  function fallbackCopy(){
+    const ta = document.createElement('textarea');
+    ta.value = roomCode; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, 99999);
+    try { 
+      document.execCommand('copy'); 
+      if(btn) { btn.textContent = '✅ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000); } 
+      showToast('Code copied: ' + roomCode, 'success'); 
+    }
+    catch(e) { showToast('Copy manually: ' + roomCode, 'warning'); }
+    document.body.removeChild(ta);
+  }
+
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(roomCode).then(() => {
       if(btn) { btn.textContent = '✅ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000); }
       showToast('Code copied: ' + roomCode, 'success');
     }).catch(() => fallbackCopy());
   } else { fallbackCopy(); }
-  function fallbackCopy(){
-    const ta = document.createElement('textarea');
-    ta.value = roomCode; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, 99999);
-    try { document.execCommand('copy'); if(btn) { btn.textContent = '✅ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000); } showToast('Code copied: ' + roomCode, 'success'); }
-    catch(e) { showToast('Copy manually: ' + roomCode, 'warning'); }
-    document.body.removeChild(ta);
-  }
 }
 
 function refreshLobbyTables(){
@@ -6014,10 +6066,17 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// FIX #7: Escape room code для onclick
+function escapeJsString(str){
+  return str.replace(/[\\'"\n\r\t]/g, '\\$&');
+}
+
 function initLobbyTables(){
   console.log('initLobbyTables called');
+  // FIX #12: Очищаем старые слушатели перед созданием новых
   if(lobbyTablesUnsub && lobbyTablesRef){
     lobbyTablesRef.off('value', lobbyTablesUnsub);
+    lobbyTablesRef = null;
     lobbyTablesUnsub = null;
   }
   lobbyTablesRef = db.ref('poker-lobby/rooms');
@@ -6062,7 +6121,7 @@ function renderLobbyTables(rooms){
             <div class="lt-your-hint">${meta.playersCount || 1}/${meta.maxPlayers || 4} ${currentLang === 'ru' ? 'игроков' : 'players'} • ${meta.smallBlind || 10}/${meta.bigBlind || 20}</div>
           </div>
           <div class="lt-your-actions">
-            <button class="lt-return-btn" onclick="returnToMyTable('${code}')">${currentLang === 'ru' ? 'Вернуться' : 'Return'}</button>
+            <button class="lt-return-btn" onclick="returnToMyTable('${escapeJsString(code)}')">${currentLang === 'ru' ? 'Вернуться' : 'Return'}</button>
           </div>
         `;
       }
